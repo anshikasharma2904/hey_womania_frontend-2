@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import { Product } from "../models/Product";
 import { Setting } from "../models/Setting";
+import { Order } from "../models/Order";
 
 // Calculate sell points helper
 const calculateSellPoints = async (salePrice: number, isEligible: boolean) => {
@@ -52,6 +53,149 @@ export const getProductBySlug = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching product by slug:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getRelatedProducts = async (req: Request, res: Response) => {
+  try {
+    const category = String(req.query.category || "").trim();
+    const excludeSlug = String(req.query.excludeSlug || "").trim();
+    const limit = Math.max(1, Math.min(parseInt(String(req.query.limit || "4"), 10) || 4, 12));
+
+    if (!category) {
+      return res.status(400).json({ error: "category is required" });
+    }
+
+    const normalizedCategory = category.toLowerCase();
+    const normalizedCategoryNoSpaces = normalizedCategory.replace(/\s+/g, "");
+    const normalizedCategorySlug = normalizedCategory.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+
+    const products = await Product.find({
+      slug: excludeSlug ? { $ne: excludeSlug } : { $exists: true },
+      isActive: { $ne: false }
+    }).sort({ createdAt: -1 });
+
+    const relatedProducts = products
+      .filter((product) => {
+        const rawCategory = String(product.category || "");
+        const parts = rawCategory
+          .split("/")
+          .map((part) => part.trim())
+          .filter(Boolean);
+
+        const normalizedParts = parts.map((part) => part.toLowerCase());
+        const normalizedPartSlugs = normalizedParts.map((part) =>
+          part.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
+        );
+        const normalizedPartNoSpaces = normalizedParts.map((part) => part.replace(/\s+/g, ""));
+
+        return (
+          normalizedParts.includes(normalizedCategory) ||
+          normalizedPartNoSpaces.includes(normalizedCategoryNoSpaces) ||
+          normalizedPartSlugs.includes(normalizedCategorySlug)
+        );
+      })
+      .slice(0, limit);
+
+    return res.json({
+      data: relatedProducts,
+      meta: {
+        category,
+        excludeSlug,
+        total: relatedProducts.length
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching related products:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getBestSellerProducts = async (req: Request, res: Response) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt(String(req.query.limit || "7"), 10) || 7, 20));
+
+    const blockedStatuses = ["Cancelled", "Returned", "Refunded"];
+    const orders = await Order.find({
+      status: { $nin: blockedStatuses }
+    }).sort({ createdAt: -1 });
+
+    const quantityByProductId = new Map<string, number>();
+
+    for (const order of orders) {
+      const items = Array.isArray(order.items) ? order.items : [];
+      for (const item of items) {
+        const productId = String(item?.productId || "").trim();
+        const qty = Number(item?.qty || 0) || 0;
+
+        if (!productId || qty <= 0) continue;
+
+        quantityByProductId.set(productId, (quantityByProductId.get(productId) || 0) + qty);
+      }
+    }
+
+    const rankedProductIds = Array.from(quantityByProductId.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([productId]) => productId);
+
+    const products = await Product.find({
+      isActive: { $ne: false }
+    });
+
+    const rankedProducts = products.filter((product) =>
+      rankedProductIds.includes(String(product.id))
+    );
+
+    const productMap = new Map(rankedProducts.map((product) => [String(product.id), product]));
+
+    const bestSellers = rankedProductIds
+      .map((productId) => {
+        const product = productMap.get(productId);
+        if (!product) return null;
+
+        return {
+          ...product.toObject(),
+          soldCount: quantityByProductId.get(productId) || 0
+        };
+      })
+      .filter(Boolean);
+
+    const remainingSlots = Math.max(0, limit - bestSellers.length);
+
+    if (remainingSlots > 0) {
+      const selectedIds = new Set(bestSellers.map((product: any) => String(product.id)));
+      const randomPool = products.filter((product) => !selectedIds.has(String(product.id)));
+
+      const shuffledPool = [...randomPool].sort(() => Math.random() - 0.5);
+      const fillerProducts = shuffledPool.slice(0, remainingSlots).map((product) => ({
+        ...product.toObject(),
+        soldCount: 0
+      }));
+
+      return res.json({
+        data: [...bestSellers, ...fillerProducts],
+        meta: {
+          limit,
+          source: bestSellers.length > 0 ? "orders+random" : "random",
+          rankedCount: bestSellers.length,
+          fillerCount: fillerProducts.length
+        }
+      });
+    }
+
+    return res.json({
+      data: bestSellers.slice(0, limit),
+      meta: {
+        limit,
+        source: "orders",
+        rankedCount: bestSellers.length,
+        fillerCount: 0
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching best seller products:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 

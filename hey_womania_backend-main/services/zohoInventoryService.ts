@@ -7,6 +7,10 @@ import { Category } from "../models/Category";
 import { User } from "../models/User";
 import { Order } from "../models/Order";
 import mongoose from "mongoose";
+import {
+  isCloudflareImageUploadConfigured,
+  uploadImageToCloudflare
+} from "./cloudflareImageService";
 
 type ZohoConfig = {
   clientId: string;
@@ -276,6 +280,110 @@ export async function streamZohoDocumentImage(documentId: string, res: any) {
   res.send(Buffer.from(arrayBuffer));
 }
 
+async function fetchZohoItemImageBuffer(itemId: string) {
+  const config = getZohoConfig();
+  if (!config) {
+    throw new Error("Zoho Inventory is not configured");
+  }
+
+  const tokenDoc = await ZohoToken.findOne();
+  const token = await getZohoAccessToken();
+  const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
+  const response = await fetch(
+    `${apiDomain}/items/${encodeURIComponent(itemId)}/image?organization_id=${config.organizationId}`,
+    {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Zoho item image: ${response.statusText}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function fetchZohoDocumentImageBuffer(documentId: string) {
+  const config = getZohoConfig();
+  if (!config) {
+    throw new Error("Zoho Inventory is not configured");
+  }
+
+  const tokenDoc = await ZohoToken.findOne();
+  const token = await getZohoAccessToken();
+  const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
+  const response = await fetch(
+    `${apiDomain}/documents/${encodeURIComponent(documentId)}?organization_id=${config.organizationId}`,
+    {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Zoho document image: ${response.statusText}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function getSyncedImageUrlsForItem(finalItem: any, itemId: string, baseSlug: string) {
+  const fallbackImageUrls = (finalItem.documents || []).map(
+    (doc: any) => `/api/zoho/documents/${doc.document_id}`
+  );
+
+  if (fallbackImageUrls.length === 0 && finalItem.has_attachment) {
+    fallbackImageUrls.push(`/api/zoho/items/${itemId}/image`);
+  }
+
+  if (!isCloudflareImageUploadConfigured()) {
+    return fallbackImageUrls;
+  }
+
+  try {
+    const uploadedUrls: string[] = [];
+    const documents = Array.isArray(finalItem.documents) ? finalItem.documents : [];
+
+    for (let index = 0; index < documents.length; index += 1) {
+      const document = documents[index];
+      const documentId = String(document?.document_id || "").trim();
+      if (!documentId) continue;
+
+      const buffer = await fetchZohoDocumentImageBuffer(documentId);
+      const uploadedUrl = await uploadImageToCloudflare(
+        buffer,
+        `${baseSlug}-${documentId}-${index + 1}.jpg`,
+        "zoho-document"
+      );
+
+      if (uploadedUrl) {
+        uploadedUrls.push(uploadedUrl);
+      }
+    }
+
+    if (uploadedUrls.length === 0 && finalItem.has_attachment) {
+      const buffer = await fetchZohoItemImageBuffer(itemId);
+      const uploadedUrl = await uploadImageToCloudflare(
+        buffer,
+        `${baseSlug}-${itemId}.jpg`,
+        "zoho-item-image"
+      );
+
+      if (uploadedUrl) {
+        uploadedUrls.push(uploadedUrl);
+      }
+    }
+
+    return uploadedUrls.length > 0 ? uploadedUrls : fallbackImageUrls;
+  } catch (error) {
+    console.error(`Cloudflare upload failed for Zoho item ${itemId}:`, error);
+    return fallbackImageUrls;
+  }
+}
+
 export async function fetchZohoItemGroups() {
   return zohoRequest("/itemgroups");
 }
@@ -301,6 +409,30 @@ function getZohoItemRate(item: any) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function getZohoItemCategoryInfo(item: any) {
+  const categoryName =
+    item?.category_name ||
+    item?.category ||
+    item?.group_name ||
+    item?.item_group_name ||
+    "Zoho Inventory";
+
+  const subcategoryName =
+    item?.subcategory_name ||
+    item?.sub_category_name ||
+    item?.subcategory ||
+    item?.sub_category ||
+    item?.item_group_name ||
+    item?.group_name ||
+    "";
+
+  return {
+    categoryName,
+    subcategoryName:
+      subcategoryName && subcategoryName !== categoryName ? String(subcategoryName) : ""
+  };
+}
+
 export async function syncSingleZohoItemToProduct(item: any, detailedItem: any = null) {
   const itemId = String(item.item_id || "");
   if (!itemId) return null;
@@ -311,32 +443,35 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
   const sku = item.sku || itemId;
   const stock = getZohoItemStock(item);
   const baseSlug = slugify(title || itemId) || itemId;
-  const categoryName = item.category_name || "Zoho Inventory";
+  const finalItem = detailedItem || item;
+  const { categoryName, subcategoryName } = getZohoItemCategoryInfo(finalItem);
   const categorySlug = slugify(categoryName);
 
   await Category.findOneAndUpdate(
-    { slug: categorySlug },
     {
-      $setOnInsert: {
-        id: crypto.randomUUID(),
+      $or: [
+        { slug: categorySlug },
+        { name: categoryName }
+      ]
+    },
+    {
+      $set: {
         name: categoryName,
         slug: categorySlug,
         description: categoryName,
         isActive: true,
-        sortOrder: 0,
-        createdAt: now,
         updatedAt: now
+      },
+      $setOnInsert: {
+        id: crypto.randomUUID(),
+        sortOrder: 0,
+        createdAt: now
       }
     },
     { upsert: true }
   );
 
-  const finalItem = detailedItem || item;
-  const documents = finalItem.documents || [];
-  const imageUrls = documents.map((doc: any) => `/api/zoho/documents/${doc.document_id}`);
-  if (imageUrls.length === 0 && finalItem.has_attachment) {
-    imageUrls.push(`/api/zoho/items/${itemId}/image`);
-  }
+  const imageUrls = await getSyncedImageUrlsForItem(finalItem, itemId, baseSlug);
 
   const product = await Product.findOneAndUpdate(
     { zohoItemId: itemId },
@@ -349,6 +484,7 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
         salePrice: price,
         images: imageUrls,
         category: categoryName,
+        subcategory: subcategoryName || undefined,
         isReturnable: true,
         isCodAllowed: true,
         isSellPointEligible: true,
@@ -556,12 +692,42 @@ export async function pullZohoStockForProduct(productId: string) {
       }
 
       const stock = getZohoItemStock(item);
+      const { categoryName, subcategoryName } = getZohoItemCategoryInfo(item);
       const previousStock = Number(variant.availableStock || 0);
+
+      if (categoryName) {
+        const categorySlug = slugify(categoryName);
+        await Category.findOneAndUpdate(
+          {
+            $or: [
+              { slug: categorySlug },
+              { name: categoryName }
+            ]
+          },
+          {
+            $set: {
+              name: categoryName,
+              slug: categorySlug,
+              description: categoryName,
+              isActive: true,
+              updatedAt: now
+            },
+            $setOnInsert: {
+              id: crypto.randomUUID(),
+              sortOrder: 0,
+              createdAt: now
+            }
+          },
+          { upsert: true }
+        );
+      }
 
       await Product.findOneAndUpdate(
         { id: product.id, "variants.sku": variant.sku },
         {
           $set: {
+            category: categoryName,
+            subcategory: subcategoryName || undefined,
             "variants.$.availableStock": stock,
             "variants.$.zohoItemId": item.item_id,
             "variants.$.zohoLastSyncedAt": now,

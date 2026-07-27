@@ -17,11 +17,74 @@ import shiprocketRoutes from "./routes/shiprocketRoutes";
 import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import { shiprocketWebhook } from "./controllers/shiprocketController";
+import {
+  getZohoInventoryStatus,
+  syncZohoCategoriesToDb,
+  syncZohoItemsToProducts
+} from "./services/zohoInventoryService";
 
 dotenv.config(); // Load backend/.env
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const ZOHO_AUTO_SYNC_ENABLED = process.env.ZOHO_AUTO_SYNC_ENABLED !== "false";
+const ZOHO_AUTO_SYNC_INTERVAL_MINUTES = Math.max(
+  5,
+  Number(process.env.ZOHO_AUTO_SYNC_INTERVAL_MINUTES || 30) || 30
+);
+let zohoAutoSyncInProgress = false;
+
+async function runZohoAutoSync(trigger: "startup" | "interval") {
+  if (!ZOHO_AUTO_SYNC_ENABLED) {
+    return;
+  }
+
+  if (zohoAutoSyncInProgress) {
+    console.log(`[Zoho Auto Sync] Skipping ${trigger} run because a sync is already in progress.`);
+    return;
+  }
+
+  const zohoStatus = getZohoInventoryStatus();
+  if (!zohoStatus.configured) {
+    console.log("[Zoho Auto Sync] Skipping sync because Zoho is not configured.");
+    return;
+  }
+
+  zohoAutoSyncInProgress = true;
+
+  try {
+    console.log(`[Zoho Auto Sync] Starting ${trigger} sync...`);
+    const [categoryResult, productResult] = await Promise.all([
+      syncZohoCategoriesToDb(),
+      syncZohoItemsToProducts()
+    ]);
+
+    console.log(
+      `[Zoho Auto Sync] Completed ${trigger} sync. Categories: ${categoryResult.synced}, Products: ${productResult.synced}`
+    );
+  } catch (error) {
+    console.error("[Zoho Auto Sync] Sync failed:", error);
+  } finally {
+    zohoAutoSyncInProgress = false;
+  }
+}
+
+function startZohoAutoSync() {
+  if (!ZOHO_AUTO_SYNC_ENABLED) {
+    console.log("[Zoho Auto Sync] Disabled via ZOHO_AUTO_SYNC_ENABLED=false");
+    return;
+  }
+
+  const intervalMs = ZOHO_AUTO_SYNC_INTERVAL_MINUTES * 60 * 1000;
+  console.log(
+    `[Zoho Auto Sync] Enabled. Products will sync every ${ZOHO_AUTO_SYNC_INTERVAL_MINUTES} minutes.`
+  );
+
+  void runZohoAutoSync("startup");
+  setInterval(() => {
+    void runZohoAutoSync("interval");
+  }, intervalMs);
+}
 
 // Middlewares
 app.use(cors({
@@ -29,10 +92,18 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Database connection
-connectDB();
+async function bootstrap() {
+  await connectDB();
+  startZohoAutoSync();
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -53,6 +124,4 @@ app.get("/", (req, res) => {
   res.send("Women Style Backend API is running");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+void bootstrap();

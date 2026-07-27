@@ -24,6 +24,7 @@ const productSchema = new mongoose.Schema({
   salePrice: { type: Number, required: true },
   variants: [variantSchema],
   category: { type: String, required: true },
+  subcategory: String,
   isReturnable: { type: Boolean, default: true },
   isCodAllowed: { type: Boolean, default: true },
   isSellPointEligible: { type: Boolean, default: true },
