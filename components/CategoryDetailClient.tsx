@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import type {
   CategoryPageData,
-  CategoryQuickLink,
-  CategorySlug
+  CategoryQuickLink
 } from "@/app/category/category-data";
 
 type FilterColumn = {
@@ -15,10 +14,10 @@ type FilterColumn = {
 };
 
 type CategoryDetailClientProps = {
-  slug: CategorySlug;
+  slug: string;
   category: CategoryPageData;
-  quickLinks: CategoryQuickLink[];
-  activeQuickLink?: CategoryQuickLink;
+  quickLinks: Array<CategoryQuickLink | { slug: string; label: string; icon?: string; href: string }>;
+  activeQuickLink?: CategoryQuickLink | { slug: string; label: string; icon?: string; href: string };
   activeCategoryColumns: FilterColumn[];
   sizes: string[];
 };
@@ -37,59 +36,253 @@ const parsePrice = (value: string | number | undefined) => {
   return Number(value.replace(/[^0-9.]/g, "")) || 0;
 };
 
+const INVALID_SIZE_TOKENS = new Set([
+  "BOX",
+  "DEFAULT",
+  "NOSIZE",
+  "N/A",
+  "NA",
+  "PCS",
+  "PC",
+  "PIECE",
+  "PIECES",
+  "PACK",
+  "PAIR",
+  "QTY",
+  "SET"
+]);
+
+const normalizeSize = (value: string) => {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+
+  if (!cleaned || INVALID_SIZE_TOKENS.has(cleaned)) {
+    return "";
+  }
+
+  if (/^\d+$/.test(cleaned) && Number(cleaned) > 60) {
+    return "";
+  }
+
+  return cleaned;
+};
+
 export function CategoryDetailClient({
   slug,
   category,
-  quickLinks,
   activeQuickLink,
-  activeCategoryColumns,
   sizes
 }: CategoryDetailClientProps) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [priceLimit, setPriceLimit] = useState<number>(3000); // Support up to 3000 Rs
+  const [priceLimit, setPriceLimit] = useState<number>(3000);
 
-  // Handle toggling size selections
-  const toggleSize = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
-    );
+  const availableCategories = useMemo(() => {
+    const collected = new Set<string>();
+
+    for (const product of category.products as Array<any>) {
+      const label = String(product?.categoryLabel || "").trim();
+      if (label) {
+        collected.add(label);
+      }
+    }
+
+    return Array.from(collected).sort((a, b) => a.localeCompare(b));
+  }, [category.products]);
+
+  const availableSubcategories = useMemo(() => {
+    const collected = new Set<string>();
+
+    for (const product of category.products as Array<any>) {
+      const categoryLabel = String(product?.categoryLabel || "").trim();
+      if (selectedCategories.length > 0 && !selectedCategories.includes(categoryLabel)) {
+        continue;
+      }
+
+      const label = String(product?.subcategoryLabel || "").trim();
+      if (label) {
+        collected.add(label);
+      }
+    }
+
+    return Array.from(collected).sort((a, b) => a.localeCompare(b));
+  }, [category.products, selectedCategories]);
+
+  const availableSizes = useMemo(() => {
+    const collectedSizes = new Set<string>();
+
+    for (const product of category.products as Array<any>) {
+      const variantSizes = Array.isArray(product.variants)
+        ? product.variants
+            .map((variant: any) => normalizeSize(variant?.size || ""))
+            .filter(Boolean)
+        : [];
+      const explicitSizes = Array.isArray(product.sizes)
+        ? product.sizes.map((size: string) => normalizeSize(size || "")).filter(Boolean)
+        : [];
+
+      [...variantSizes, ...explicitSizes].forEach((size) => collectedSizes.add(size));
+    }
+
+    const fallbackSizes = sizes.map((size) => normalizeSize(size)).filter(Boolean);
+
+    return collectedSizes.size > 0
+      ? Array.from(collectedSizes).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      : fallbackSizes;
+  }, [category.products, sizes]);
+
+  const toggleSelection = (
+    value: string,
+    selected: string[],
+    setSelected: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setSelected((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
   };
 
-  // Perform dynamic filtering
+  const toggleSize = (size: string) => {
+    toggleSelection(size, selectedSizes, setSelectedSizes);
+  };
+
   const filteredProducts = useMemo(() => {
     return category.products.filter((product) => {
-      // 1. Price Filter
       const priceNum = parsePrice(product.price);
       if (!isNaN(priceNum) && priceNum > priceLimit) {
         return false;
       }
 
-      // 2. Size Filter
+      if (
+        selectedCategories.length > 0 &&
+        !selectedCategories.includes(String((product as any).categoryLabel || "").trim())
+      ) {
+        return false;
+      }
+
+      if (
+        selectedSubcategories.length > 0 &&
+        !selectedSubcategories.includes(String((product as any).subcategoryLabel || "").trim())
+      ) {
+        return false;
+      }
+
       if (selectedSizes.length > 0) {
-        const productSizes = (product as any).sizes || ["S", "M", "L", "XL"];
+        const productSizes = [
+          ...(((product as any).sizes as string[] | undefined) || []),
+          ...((((product as any).variants as Array<any> | undefined) || []).map((variant) =>
+            normalizeSize(variant?.size || "")
+          ))
+        ]
+          .map((size) => normalizeSize(size))
+          .filter(Boolean);
         const hasMatch = selectedSizes.some((s) => productSizes.includes(s));
         if (!hasMatch) return false;
       }
 
       return true;
     });
-  }, [category.products, priceLimit, selectedSizes]);
+  }, [category.products, priceLimit, selectedCategories, selectedSizes, selectedSubcategories]);
 
   const clearFilters = () => {
+    setSelectedCategories([]);
+    setSelectedSubcategories([]);
     setSelectedSizes([]);
     setPriceLimit(3000);
   };
 
+  const activeResultsLabel = useMemo(() => {
+    if (selectedSubcategories.length === 1) {
+      return selectedSubcategories[0];
+    }
+
+    if (selectedCategories.length === 1) {
+      return selectedCategories[0];
+    }
+
+    if (selectedSubcategories.length > 1) {
+      return `${selectedSubcategories.length} subcategories`;
+    }
+
+    if (selectedCategories.length > 1) {
+      return `${selectedCategories.length} categories`;
+    }
+
+    return category.title;
+  }, [category.title, selectedCategories, selectedSubcategories]);
+
+  const activeHeaderTitle = useMemo(() => {
+    if (selectedSubcategories.length === 1) {
+      return selectedSubcategories[0];
+    }
+
+    if (selectedCategories.length === 1) {
+      return selectedCategories[0];
+    }
+
+    return category.title;
+  }, [category.title, selectedCategories, selectedSubcategories]);
+
+  const handleCategoryToggle = (value: string) => {
+    const willSelect = !selectedCategories.includes(value);
+    const nextSelectedCategories = willSelect
+      ? [...selectedCategories, value]
+      : selectedCategories.filter((item) => item !== value);
+
+    setSelectedCategories(nextSelectedCategories);
+
+    if (nextSelectedCategories.length === 0) {
+      return;
+    }
+
+    setSelectedSubcategories((prev) =>
+      prev.filter((subCategory) =>
+        category.products.some((product: any) => {
+          const categoryLabel = String(product?.categoryLabel || "").trim();
+          const subcategoryLabel = String(product?.subcategoryLabel || "").trim();
+          return (
+            nextSelectedCategories.includes(categoryLabel) &&
+            subcategoryLabel === subCategory
+          );
+        })
+      )
+    );
+  };
+
+  const hasActiveFilters =
+    selectedCategories.length > 0 ||
+    selectedSubcategories.length > 0 ||
+    selectedSizes.length > 0 ||
+    priceLimit < 3000;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[250px_1fr]">
+    <>
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
+        <Link href="/">Home</Link>
+        <span>&gt;</span>
+        <Link href="/category">Category</Link>
+        <span>&gt;</span>
+        <span className="text-[#1c1c19]">{activeHeaderTitle}</span>
+      </div>
+
+      <div className="border-b border-[#ece6df] pb-6">
+        <p className="text-[0.7rem] uppercase tracking-[0.26em] text-[#9c4049]/70">
+          {category.eyebrow}
+        </p>
+        <h1 className="mt-3 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
+          {activeHeaderTitle}
+        </h1>
+      </div>
+
+      <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[250px_1fr]">
       {/* ----------------- Desktop Sidebar (Interactive Client Version) ----------------- */}
       <aside className="hidden rounded-[1.8rem] border border-[#ece6df] bg-white/90 p-5 shadow-[0_10px_30px_rgba(95,93,62,0.05)] lg:block h-fit">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#111111]">
             Filters
           </h2>
-          {(selectedSizes.length > 0 || priceLimit < 3000) && (
+          {hasActiveFilters && (
             <button
               onClick={clearFilters}
               className="text-xs font-semibold text-[#9c4049] hover:underline"
@@ -99,34 +292,60 @@ export function CategoryDetailClient({
           )}
         </div>
 
-        {/* Category list */}
-        <div className="mt-6 border-t border-[#ece6df] pt-5">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]">
-            Categories
-          </h3>
-          <div className="mt-4 space-y-5">
-            {activeCategoryColumns.map((column) => (
-              <div key={column.title}>
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#9c4049]">
-                  {column.title}
-                </p>
-                <div className="mt-3 space-y-2.5">
-                  {column.links.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className="block text-sm leading-6 text-[#6d655d] transition-colors duration-200 hover:text-[#9c4049]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
+        {availableCategories.length > 0 ? (
+          <div className="mt-6 border-t border-[#ece6df] pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]">
+              Category
+            </h3>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {availableCategories.map((item) => {
+                const isSelected = selectedCategories.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => handleCategoryToggle(item)}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? "border-[#111111] bg-[#111111] text-white shadow-sm"
+                        : "border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        {/* Price Slider */}
+        {availableSubcategories.length > 0 ? (
+          <div className="mt-6 border-t border-[#ece6df] pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]">
+              Subcategory
+            </h3>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {availableSubcategories.map((item) => {
+                const isSelected = selectedSubcategories.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleSelection(item, selectedSubcategories, setSelectedSubcategories)}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? "border-[#111111] bg-[#111111] text-white shadow-sm"
+                        : "border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-6 border-t border-[#ece6df] pt-5">
           <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111] flex justify-between">
             <span>Max Price</span>
@@ -147,31 +366,32 @@ export function CategoryDetailClient({
           </div>
         </div>
 
-        {/* Sizes */}
-        <div className="mt-6 border-t border-[#ece6df] pt-5">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]">
-            Sizes
-          </h3>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {sizes.map((size) => {
-              const isSelected = selectedSizes.includes(size);
-              return (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => toggleSize(size)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
-                    isSelected
-                      ? "bg-[#111111] text-white border-[#111111] shadow-sm"
-                      : "border-[#ddd5cc] text-[#6d655d] bg-white hover:bg-[#f4efe8]"
-                  }`}
-                >
-                  {size}
-                </button>
-              );
-            })}
+        {availableSizes.length > 0 ? (
+          <div className="mt-6 border-t border-[#ece6df] pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]">
+              Sizes
+            </h3>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {availableSizes.map((size) => {
+                const isSelected = selectedSizes.includes(size);
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => toggleSize(size)}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? "bg-[#111111] text-white border-[#111111] shadow-sm"
+                        : "border-[#ddd5cc] text-[#6d655d] bg-white hover:bg-[#f4efe8]"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
       </aside>
 
       {/* ----------------- Mobile Drawer & Products Grid Area ----------------- */}
@@ -203,35 +423,60 @@ export function CategoryDetailClient({
             </button>
           </div>
 
-          {/* Categories */}
-          <div className="mt-6 border-t border-[#ece6df] pt-4">
-            <h3 className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#9c4049]">
-              Categories
-            </h3>
-            <div className="mt-4 space-y-5">
-              {activeCategoryColumns.map((column) => (
-                <div key={`drawer-${column.title}`}>
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111]">
-                    {column.title}
-                  </p>
-                  <div className="mt-3 space-y-2.5">
-                    {column.links.map((item) => (
-                      <Link
-                        key={`drawer-${item.label}`}
-                        href={item.href}
-                        onClick={() => setMobileFiltersOpen(false)}
-                        className="block text-sm leading-6 text-[#6d655d]"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
+          {availableCategories.length > 0 ? (
+            <div className="mt-6 border-t border-[#ece6df] pt-4">
+              <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111]">
+                Category
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {availableCategories.map((item) => {
+                  const isSelected = selectedCategories.includes(item);
+                  return (
+                    <button
+                      key={`drawer-category-${item}`}
+                      type="button"
+                      onClick={() => handleCategoryToggle(item)}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                        isSelected
+                          ? "border-[#111111] bg-[#111111] text-white shadow-sm"
+                          : "border-[#ddd5cc] bg-white text-[#6d655d]"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
 
-          {/* Price limit (Mobile) */}
+          {availableSubcategories.length > 0 ? (
+            <div className="mt-6 border-t border-[#ece6df] pt-4">
+              <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111]">
+                Subcategory
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {availableSubcategories.map((item) => {
+                  const isSelected = selectedSubcategories.includes(item);
+                  return (
+                    <button
+                      key={`drawer-subcategory-${item}`}
+                      type="button"
+                      onClick={() => toggleSelection(item, selectedSubcategories, setSelectedSubcategories)}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                        isSelected
+                          ? "border-[#111111] bg-[#111111] text-white shadow-sm"
+                          : "border-[#ddd5cc] bg-white text-[#6d655d]"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-6 border-t border-[#ece6df] pt-4">
             <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111] flex justify-between">
               <span>Max Price</span>
@@ -252,31 +497,32 @@ export function CategoryDetailClient({
             </div>
           </div>
 
-          {/* Sizes (Mobile) */}
-          <div className="mt-6 border-t border-[#ece6df] pt-4">
-            <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111]">
-              Sizes
-            </h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {sizes.map((size) => {
-                const isSelected = selectedSizes.includes(size);
-                return (
-                  <button
-                    key={`drawer-${size}`}
-                    type="button"
-                    onClick={() => toggleSize(size)}
-                    className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                      isSelected
-                        ? "bg-[#111111] text-white border-[#111111] shadow-sm"
-                        : "border-[#ddd5cc] text-[#6d655d] bg-white"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
+          {availableSizes.length > 0 ? (
+            <div className="mt-6 border-t border-[#ece6df] pt-4">
+              <h3 className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#111111]">
+                Sizes
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {availableSizes.map((size) => {
+                  const isSelected = selectedSizes.includes(size);
+                  return (
+                    <button
+                      key={`drawer-${size}`}
+                      type="button"
+                      onClick={() => toggleSize(size)}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                        isSelected
+                          ? "bg-[#111111] text-white border-[#111111] shadow-sm"
+                          : "border-[#ddd5cc] text-[#6d655d] bg-white"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="mt-6 flex gap-2">
             <button
@@ -305,7 +551,7 @@ export function CategoryDetailClient({
             </span>{" "}
             of <span className="font-semibold text-[#111111]">{category.products.length}</span> items in{" "}
             <span className="font-semibold text-[#111111]">
-              {activeQuickLink?.label ?? category.title}
+              {activeResultsLabel}
             </span>
           </p>
           <div className="flex items-center gap-3">
@@ -337,51 +583,57 @@ export function CategoryDetailClient({
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 xl:grid-cols-4">
             {filteredProducts.map((product) => (
               <Link
                 key={product.name}
                 href={`/product/${(product as any).slug || slugifyProductName(product.name)}`}
-                className="group rounded-[1.2rem] border border-[#ece6df] bg-white/92 p-3 shadow-[0_10px_28px_rgba(95,93,62,0.05)] transition-all duration-300 hover:-translate-y-1 sm:rounded-[1.5rem] sm:p-4"
+                className="group overflow-hidden rounded-[1.75rem] border border-[#ece6df] bg-white shadow-[0_14px_34px_rgba(95,93,62,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(95,93,62,0.1)]"
               >
-                <div className="relative overflow-hidden rounded-[0.95rem] bg-[#f4efe8] sm:rounded-[1.2rem] h-[220px] sm:h-[300px]">
+                <div className="p-4 pb-0">
+                  <div className="relative aspect-[4/4.9] overflow-hidden rounded-[1.35rem] bg-[#f4efe8]">
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
                   />
+                  </div>
                 </div>
 
-                <div className="pt-3 sm:pt-4">
-                  <p className="text-[0.56rem] uppercase tracking-[0.14em] text-[#9c4049]/72 sm:text-[0.62rem] sm:tracking-[0.18em]">
-                    {product.subtitle}
+                <div className="flex flex-col gap-2 px-4 pb-4 pt-4">
+                  <p className="text-[0.58rem] uppercase tracking-[0.2em] text-[#9c4049]/72 sm:text-[0.64rem]">
+                    {(product as any).categoryLabel || "Live Collection"}
                   </p>
-                  <h2 className="mt-2 text-[0.95rem] font-semibold leading-5 text-[#1c1c19] sm:text-base sm:leading-6">
+                  <h2 className="line-clamp-2 min-h-[2.6rem] text-[0.98rem] font-semibold leading-[1.35rem] text-[#1c1c19] sm:min-h-[2.8rem] sm:text-[1.05rem]">
                     {product.name}
                   </h2>
-                  <div className="mt-2.5 flex items-center gap-1 text-[#ffb000] sm:mt-3">
-                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                      <span key={starIndex} className="text-[10px] sm:text-xs">
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-2.5 flex flex-col gap-1 sm:mt-3">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="text-[1rem] font-bold text-[#111111] sm:text-lg">
-                        {product.price}
-                      </span>
-                      {(product as any).originalPrice ? (
-                        <span className="text-[0.78rem] text-[#a7a09a] line-through sm:text-sm">
-                          {(product as any).originalPrice}
+                  {(product as any).subcategoryLabel ? (
+                    <p className="line-clamp-1 text-[0.76rem] text-[#8a8076] sm:text-[0.82rem]">
+                      {(product as any).subcategoryLabel}
+                    </p>
+                  ) : null}
+                  <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+                    <div className="flex items-center gap-1 text-[#ffb000]">
+                      {Array.from({ length: 5 }).map((_, starIndex) => (
+                        <span key={starIndex} className="text-[10px] sm:text-[11px]">
+                          ★
                         </span>
-                      ) : (
-                        <span className="text-[0.78rem] text-[#a7a09a] line-through sm:text-sm">
-                          ₹300
-                        </span>
-                      )}
+                      ))}
                     </div>
+                    <div className="rounded-full bg-[#f7f1ea] px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#7b6d64]">
+                      New
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="text-[1.05rem] font-bold text-[#111111] sm:text-[1.15rem]">
+                        {product.price}
+                    </span>
+                    {(product as any).originalPrice ? (
+                      <span className="text-[0.8rem] text-[#a7a09a] line-through sm:text-sm">
+                        {(product as any).originalPrice}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </Link>
@@ -389,6 +641,7 @@ export function CategoryDetailClient({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { FaCheckCircle, FaShippingFast, FaBoxOpen, FaFileInvoiceDollar, FaMapMarkerAlt } from "react-icons/fa";
 import { slugifyProductName } from "@/app/category/category-data";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 const parseAmount = (value: number | string | undefined | null) => {
   if (typeof value === "number") return value;
 
@@ -26,7 +28,7 @@ async function fetchOrderById(id: string) {
   if (!sessionToken) return null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${id}`, {
+    const res = await fetch(`${API_URL}/api/orders/${id}`, {
       headers: {
         "Cookie": `hey_womania_session=${sessionToken.value}`
       },

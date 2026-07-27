@@ -1,16 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CategoryDetailClient } from "@/components/CategoryDetailClient";
 import { StoreFooter } from "@/components/StoreFooter";
 import {
-  categoryQuickLinks,
-  type CategorySlug
+  categoryQuickLinks
 } from "../category-data";
 
 export const dynamic = "force-dynamic";
 
 const categoryFilterColumns: Record<
-  CategorySlug,
+  string,
   Array<{ title: string; links: { label: string; href: string }[] }>
 > = {
   all: [
@@ -164,6 +162,9 @@ type CategoryDetailPageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{
+    search?: string;
+  }>;
 };
 
 export function generateStaticParams() {
@@ -181,6 +182,19 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+const formatCategoryLabel = (value: string) =>
+  value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+
+const getCategoryPathParts = (value: string) =>
+  value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
 const toTitleCase = (value: string) =>
   value
     .split(/[\s-]+/)
@@ -188,11 +202,22 @@ const toTitleCase = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 
+const getDisplayTitleFromCategoryPath = (value: string) => {
+  const parts = getCategoryPathParts(value);
+  if (parts.length === 0) return "";
+
+  return formatCategoryLabel(parts[parts.length - 1] || parts[0]);
+};
+
 export default async function CategoryDetailPage({
-  params
+  params,
+  searchParams
 }: CategoryDetailPageProps) {
   const { slug: rawSlug } = await params;
-  const slug = rawSlug as CategorySlug;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const slug = rawSlug;
+  const searchQuery = String(resolvedSearchParams?.search || "").trim();
+  const normalizedSearchQuery = searchQuery.toLowerCase();
 
   let liveProducts: any[] = [];
   let liveCategories: any[] = [];
@@ -222,10 +247,22 @@ export default async function CategoryDetailPage({
 
   const mappedLive = liveProducts
     .filter((p: any) => {
-      const pSlug = slugify(p.category || "");
-      return pSlug === slug || slug === "all";
+      const categoryPath = String(p.category || "");
+      const categoryParts = categoryPath
+        .split("/")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const fullSlug = slugify(categoryPath);
+      const mainSlug = slugify(categoryParts[0] || "");
+
+      return slug === "all" || fullSlug === slug || mainSlug === slug;
     })
     .map((p: any) => {
+      const categoryPath = String(p.category || "");
+      const categoryParts = categoryPath
+        .split("/")
+        .map((part) => part.trim())
+        .filter(Boolean);
       const hasDiscount = p.salePrice && p.salePrice < p.price;
       const finalPrice = hasDiscount ? p.salePrice : p.price;
       const originalPrice = p.price;
@@ -241,11 +278,35 @@ export default async function CategoryDetailPage({
         price: `₹${finalPrice}`,
         originalPrice: hasDiscount ? `₹${originalPrice}` : undefined,
         subtitle: p.description || "Newly added",
+        categoryLabel: formatCategoryLabel(categoryParts[1] || categoryParts[0] || "Collection"),
+        subcategoryLabel: categoryParts[2] ? formatCategoryLabel(categoryParts[2]) : undefined,
         image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
         gallery,
         variants: p.variants || [],
+        sizes: Array.isArray(p.variants)
+          ? p.variants
+              .map((variant: any) => String(variant?.size || "").trim())
+              .filter(Boolean)
+          : [],
         slug: p.slug
       };
+    })
+    .filter((product: any) => {
+      if (!normalizedSearchQuery) {
+        return true;
+      }
+
+      const searchableText = [
+        product.name,
+        product.subtitle,
+        product.categoryLabel,
+        product.subcategoryLabel
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearchQuery);
     });
 
   const matchedCategory =
@@ -253,70 +314,135 @@ export default async function CategoryDetailPage({
       ? null
       : liveCategories.find((category: any) => slugify(category.slug || category.name || "") === slug);
 
+  const matchingMainCategoryName =
+    slug === "all"
+      ? null
+      : liveCategories
+          .map((category: any) => String(category.name || ""))
+          .find((name) => slugify(name.split("/")[0] || "") === slug);
+
+  const filterMainCategory =
+    matchingMainCategoryName?.split("/")[0] ||
+    matchedCategory?.name?.split("/")[0] ||
+    null;
+
+  const isMainCategoryRoute =
+    slug !== "all" &&
+    !!filterMainCategory &&
+    slug === slugify(filterMainCategory);
+
+  const dynamicCategoryColumns = (() => {
+    const groups = new Map<string, { label: string; href: string }[]>();
+
+    for (const category of liveCategories) {
+      const rawName = String(category.name || "");
+      const parts = getCategoryPathParts(rawName);
+      if (parts.length === 0) continue;
+
+      const [mainRaw, secondRaw, thirdRaw] = parts;
+      const mainSlug = slugify(mainRaw || "");
+      const fullSlug = slugify(category.slug || rawName);
+
+      if (slug !== "all") {
+        if (filterMainCategory && slugify(filterMainCategory) !== mainSlug && slug !== fullSlug) {
+          continue;
+        }
+      }
+
+      const title = formatCategoryLabel(secondRaw || mainRaw);
+      if (!groups.has(title)) {
+        groups.set(title, []);
+      }
+
+      if (thirdRaw) {
+        const links = groups.get(title)!;
+        const label = formatCategoryLabel(thirdRaw);
+        const href = `/category/${category.slug || slugify(rawName)}`;
+        if (!links.some((item) => item.label === label && item.href === href)) {
+          links.push({ label, href });
+        }
+      }
+    }
+
+    if (slug === "all" && groups.size === 0) {
+      for (const category of liveCategories) {
+        const rawName = String(category.name || "");
+        const href = `/category/${category.slug || slugify(rawName)}`;
+        const title = formatCategoryLabel(getCategoryPathParts(rawName)[0] || rawName);
+        if (!groups.has(title)) {
+          groups.set(title, []);
+        }
+        const links = groups.get(title)!;
+        if (!links.some((item) => item.label === title && item.href === href)) {
+          links.push({ label: title, href });
+        }
+      }
+    }
+
+    return Array.from(groups.entries()).map(([title, links]) => ({
+      title,
+      links: links.sort((a, b) => a.label.localeCompare(b.label))
+    }));
+  })();
+
   if (mappedLive.length === 0 && slug !== "all") {
     notFound();
   }
 
   const category = {
-    title: slug === "all" ? "All Products" : matchedCategory?.name || toTitleCase(slug),
-    eyebrow: slug === "all" ? "SHOP THE FULL COLLECTION" : "SHOP BY CATEGORY",
+    title:
+      searchQuery
+        ? `Search Results for "${searchQuery}"`
+        : slug === "all"
+        ? "All Products"
+        : isMainCategoryRoute
+          ? formatCategoryLabel(filterMainCategory || slug)
+          : getDisplayTitleFromCategoryPath(matchedCategory?.name || matchingMainCategoryName || "") ||
+          toTitleCase(slug),
+    eyebrow:
+      searchQuery
+        ? "SEARCH RESULTS"
+        : slug === "all"
+        ? "SHOP THE FULL COLLECTION"
+        : isMainCategoryRoute
+          ? "SHOP THE MAIN CATEGORY"
+          : "SHOP BY CATEGORY",
     intro:
-      slug === "all"
+      searchQuery
+        ? `Showing live products matching "${searchQuery}".`
+        : slug === "all"
         ? "Browse the complete live catalog with the same category experience as before."
-        : matchedCategory?.description || `Browse the live ${toTitleCase(slug)} collection.`,
+        : matchedCategory?.description || "",
     products: mappedLive
   };
 
-  const activeQuickLink = categoryQuickLinks.find((item) => item.slug === slug);
+  const liveQuickLinks = [
+    {
+      slug: "all",
+      label: "All",
+      href: "/category/all",
+      icon: "apps"
+    },
+    ...liveCategories.map((category: any) => ({
+      slug: slugify(category.slug || category.name || ""),
+      label: category.name,
+      href: `/category/${slugify(category.slug || category.name || "")}`,
+      icon: "category"
+    }))
+  ];
+
   const activeCategoryColumns =
-    categoryFilterColumns[slug] ?? categoryFilterColumns.all;
+    dynamicCategoryColumns.length > 0
+      ? dynamicCategoryColumns
+      : categoryFilterColumns[slug] ?? categoryFilterColumns.all;
 
   return (
     <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-44 text-[#1c1c19] md:px-10 md:pt-40 lg:pt-44 lg:px-16">
       <section className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
-          <Link href="/">Home</Link>
-          <span>&gt;</span>
-          <Link href="/category">Category</Link>
-          <span>&gt;</span>
-          <span className="text-[#1c1c19]">{category.title}</span>
-        </div>
-
-        <div className="flex flex-col gap-4 border-b border-[#ece6df] pb-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[0.7rem] uppercase tracking-[0.26em] text-[#9c4049]/70">
-              {category.eyebrow}
-            </p>
-            <h1 className="mt-3 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
-              {category.title}
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-[#6d655d] md:text-base">
-              {category.intro}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar md:flex-wrap md:overflow-visible md:pb-0">
-            {categoryQuickLinks.map((item) => (
-              <Link
-                key={item.slug}
-                href={item.href}
-                className={`shrink-0 rounded-full px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.14em] transition-all duration-300 ${
-                  item.slug === slug
-                    ? "bg-[#111111] text-white"
-                    : "bg-[#f4efe8] text-[#6f5f56] hover:bg-[#e8e1d8]"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
         <CategoryDetailClient
           slug={slug}
           category={category}
-          quickLinks={categoryQuickLinks}
-          activeQuickLink={activeQuickLink}
+          quickLinks={liveQuickLinks}
           activeCategoryColumns={activeCategoryColumns}
           sizes={filterGroups.sizes}
         />

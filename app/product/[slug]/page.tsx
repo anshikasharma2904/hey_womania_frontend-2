@@ -58,10 +58,11 @@ export default async function ProductDetailPage({
   params
 }: ProductDetailPageProps) {
   const { slug } = await params;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   let product = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/products/${slug}`, {
+    const res = await fetch(`${apiUrl}/api/products/${slug}`, {
       cache: 'no-store'
     });
     if (res.ok) {
@@ -71,11 +72,15 @@ export default async function ProductDetailPage({
       const originalPrice = p.price;
       const discountPercent = hasDiscount ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100) : 0;
       
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const gallery = (p.images || []).map((img: string) => {
         if (img.startsWith('http')) return img;
         return `${apiUrl}${img}`;
       });
+
+      const categoryParts = String(p.category || "")
+        .split("/")
+        .map((part: string) => part.trim())
+        .filter(Boolean);
 
       product = {
         id: p.id,
@@ -87,8 +92,17 @@ export default async function ProductDetailPage({
         image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
         gallery: gallery,
         slug: p.slug,
-        categorySlug: p.category ? p.category.toLowerCase().replace(/[^a-z0-9]+/g, '-') : "all",
-        categoryTitle: p.category ? (p.category.charAt(0).toUpperCase() + p.category.slice(1)) : "All",
+        categorySlug: categoryParts[0]
+          ? categoryParts[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
+          : "all",
+        categoryTitle: categoryParts[0]
+          ? categoryParts[0]
+              .split(/[-_\s]+/)
+              .filter(Boolean)
+              .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+              .join(" ")
+          : "All",
+        relatedCategory: categoryParts[1] || categoryParts[0] || "all",
         variants: p.variants || []
       };
     }
@@ -108,35 +122,68 @@ export default async function ProductDetailPage({
   // Related products
   let relatedProducts = catalogProducts.slice(0, 4);
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/products`, {
-      cache: 'no-store'
-    });
+    const relatedCategory = encodeURIComponent((product as any).relatedCategory || product.categoryTitle || "all");
+    const res = await fetch(
+      `${apiUrl}/api/products/related?category=${relatedCategory}&excludeSlug=${encodeURIComponent(product.slug)}&limit=4`,
+      {
+        cache: "no-store"
+      }
+    );
     if (res.ok) {
       const data = await res.json();
       const allLive = data.data ? data.data : Array.isArray(data) ? data : [];
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const liveRelated = allLive
-        .filter((p: any) => p.category?.toLowerCase() === product.categorySlug && p.slug !== product.slug)
-        .slice(0, 4)
-        .map((p: any) => {
-          const gallery = (p.images || []).map((img: string) => {
-            if (img.startsWith('http')) return img;
-            return `${apiUrl}${img}`;
-          });
-          return {
-            name: p.title,
-            slug: p.slug,
-            price: `₹${p.salePrice || p.price}`,
-            image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png"
-          };
+      const liveRelated = allLive.map((p: any) => {
+        const gallery = (p.images || []).map((img: string) => {
+          if (img.startsWith("http")) return img;
+          return `${apiUrl}${img}`;
         });
-      
+        return {
+          name: p.title,
+          slug: p.slug,
+          price: `₹${p.salePrice || p.price}`,
+          image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png"
+        };
+      });
+
       if (liveRelated.length > 0) {
         relatedProducts = liveRelated;
       }
     }
   } catch (err) {
     console.error("Failed to fetch related products:", err);
+  }
+
+  if (!relatedProducts.length) {
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/products`, {
+      cache: 'no-store'
+    });
+      if (res.ok) {
+        const data = await res.json();
+        const allLive = data.data ? data.data : Array.isArray(data) ? data : [];
+        const fallbackRelated = allLive
+          .filter((p: any) => p.slug !== product.slug)
+          .slice(0, 4)
+          .map((p: any) => {
+            const gallery = (p.images || []).map((img: string) => {
+              if (img.startsWith("http")) return img;
+              return `${apiUrl}${img}`;
+            });
+            return {
+              name: p.title,
+              slug: p.slug,
+              price: `₹${p.salePrice || p.price}`,
+              image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png"
+            };
+          });
+
+        if (fallbackRelated.length > 0) {
+          relatedProducts = fallbackRelated;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch fallback related products:", err);
+    }
   }
 
   return (
@@ -268,35 +315,37 @@ export default async function ProductDetailPage({
           </div>
 
           <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
-            <h2 className="text-xl font-black uppercase tracking-[-0.04em] text-[#111111]">
+            <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">
               You Might Also Like
             </h2>
             <div className="mt-5 grid grid-cols-2 gap-4">
               {relatedProducts.map((item) => (
                 <Link
                   key={item.slug}
-                  href={`/product/${slugifyProductName(item.name)}`}
-                  className="group"
+                  href={`/product/${item.slug || slugifyProductName(item.name)}`}
+                  className="group rounded-[1.35rem] border border-[#f0e7de] bg-[#fffdfa] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-[#e1d1c6] hover:shadow-[0_18px_34px_rgba(95,93,62,0.08)]"
                 >
-                  <div className="overflow-hidden rounded-[1rem] bg-[#f4efe8]">
+                  <div className="overflow-hidden rounded-[1.1rem] bg-[#f4efe8]">
                     <Image
                       src={item.image}
                       alt={item.name}
                       width={260}
                       height={320}
-                      className="h-[140px] w-full object-contain object-bottom p-4 transition-transform duration-300 group-hover:scale-[1.04]"
+                      className="h-[180px] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
                     />
                   </div>
-                  <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-[#111111] md:text-sm">
-                    {item.name}
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm font-bold text-[#111111]">
+                  <div className="mt-3">
+                    <p className="line-clamp-2 min-h-[2.8rem] text-[0.92rem] font-semibold leading-[1.35rem] text-[#111111]">
+                      {item.name}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-[1rem] font-bold text-[#111111]">
                       {item.price}
-                    </span>
-                    <span className="text-xs text-[#a7a09a] line-through">
-                      ₹242
-                    </span>
+                      </span>
+                      <span className="text-[0.75rem] text-[#a7a09a] line-through">
+                        ₹242
+                      </span>
+                    </div>
                   </div>
                 </Link>
               ))}

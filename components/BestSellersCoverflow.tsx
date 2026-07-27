@@ -15,11 +15,12 @@ type BestSellerItem = {
 };
 
 type BestSellersCoverflowProps = {
+  items?: BestSellerItem[];
   title?: string;
   viewAllHref?: string;
 };
 
-const items: BestSellerItem[] = [
+const fallbackItems: BestSellerItem[] = [
   {
     id: "01",
     title: "Western Tailoring",
@@ -128,16 +129,22 @@ const coverflowState = (relativeIndex: number) => {
 };
 
 export function BestSellersCoverflow({
+  items: incomingItems,
   title = "Best Sellers",
   viewAllHref = "/best-sellers"
 }: BestSellersCoverflowProps) {
-  const [activeIndex, setActiveIndex] = useState(3);
+  const items = incomingItems && incomingItems.length > 0 ? incomingItems : fallbackItems;
+  const [activeIndex, setActiveIndex] = useState(Math.min(3, Math.max(0, items.length - 1)));
   const sectionRef = useRef<HTMLElement | null>(null);
   const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const textRefs = useRef<(HTMLDivElement | null)[]>([]);
   const handleActivate = (index: number) => {
     setActiveIndex((currentIndex) => (currentIndex === index ? currentIndex : index));
   };
+
+  useLayoutEffect(() => {
+    setActiveIndex(Math.min(3, Math.max(0, items.length - 1)));
+  }, [items.length]);
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -217,11 +224,14 @@ export function BestSellersCoverflow({
                 <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_22%,rgba(0,0,0,0.16))]" />
                 <div className="pointer-events-none absolute left-1/2 top-0 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-white/75 shadow-[0_10px_22px_rgba(255,255,255,0.08)]" />
                 <div className="pointer-events-none absolute bottom-0 left-1/2 h-8 w-8 -translate-x-1/2 translate-y-1/2 rounded-full border border-[#f0d0b4]/40 bg-[#b76a3c] shadow-[0_12px_24px_rgba(183,106,60,0.24)]" />
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="pointer-events-none absolute bottom-0 left-1/2 h-[86%] w-auto -translate-x-1/2 object-contain"
-                />
+                <div className="absolute inset-[0.45rem] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#2b221e]">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="pointer-events-none h-full w-full object-cover object-top"
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent_0%,rgba(15,12,11,0.18)_45%,rgba(15,12,11,0.46)_100%)]" />
+                </div>
               </Link>
             ))}
           </div>

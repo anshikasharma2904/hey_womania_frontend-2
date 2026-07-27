@@ -15,6 +15,26 @@ type LuxuryCategoryNavigationProps = {
   categories?: CategoryLink[];
 };
 
+const formatCategoryLabel = (value: string) =>
+  value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+
+const getCategoryPathParts = (value: string) =>
+  value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+const getDisplayCategoryLabel = (value: string) => {
+  const parts = getCategoryPathParts(value);
+  if (parts.length === 0) return formatCategoryLabel(value);
+
+  return formatCategoryLabel(parts[parts.length - 1] || parts[0]);
+};
+
 export function LuxuryCategoryNavigation({ categories: incomingCategories }: LuxuryCategoryNavigationProps) {
   const categories = incomingCategories && incomingCategories.length > 0 ? incomingCategories : categoryQuickLinks;
 
@@ -48,7 +68,7 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
             <span className="hidden text-2xl text-[#c6b7ab] md:block">›</span>
           </div>
 
-          <div className="flex gap-5 overflow-x-auto pb-2 no-scrollbar md:justify-between md:gap-4 md:overflow-visible lg:flex-nowrap">
+          <div className="flex justify-center gap-5 overflow-x-auto pb-2 no-scrollbar md:gap-5 md:overflow-x-auto lg:flex-nowrap">
             {categories.map((category) => (
               <motion.div
                 key={category.slug}
@@ -59,7 +79,10 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
                   transition: { duration: 0.35, ease: "easeOut" }
                 }}
               >
-                <Link href={category.href} className="group flex w-[88px] flex-col items-center text-center md:w-[92px] lg:w-[100px]">
+                <Link
+                  href={category.href}
+                  className="group flex w-[120px] flex-col items-center text-center md:w-[128px] lg:w-[132px]"
+                >
                   <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(180deg,#fffefb_0%,#f7ebe1_100%)] shadow-[0_16px_34px_rgba(97,74,58,0.08)] transition-all duration-500 group-hover:shadow-[0_24px_48px_rgba(97,74,58,0.14)] md:h-24 md:w-24">
                     <div className="absolute inset-[7px] rounded-full border border-[#f1c1b6]/90" />
                     <div className="absolute inset-[19px] rounded-full bg-[linear-gradient(180deg,#fff6f1_0%,#fde9e2_100%)] shadow-inner" />
@@ -70,7 +93,7 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
                   </div>
 
                   <p className="mt-3 text-[0.72rem] font-medium uppercase tracking-[0.14em] text-[#6f5f56] transition-colors duration-300 group-hover:text-[#9c4049] md:text-[0.78rem]">
-                    {category.label}
+                    {getDisplayCategoryLabel(category.label)}
                   </p>
                 </Link>
               </motion.div>

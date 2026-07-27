@@ -4,8 +4,11 @@ import { ElaraHeroSection } from "@/components/ElaraHeroSection";
 import { LuxuryCategoryNavigation } from "@/components/LuxuryCategoryNavigation";
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
 import { StoreFooter } from "@/components/StoreFooter";
+import { slugifyProductName } from "@/app/category/category-data";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
 import { categoryQuickLinks } from "@/app/category/category-data";
+
+export const revalidate = 300;
 
 const testimonials = [
   {
@@ -57,6 +60,16 @@ type Product = {
   variants: any[];
 };
 
+type BestSellerProduct = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  description?: string;
+  images?: string[];
+  soldCount?: number;
+};
+
 const arrivalImages: string[] = [
   MODEL_ASSETS.western,
   MODEL_ASSETS.traditional,
@@ -77,10 +90,48 @@ function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 }
 
+function formatCategoryLabel(value: string) {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function getCategoryPathParts(value: string) {
+  return value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function getDisplayCategoryLabel(value: string) {
+  const parts = getCategoryPathParts(value);
+  if (parts.length === 0) return formatCategoryLabel(value);
+
+  return formatCategoryLabel(parts[parts.length - 1] || parts[0]);
+}
+
 async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const res = await fetch(`${apiUrl}/api/products`, { cache: "no-store" });
+    const res = await fetch(`${apiUrl}/api/products?limit=24`, {
+      next: { revalidate: 300 }
+    });
+    if (!res.ok) return [];
+    const result = await res.json();
+    return result.data ? result.data : Array.isArray(result) ? result : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchBestSellers(): Promise<BestSellerProduct[]> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const res = await fetch(`${apiUrl}/api/products/best-sellers?limit=7`, {
+      next: { revalidate: 300 }
+    });
     if (!res.ok) return [];
     const result = await res.json();
     return result.data ? result.data : Array.isArray(result) ? result : [];
@@ -131,7 +182,7 @@ function mapProductsToCategories(products: Product[]) {
       return {
         slug,
         href: `/category/${slug}`,
-        label: category,
+        label: getDisplayCategoryLabel(category),
         icon: categoryIcons[index % categoryIcons.length]
       };
     });
@@ -139,10 +190,38 @@ function mapProductsToCategories(products: Product[]) {
   return categories.length > 0 ? categories : categoryQuickLinks;
 }
 
+function mapProductsToBestSellers(products: BestSellerProduct[]) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  return products.map((product, index) => {
+    const parts = getCategoryPathParts(product.category || "");
+    const categoryLabel = formatCategoryLabel(parts[1] || parts[0] || "Collection");
+
+    let imageUrl = arrivalImages[index % arrivalImages.length];
+    if (product.images && product.images.length > 0) {
+      imageUrl = product.images[0].startsWith("http")
+        ? product.images[0]
+        : `${apiUrl}${product.images[0]}`;
+    }
+
+    return {
+      id: String(index + 1).padStart(2, "0"),
+      title: product.title,
+      subtitle: `${categoryLabel}${product.soldCount ? ` • ${product.soldCount} sold` : ""}`,
+      image: imageUrl,
+      href: `/product/${product.slug || slugifyProductName(product.title)}`
+    };
+  });
+}
+
 export default async function Home() {
-  const products = await fetchProducts();
+  const [products, bestSellerProducts] = await Promise.all([
+    fetchProducts(),
+    fetchBestSellers()
+  ]);
   const arrivalCards = mapProductsToArrivals(products);
   const categories = mapProductsToCategories(products);
+  const bestSellerItems = mapProductsToBestSellers(bestSellerProducts);
 
   return (
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
@@ -152,7 +231,7 @@ export default async function Home() {
 
       <LuxuryCategoryNavigation categories={categories} />
 
-      <BestSellersCoverflow viewAllHref="/category/all" />
+      <BestSellersCoverflow items={bestSellerItems} viewAllHref="/category/all" />
 
       <section
         id="customer-voices"

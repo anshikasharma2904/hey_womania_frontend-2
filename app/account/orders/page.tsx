@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FaBoxOpen, FaShippingFast, FaCheckCircle } from "react-icons/fa";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 const parseAmount = (value: number | string | undefined | null) => {
   if (typeof value === "number") return value;
 
@@ -24,7 +26,7 @@ async function fetchOrders() {
   if (!sessionToken) return null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
+    const res = await fetch(`${API_URL}/api/orders`, {
       headers: {
         "Cookie": `hey_womania_session=${sessionToken.value}`
       },
@@ -68,12 +70,14 @@ export default async function OrdersPage() {
               const StatusIcon = isDelivered ? FaCheckCircle : isOngoing ? FaShippingFast : FaBoxOpen;
               const colorClass = isDelivered ? "text-[#367743]" : isOngoing ? "text-[#3b82f6]" : "text-[#d97706]";
               const bgClass = isDelivered ? "bg-[#edf7ef]" : isOngoing ? "bg-[#eff6ff]" : "bg-[#fffbeb]";
-              const productTitle = order.items.length > 0 ? order.items[0].name : "Multiple Items";
-              const totalQuantity = order.items.reduce((acc: number, item: any) => acc + (item.qty || item.quantity || 0), 0);
+              const orderItems = Array.isArray(order.items) ? order.items : [];
+              const productTitle = orderItems.length > 0 ? orderItems[0].name : "Multiple Items";
+              const totalQuantity = orderItems.reduce((acc: number, item: any) => acc + (item.qty || item.quantity || 0), 0);
+              const orderNumber = String(order.orderNumber || order.id || "").replace(/^#/, "");
 
               return (
                 <Link
-                  href={`/account/orders/${order.orderNumber.replace('#', '')}`}
+                  href={`/account/orders/${orderNumber}`}
                   key={order.id}
                   className="group flex flex-col gap-4 rounded-[1.5rem] border border-[#e8e2d9] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#cfae9d] hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
                 >

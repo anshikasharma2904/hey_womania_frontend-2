@@ -2,16 +2,182 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
 import { IoMdHeart } from "react-icons/io";
-import { NAVBAR_CATEGORY_MENUS } from "@/app/category/category-data";
+
+type CategoryLink = {
+  label: string;
+  href: string;
+};
+
+type CategoryMenuColumn = {
+  title: string;
+  links: CategoryLink[];
+};
+
+type CategoryMenu = {
+  label: string;
+  href: string;
+  columns: CategoryMenuColumn[];
+};
+
+type LiveCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  isActive?: boolean;
+  sortOrder?: number;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const formatCategoryLabel = (value: string) =>
+  value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+
+const normalizeMainCategory = (value: string) => {
+  const formatted = formatCategoryLabel(value);
+  if (formatted.toLowerCase() === "cloths") return "Clothes";
+  return formatted;
+};
+
+const getCategoryPathParts = (value: string) =>
+  value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
+  const activeCategories = categories
+    .filter((category) => category.isActive !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const directMenus: CategoryMenu[] = [];
+  const menuMap = new Map<
+    string,
+    {
+      label: string;
+      href: string;
+      columns: Map<string, CategoryLink[]>;
+    }
+  >();
+
+  for (const category of activeCategories) {
+    const parts = getCategoryPathParts(category.name || "");
+    const href = `/category/${category.slug || slugify(category.name)}`;
+
+    if (parts.length === 1) {
+      const label = normalizeMainCategory(parts[0]);
+      if (!directMenus.some((menu) => menu.label === label)) {
+        directMenus.push({
+          label,
+          href: "#",
+          columns: [
+            {
+              title: "Coming Soon",
+              links: []
+            }
+          ]
+        });
+      }
+      continue;
+    }
+
+    if (parts.length < 2) continue;
+
+    const [mainRaw, headingRaw, linkRaw] = parts;
+    const mainCategory = normalizeMainCategory(mainRaw);
+    const heading = formatCategoryLabel(headingRaw);
+
+    if (!menuMap.has(mainCategory)) {
+      menuMap.set(mainCategory, {
+        label: mainCategory,
+        href: `/category/${slugify(mainCategory)}`,
+        columns: new Map()
+      });
+    }
+
+    const menu = menuMap.get(mainCategory)!;
+
+    if (!menu.columns.has(heading)) {
+      menu.columns.set(heading, []);
+    }
+
+    if (!linkRaw) {
+      continue;
+    }
+
+    const linkLabel = formatCategoryLabel(linkRaw);
+    const links = menu.columns.get(heading)!;
+    const exists = links.some((item) => item.label === linkLabel && item.href === href);
+    if (!exists) {
+      links.push({
+        label: linkLabel,
+        href
+      });
+    }
+  }
+
+  const parsedMenus = Array.from(menuMap.values()).map((menu) => ({
+    label: menu.label,
+    href: menu.href,
+    columns: Array.from(menu.columns.entries()).map(([title, links]) => ({
+      title,
+      links: links.sort((a, b) => a.label.localeCompare(b.label))
+    }))
+  }));
+
+  parsedMenus.push({
+    label: "Combo",
+    href: "#",
+    columns: [
+      {
+        title: "Coming Soon",
+        links: []
+      }
+    ]
+  });
+
+  return [...parsedMenus, ...directMenus];
+};
 
 export function MainNavbar() {
+  const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [user, setUser] = useState<{ name: string; role: string; isPartner: boolean } | null>(null);
+  const [navbarMenus, setNavbarMenus] = useState<CategoryMenu[]>(() => buildCategoryMenus([]));
   const profileRef = useRef<HTMLDivElement | null>(null);
+
+  const submitSearch = () => {
+    const trimmedValue = searchValue.trim();
+    router.push(
+      trimmedValue
+        ? `/category/all?search=${encodeURIComponent(trimmedValue)}`
+        : "/category/all"
+    );
+    setMobileMenuOpen(false);
+  };
+
+  const handleSearchKeyDown = (event: { key: string; preventDefault: () => void }) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitSearch();
+    }
+  };
 
   useEffect(() => {
     // Fetch user state
@@ -30,6 +196,25 @@ export function MainNavbar() {
         }
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/categories`, { cache: "no-store" as RequestCache })
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        const categories = data?.data
+          ? data.data
+          : Array.isArray(data)
+            ? data
+            : [];
+        setNavbarMenus(buildCategoryMenus(categories));
+      })
+      .catch(() => {
+        setNavbarMenus(buildCategoryMenus([]));
+      });
   }, []);
 
   useEffect(() => {
@@ -96,7 +281,7 @@ export function MainNavbar() {
             </Link>
 
             <nav className="hidden min-w-0 items-center gap-4 2xl:gap-5 xl:relative xl:flex">
-              {NAVBAR_CATEGORY_MENUS.map((menu) => (
+              {navbarMenus.map((menu) => (
                 <div key={menu.label} className="group relative">
                   <Link
                     href={menu.href}
@@ -105,59 +290,65 @@ export function MainNavbar() {
                     {menu.label}
                   </Link>
 
-                  <div
-                    className={`pointer-events-none absolute top-full z-40 pt-3 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100 ${
-                      menu.label === "Clothes"
-                        ? "left-0 translate-x-0 xl:left-[-220px]"
-                        : "left-1/2 -translate-x-1/2"
-                    }`}
-                  >
+                  {menu.columns.length > 0 ? (
                     <div
-                      className={`border border-[#efe4d8] bg-[#fcf9f4] shadow-[0_24px_60px_rgba(58,45,35,0.14)] ${
-                        menu.columns.length >= 4
-                          ? "w-[min(92vw,1080px)]"
-                          : menu.columns.length === 2
-                            ? "w-[min(92vw,620px)]"
-                            : "w-[min(92vw,340px)]"
+                      className={`pointer-events-none absolute top-full z-40 pt-3 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100 ${
+                        menu.label === "Clothes"
+                          ? "left-0 translate-x-0"
+                          : "left-1/2 -translate-x-1/2"
                       }`}
                     >
                       <div
-                        className={`grid gap-0 ${
+                        className={`border border-[#efe4d8] bg-[#fcf9f4] shadow-[0_24px_60px_rgba(58,45,35,0.14)] ${
                           menu.columns.length >= 4
-                            ? "xl:grid-cols-4"
+                            ? "w-[min(92vw,1080px)]"
                             : menu.columns.length === 2
-                              ? "xl:grid-cols-2"
-                              : "xl:grid-cols-1"
+                              ? "w-[min(92vw,620px)]"
+                              : "w-[min(92vw,340px)]"
                         }`}
                       >
-                        {menu.columns.map((column, columnIndex) => (
-                          <div
-                            key={`${menu.label}-${column.title}`}
-                            className={`min-h-full px-6 py-6 ${
-                              columnIndex !== menu.columns.length - 1
-                                ? "border-r border-[#efe4d8]"
-                                : ""
-                            }`}
-                          >
-                            <p className="text-[0.98rem] font-semibold text-[#9c4049]">
-                              {column.title}
-                            </p>
-                            <div className="mt-4 space-y-2">
-                              {column.links.map((item) => (
-                                <Link
-                                  key={item.label}
-                                  href={item.href}
-                                  className="block text-[0.96rem] leading-7 text-[#2d3147] transition-colors duration-200 hover:text-[#9c4049]"
-                                >
-                                  {item.label}
-                                </Link>
-                              ))}
+                        <div
+                          className={`grid gap-0 ${
+                            menu.columns.length >= 4
+                              ? "xl:grid-cols-4"
+                              : menu.columns.length === 2
+                                ? "xl:grid-cols-2"
+                                : "xl:grid-cols-1"
+                          }`}
+                        >
+                          {menu.columns.map((column, columnIndex) => (
+                            <div
+                              key={`${menu.label}-${column.title}`}
+                              className={`min-h-full px-6 py-6 ${
+                                columnIndex !== menu.columns.length - 1
+                                  ? "border-r border-[#efe4d8]"
+                                  : ""
+                              }`}
+                            >
+                              <p className="text-[0.98rem] font-semibold text-[#9c4049]">
+                                {column.title}
+                              </p>
+                              <div className="mt-4 space-y-2">
+                                {column.links.length > 0 ? (
+                                  column.links.map((item) => (
+                                    <Link
+                                      key={item.label}
+                                      href={item.href}
+                                      className="block text-[0.96rem] leading-7 text-[#2d3147] transition-colors duration-200 hover:text-[#9c4049]"
+                                    >
+                                      {item.label}
+                                    </Link>
+                                  ))
+                                ) : column.title === "Coming Soon" ? (
+                                  <p className="text-[0.96rem] leading-7 text-[#8b837b]">Coming soon</p>
+                                ) : null}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               ))}
             </nav>
@@ -209,11 +400,21 @@ export function MainNavbar() {
             </div>
 
             <div className="hidden items-center gap-2 rounded-2xl bg-[#f5f5f5] px-3 py-2 lg:flex xl:px-4">
-              <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
-                search
-              </span>
+              <button
+                type="button"
+                onClick={submitSearch}
+                aria-label="Search products"
+                className="flex items-center justify-center text-[#6d7287] transition-opacity duration-200 hover:opacity-70"
+              >
+                <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
+                  search
+                </span>
+              </button>
               <input
                 type="text"
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search for products, brands and more"
                 className="w-[8rem] bg-transparent text-sm text-[#48473d] outline-none placeholder:text-[#8c8f9e] xl:w-[12rem] 2xl:w-[18rem]"
               />
@@ -342,11 +543,21 @@ export function MainNavbar() {
 
         <div className="mt-3 md:hidden">
           <div className="flex items-center gap-2 rounded-2xl bg-[#f5f5f5] px-3 py-2">
-            <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
-              search
-            </span>
+            <button
+              type="button"
+              onClick={submitSearch}
+              aria-label="Search products"
+              className="flex items-center justify-center text-[#6d7287]"
+            >
+              <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
+                search
+              </span>
+            </button>
             <input
               type="text"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search products, categories and more"
               className="w-full bg-transparent text-sm text-[#48473d] outline-none placeholder:text-[#8c8f9e]"
             />
@@ -410,7 +621,7 @@ export function MainNavbar() {
           </div>
 
           <div className="mt-6 space-y-5">
-            {NAVBAR_CATEGORY_MENUS.map((menu) => (
+            {navbarMenus.map((menu) => (
               <div key={menu.label} className="rounded-[1.2rem] border border-[#ece6df] bg-white/70 p-4">
                 <Link
                   href={menu.href}
@@ -420,31 +631,33 @@ export function MainNavbar() {
                   {menu.label}
                 </Link>
 
-                <div className="mt-3 grid gap-4">
-                  {menu.columns.map((column) => (
-                    <div key={`${menu.label}-${column.title}`}>
-                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6f5f56]">
-                        {column.title}
-                      </p>
-                      <div className="mt-2 space-y-2">
-                        {column.links.length === 0 ? (
-                          <p className="text-sm text-[#8b837b]">Coming soon</p>
-                        ) : (
-                          column.links.map((item) => (
-                            <Link
-                              key={item.label}
-                              href={item.href}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className="block text-sm leading-6 text-[#2d3147]"
-                            >
-                              {item.label}
-                            </Link>
-                          ))
-                        )}
+                {menu.columns.length > 0 ? (
+                  <div className="mt-3 grid gap-4">
+                    {menu.columns.map((column) => (
+                      <div key={`${menu.label}-${column.title}`}>
+                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6f5f56]">
+                          {column.title}
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {column.links.length > 0 ? (
+                            column.links.map((item) => (
+                              <Link
+                                key={item.label}
+                                href={item.href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block text-sm leading-6 text-[#2d3147]"
+                              >
+                                {item.label}
+                              </Link>
+                            ))
+                          ) : column.title === "Coming Soon" ? (
+                            <p className="text-sm text-[#8b837b]">Coming soon</p>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
