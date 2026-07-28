@@ -32,6 +32,14 @@ const ZOHO_AUTO_SYNC_INTERVAL_MINUTES = Math.max(
   5,
   Number(process.env.ZOHO_AUTO_SYNC_INTERVAL_MINUTES || 30) || 30
 );
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://heywomaniyaa.com",
+  "https://www.heywomaniyaa.com",
+  process.env.FRONTEND_URL,
+  process.env.NEXT_PUBLIC_FRONTEND_URL
+].filter(Boolean) as string[];
 let zohoAutoSyncInProgress = false;
 
 async function runZohoAutoSync(trigger: "startup" | "interval") {
@@ -88,7 +96,14 @@ function startZohoAutoSync() {
 
 // Middlewares
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:5173"],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true
 }));
 app.use(express.json());
