@@ -9,13 +9,71 @@ export const getCategories = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
-    const totalItems = await Category.countDocuments();
-    const categories = await Category.find().sort({ sortOrder: 1 }).skip(skip).limit(limit);
-    
-    // Enrich with product counts
-    const enrichedCategories = await Promise.all(categories.map(async (category) => {
-      const count = await Product.countDocuments({ category: category.name });
-      return { ...category.toObject(), productsCount: count };
+    const [storedCategories, distinctProductCategories] = await Promise.all([
+      Category.find().sort({ sortOrder: 1 }),
+      Product.distinct("category", { category: { $exists: true, $ne: "" } })
+    ]);
+
+    const mergedBySlug = new Map<string, any>();
+
+    for (const category of storedCategories) {
+      mergedBySlug.set(category.slug, {
+        ...category.toObject(),
+        source: "category-db"
+      });
+    }
+
+    for (const rawCategory of distinctProductCategories) {
+      const name = String(rawCategory || "").trim();
+      if (!name) continue;
+
+      const slug = name
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+
+      if (mergedBySlug.has(slug)) {
+        continue;
+      }
+
+      mergedBySlug.set(slug, {
+        id: crypto.randomUUID(),
+        name,
+        slug,
+        description: name,
+        image: "",
+        isActive: true,
+        sortOrder: 9999,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        source: "product-fallback"
+      });
+    }
+
+    const mergedCategories = Array.from(mergedBySlug.values())
+      .sort((a, b) => {
+        const sortDiff = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+        if (sortDiff !== 0) return sortDiff;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+
+    const totalItems = mergedCategories.length;
+    const paginatedCategories = mergedCategories.slice(skip, skip + limit);
+
+    const productCountMap = new Map<string, number>();
+    for (const categoryName of distinctProductCategories) {
+      const key = String(categoryName || "").trim();
+      if (!key) continue;
+      productCountMap.set(
+        key,
+        await Product.countDocuments({ category: key })
+      );
+    }
+
+    const enrichedCategories = paginatedCategories.map((category) => ({
+      ...category,
+      productsCount: productCountMap.get(category.name) || 0
     }));
 
     res.json({
