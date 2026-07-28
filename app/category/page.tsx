@@ -173,7 +173,7 @@ const spotlightDefaults = [
 
 async function getCategories(): Promise<LiveCategory[]> {
   try {
-    const res = await fetch(`${API_URL}/api/categories`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}/api/categories?limit=500`, { cache: "no-store" });
     const result = await res.json().catch(() => ({}));
     return result.data ? result.data : Array.isArray(result) ? result : [];
   } catch (err) {

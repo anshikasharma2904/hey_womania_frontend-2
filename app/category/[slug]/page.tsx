@@ -227,7 +227,7 @@ export default async function CategoryDetailPage({
       fetch(`${API_URL}/api/admin/products`, {
         cache: "no-store"
       }),
-      fetch(`${API_URL}/api/categories`, {
+      fetch(`${API_URL}/api/categories?limit=500`, {
         cache: "no-store"
       })
     ]);

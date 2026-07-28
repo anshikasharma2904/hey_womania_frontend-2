@@ -199,7 +199,7 @@ export function MainNavbar() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/categories`, { cache: "no-store" as RequestCache })
+    fetch(`${API_URL}/api/categories?limit=500`, { cache: "no-store" as RequestCache })
       .then((res) => {
         if (!res.ok) return null;
         return res.json();
