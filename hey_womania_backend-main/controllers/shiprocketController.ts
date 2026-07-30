@@ -42,7 +42,8 @@ export const getShiprocketAuthStatus = async (_req: Request, res: Response) => {
 
 export const serviceability = async (req: Request, res: Response) => {
   try {
-    const data = await checkCourierServiceability(req.body);
+    const params = { ...req.query, ...req.body };
+    const data = await checkCourierServiceability(params);
     return res.json({ success: true, data });
   } catch (error) {
     return sendError(res, error, "Shiprocket serviceability check failed");

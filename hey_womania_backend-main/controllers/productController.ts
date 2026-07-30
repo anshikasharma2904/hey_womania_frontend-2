@@ -3,17 +3,13 @@ import crypto from "crypto";
 import { Product } from "../models/Product";
 import { Setting } from "../models/Setting";
 import { Order } from "../models/Order";
+import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
+import { processProductImagesForCloudflare } from "../services/cloudflareImageService";
 
-// Calculate sell points helper
-const calculateSellPoints = async (salePrice: number, isEligible: boolean) => {
-  if (!isEligible) return 0;
-  try {
-    const settings = await Setting.findOne();
-    const divisor = settings?.sellPointDivisor || 5; // Default to 5 if settings missing
-    return Number((salePrice / divisor).toFixed(2));
-  } catch (err) {
-    return Number((salePrice / 5).toFixed(2));
-  }
+// Calculate sell points helper: Selling Price / 5 = Sell Points
+const calculateSellPoints = (salePrice: number) => {
+  const price = Number(salePrice) || 0;
+  return Number((price / 5).toFixed(2));
 };
 
 export const getProducts = async (req: Request, res: Response) => {
@@ -210,13 +206,18 @@ export const createProduct = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "A product with this title already exists" });
     }
 
-    // Dynamic Sell Points calculation
-    const sellPoints = await calculateSellPoints(data.salePrice, data.isSellPointEligible);
+    // Dynamic Sell Points calculation: Selling Price / 5 = Sell Points
+    const sellPoints = calculateSellPoints(data.salePrice);
+
+    // Process images for Cloudflare
+    const { images, cloudflareImageIds } = await processProductImagesForCloudflare(data.images || [], data.title);
 
     const now = new Date().toISOString();
     const newProduct = new Product({
       id: crypto.randomUUID(),
       ...data,
+      images,
+      cloudflareImageIds,
       slug,
       sellPoints,
       createdAt: now,
@@ -224,6 +225,7 @@ export const createProduct = async (req: Request, res: Response) => {
     });
 
     await newProduct.save();
+    invalidateBackendCache("/api/products");
     res.status(201).json({ success: true, product: newProduct });
   } catch (error) {
     console.error("Error creating product:", error);
@@ -241,14 +243,16 @@ export const updateProduct = async (req: Request, res: Response) => {
       updates.slug = updates.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     }
 
-    // Recalculate sell points if price or eligibility changed
-    if (updates.salePrice !== undefined || updates.isSellPointEligible !== undefined) {
-      const currentProduct = await Product.findOne({ id });
-      if (currentProduct) {
-        const salePrice = updates.salePrice !== undefined ? updates.salePrice : currentProduct.salePrice;
-        const isEligible = updates.isSellPointEligible !== undefined ? updates.isSellPointEligible : currentProduct.isSellPointEligible;
-        updates.sellPoints = await calculateSellPoints(salePrice, isEligible);
-      }
+    // Recalculate sell points if sale price updated: Selling Price / 5 = Sell Points
+    if (updates.salePrice !== undefined) {
+      updates.sellPoints = calculateSellPoints(updates.salePrice);
+    }
+
+    // Process images for Cloudflare if updated
+    if (Array.isArray(updates.images)) {
+      const { images, cloudflareImageIds } = await processProductImagesForCloudflare(updates.images, updates.title || id);
+      updates.images = images;
+      updates.cloudflareImageIds = cloudflareImageIds;
     }
 
     const product = await Product.findOneAndUpdate({ id }, updates, { new: true });
@@ -257,6 +261,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Product not found" });
     }
     
+    invalidateBackendCache("/api/products");
     res.json({ success: true, product });
   } catch (error) {
     console.error("Error updating product:", error);
@@ -273,6 +278,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Product not found" });
     }
     
+    invalidateBackendCache("/api/products");
     res.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
     console.error("Error deleting product:", error);

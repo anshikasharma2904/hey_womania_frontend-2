@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import { Category } from "../models/Category";
 import { Product } from "../models/Product";
+import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
 
 export const getCategories = async (req: Request, res: Response) => {
   try {
@@ -117,6 +118,7 @@ export const createCategory = async (req: Request, res: Response) => {
     });
 
     await newCategory.save();
+    invalidateBackendCache("/api/categories");
     res.status(201).json({ success: true, category: newCategory });
   } catch (error) {
     console.error("Error creating category:", error);
@@ -140,6 +142,7 @@ export const updateCategory = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Category not found" });
     }
     
+    invalidateBackendCache("/api/categories");
     res.json({ success: true, category });
   } catch (error) {
     console.error("Error updating category:", error);
@@ -156,6 +159,7 @@ export const deleteCategory = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Category not found" });
     }
     
+    invalidateBackendCache("/api/categories");
     res.json({ success: true, message: "Category deleted successfully" });
   } catch (error) {
     console.error("Error deleting category:", error);

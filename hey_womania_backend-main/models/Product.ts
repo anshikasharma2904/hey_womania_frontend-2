@@ -20,6 +20,7 @@ const productSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   description: String,
   images: [String],
+  cloudflareImageIds: [String],
   price: { type: Number, required: true },
   salePrice: { type: Number, required: true },
   variants: [variantSchema],

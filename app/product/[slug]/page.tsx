@@ -63,7 +63,7 @@ export default async function ProductDetailPage({
   let product = null;
   try {
     const res = await fetch(`${apiUrl}/api/products/${slug}`, {
-      cache: 'no-store'
+      cache: "no-store"
     });
     if (res.ok) {
       const p = await res.json();
@@ -126,7 +126,7 @@ export default async function ProductDetailPage({
     const res = await fetch(
       `${apiUrl}/api/products/related?category=${relatedCategory}&excludeSlug=${encodeURIComponent(product.slug)}&limit=4`,
       {
-        cache: "no-store"
+        next: { revalidate: 60, tags: ["products"] }
       }
     );
     if (res.ok) {

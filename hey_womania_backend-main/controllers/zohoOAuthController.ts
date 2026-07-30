@@ -174,7 +174,7 @@ export const getZohoDocumentImage = async (req: Request, res: Response) => {
 export const syncZohoItems = async (_req: Request, res: Response) => {
   try {
     const data = await syncZohoItemsToProducts();
-    return res.json({ success: true, ...data });
+    return res.json(data);
   } catch (error: any) {
     console.log("ZOHO SYNC ERROR:", error.response?.data || error.message);
     return res.status(500).json({ error: "Failed to sync Zoho items" });

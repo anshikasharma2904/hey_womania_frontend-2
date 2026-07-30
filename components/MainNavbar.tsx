@@ -139,18 +139,29 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
     }))
   }));
 
-  parsedMenus.push({
-    label: "Combo",
-    href: "#",
-    columns: [
-      {
-        title: "Coming Soon",
-        links: []
-      }
-    ]
-  });
+  const MENU_PRIORITY: Record<string, number> = {
+    clothes: 1,
+    cloths: 1,
+    jewellery: 2,
+    jewelry: 2,
+    bag: 3,
+    bags: 3,
+    combo: 4
+  };
 
-  return [...parsedMenus, ...directMenus];
+  const getPriority = (label: string) => {
+    const key = String(label || "").toLowerCase();
+    return MENU_PRIORITY[key] ?? 99;
+  };
+
+  const allMenus = [...parsedMenus, ...directMenus];
+
+  return allMenus.sort((a, b) => {
+    const pA = getPriority(a.label);
+    const pB = getPriority(b.label);
+    if (pA !== pB) return pA - pB;
+    return a.label.localeCompare(b.label);
+  });
 };
 
 export function MainNavbar() {
@@ -293,9 +304,9 @@ export function MainNavbar() {
                   {menu.columns.length > 0 ? (
                     <div
                       className={`pointer-events-none absolute top-full z-40 pt-3 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100 ${
-                        menu.label === "Clothes"
+                        ["Clothes", "Jewellery", "Jewelry", "Bag", "Bags"].includes(menu.label)
                           ? "left-0 translate-x-0"
-                          : "left-1/2 -translate-x-1/2"
+                          : "left-0 xl:left-1/2 xl:-translate-x-1/2"
                       }`}
                     >
                       <div

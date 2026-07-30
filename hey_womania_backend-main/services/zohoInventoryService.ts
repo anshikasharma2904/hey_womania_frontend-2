@@ -7,6 +7,7 @@ import { Category } from "../models/Category";
 import { User } from "../models/User";
 import { Order } from "../models/Order";
 import mongoose from "mongoose";
+import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
 import {
   isCloudflareImageUploadConfigured,
   uploadImageToCloudflare
@@ -182,7 +183,7 @@ export async function getZohoAccessToken() {
   return refreshZohoAccessToken();
 }
 
-async function zohoRequest(path: string, init: RequestInit = {}) {
+async function zohoRequest(path: string, init: RequestInit = {}, isRetry = false): Promise<any> {
   const config = getZohoConfig();
   if (!config) {
     throw new Error("Zoho Inventory is not configured");
@@ -203,8 +204,21 @@ async function zohoRequest(path: string, init: RequestInit = {}) {
 
   const data = await response.json().catch(() => ({}));
 
-  if (response.status === 401) {
-    cachedAccessToken = null;
+  if (
+    (response.status === 401 ||
+      response.status === 429 ||
+      data.code === 57 ||
+      data.code === 1000 ||
+      String(data.message || "").toLowerCase().includes("rate limit")) &&
+    !isRetry
+  ) {
+    if (response.status === 401) {
+      cachedAccessToken = null;
+      await refreshZohoAccessToken();
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return zohoRequest(path, init, true);
   }
 
   if (!response.ok || (data.code !== undefined && Number(data.code) !== 0)) {
@@ -305,32 +319,47 @@ async function fetchZohoItemImageBuffer(itemId: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function fetchZohoDocumentImageBuffer(documentId: string) {
-  const config = getZohoConfig();
-  if (!config) {
-    throw new Error("Zoho Inventory is not configured");
-  }
+async function fetchZohoDocumentImageBuffer(documentId: string): Promise<Buffer | null> {
+  try {
+    const config = getZohoConfig();
+    if (!config) return null;
 
-  const tokenDoc = await ZohoToken.findOne();
-  const token = await getZohoAccessToken();
-  const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
-  const response = await fetch(
-    `${apiDomain}/documents/${encodeURIComponent(documentId)}?organization_id=${config.organizationId}`,
-    {
-      headers: {
-        Authorization: `Zoho-oauthtoken ${token}`
+    const tokenDoc = await ZohoToken.findOne();
+    const token = await getZohoAccessToken();
+    const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
+    const response = await fetch(
+      `${apiDomain}/documents/${encodeURIComponent(documentId)}?organization_id=${config.organizationId}`,
+      {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${token}`
+        }
       }
+    );
+
+    if (!response.ok) {
+      return null;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Zoho document image: ${response.statusText}`);
+    return Buffer.from(await response.arrayBuffer());
+  } catch (err) {
+    return null;
   }
-
-  return Buffer.from(await response.arrayBuffer());
 }
 
-async function getSyncedImageUrlsForItem(finalItem: any, itemId: string, baseSlug: string) {
+async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlug: string) {
+  const existingProduct = await Product.findOne({ zohoItemId: itemId });
+  if (
+    existingProduct &&
+    Array.isArray(existingProduct.images) &&
+    existingProduct.images.length > 0 &&
+    existingProduct.images.some((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"))
+  ) {
+    return {
+      imageUrls: existingProduct.images,
+      cloudflareImageIds: existingProduct.cloudflareImageIds || []
+    };
+  }
+
   const fallbackImageUrls = (finalItem.documents || []).map(
     (doc: any) => `/api/zoho/documents/${doc.document_id}`
   );
@@ -340,11 +369,12 @@ async function getSyncedImageUrlsForItem(finalItem: any, itemId: string, baseSlu
   }
 
   if (!isCloudflareImageUploadConfigured()) {
-    return fallbackImageUrls;
+    return { imageUrls: fallbackImageUrls, cloudflareImageIds: [] };
   }
 
   try {
     const uploadedUrls: string[] = [];
+    const cloudflareImageIds: string[] = [];
     const documents = Array.isArray(finalItem.documents) ? finalItem.documents : [];
 
     for (let index = 0; index < documents.length; index += 1) {
@@ -353,34 +383,42 @@ async function getSyncedImageUrlsForItem(finalItem: any, itemId: string, baseSlu
       if (!documentId) continue;
 
       const buffer = await fetchZohoDocumentImageBuffer(documentId);
-      const uploadedUrl = await uploadImageToCloudflare(
+      if (!buffer) continue;
+
+      const uploaded = await uploadImageToCloudflare(
         buffer,
         `${baseSlug}-${documentId}-${index + 1}.jpg`,
         "zoho-document"
       );
 
-      if (uploadedUrl) {
-        uploadedUrls.push(uploadedUrl);
+      if (uploaded?.url) {
+        uploadedUrls.push(uploaded.url);
+        if (uploaded.id) cloudflareImageIds.push(uploaded.id);
       }
     }
 
     if (uploadedUrls.length === 0 && finalItem.has_attachment) {
       const buffer = await fetchZohoItemImageBuffer(itemId);
-      const uploadedUrl = await uploadImageToCloudflare(
-        buffer,
-        `${baseSlug}-${itemId}.jpg`,
-        "zoho-item-image"
-      );
+      if (buffer) {
+        const uploaded = await uploadImageToCloudflare(
+          buffer,
+          `${baseSlug}-${itemId}.jpg`,
+          "zoho-item-image"
+        );
 
-      if (uploadedUrl) {
-        uploadedUrls.push(uploadedUrl);
+        if (uploaded?.url) {
+          uploadedUrls.push(uploaded.url);
+          if (uploaded.id) cloudflareImageIds.push(uploaded.id);
+        }
       }
     }
 
-    return uploadedUrls.length > 0 ? uploadedUrls : fallbackImageUrls;
+    return {
+      imageUrls: uploadedUrls.length > 0 ? uploadedUrls : fallbackImageUrls,
+      cloudflareImageIds
+    };
   } catch (error) {
-    console.error(`Cloudflare upload failed for Zoho item ${itemId}:`, error);
-    return fallbackImageUrls;
+    return { imageUrls: fallbackImageUrls, cloudflareImageIds: [] };
   }
 }
 
@@ -471,7 +509,7 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
     { upsert: true }
   );
 
-  const imageUrls = await getSyncedImageUrlsForItem(finalItem, itemId, baseSlug);
+  const { imageUrls, cloudflareImageIds } = await getSyncedImageDataForItem(finalItem, itemId, baseSlug);
 
   const product = await Product.findOneAndUpdate(
     { zohoItemId: itemId },
@@ -483,11 +521,13 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
         price,
         salePrice: price,
         images: imageUrls,
+        cloudflareImageIds,
         category: categoryName,
         subcategory: subcategoryName || undefined,
         isReturnable: true,
         isCodAllowed: true,
         isSellPointEligible: true,
+        sellPoints: Number((price / 5).toFixed(2)),
         isActive: item.status ? item.status === "active" : true,
         zohoItemId: itemId,
         zohoSku: sku,
@@ -529,7 +569,19 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
 }
 
 export async function syncZohoItemsToProducts() {
-  const data = await fetchZohoItems();
+  let data: any = {};
+  try {
+    data = await fetchZohoItems();
+  } catch (err) {
+    console.error("Zoho fetchItems rate limited or failed:", err);
+    return {
+      success: true,
+      synced: 0,
+      results: [],
+      warning: "Zoho API rate limit reached. Please wait a moment before syncing again."
+    };
+  }
+
   const items = Array.isArray(data.items) ? data.items : [];
   const results = [];
 
@@ -538,8 +590,14 @@ export async function syncZohoItemsToProducts() {
     if (!itemId) continue;
 
     try {
-      const detailedData = await fetchZohoItem(itemId);
-      const detailedItem = detailedData.item || item;
+      let detailedItem = item;
+      try {
+        const detailedData = await fetchZohoItem(itemId);
+        if (detailedData?.item) detailedItem = detailedData.item;
+      } catch (e) {
+        // Fallback to basic item if detailed item fetch is rate-limited
+      }
+
       const result = await syncSingleZohoItemToProduct(item, detailedItem);
       if (result) results.push(result);
     } catch (err) {
@@ -547,7 +605,10 @@ export async function syncZohoItemsToProducts() {
     }
   }
 
-  return { synced: results.length, results };
+  invalidateBackendCache("/api/products");
+  invalidateBackendCache("/api/categories");
+
+  return { success: true, synced: results.length, results };
 }
 
 function getZohoItemStock(item: any) {

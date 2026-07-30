@@ -15,6 +15,7 @@ const router = express.Router();
 
 router.get("/status", getShiprocketAuthStatus);
 router.post("/login", loginShiprocket);
+router.get("/serviceability", serviceability);
 router.post("/serviceability", serviceability);
 router.post("/create-order", createOrder);
 router.post("/assign-awb", assignAwb);

@@ -74,6 +74,11 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     
     if (!user || !user.passwordHash) {
@@ -234,4 +239,3 @@ export const resetPassword = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-

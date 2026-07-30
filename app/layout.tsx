@@ -4,6 +4,7 @@ import "./globals.css";
 import { LatestOffersWidget } from "@/components/LatestOffersWidget";
 import { MainNavbar } from "@/components/MainNavbar";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
+import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-canvas text-mocha antialiased">
+        <ExtensionErrorFilter />
         <SmoothScrollProvider>
           <MainNavbar />
           {children}

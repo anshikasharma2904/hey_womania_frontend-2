@@ -3,11 +3,20 @@
 import React, { useState } from "react";
 import { FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
 
+interface Variant {
+  sku?: string;
+  size?: string;
+  color?: string;
+  availableStock?: number;
+}
+
 interface ProductOptionsClientProps {
   product: {
+    id?: string;
     name: string;
     price: string;
     image?: string;
+    variants?: Variant[];
   };
 }
 
@@ -25,28 +34,57 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
 
   const sizes = ["XS", "S", "M", "L", "XL"];
 
-  const handleIncrement = () => setQuantity((prev) => prev + 1);
-  const handleDecrement = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  // Find currently matched variant & stock
+  const variants = product.variants || [];
+  let matchedVariant = variants.find(
+    (v) =>
+      v.size?.toUpperCase() === selectedSize.toUpperCase() &&
+      v.color?.toLowerCase() === selectedColor.toLowerCase()
+  );
+  if (!matchedVariant) {
+    matchedVariant = variants.find(
+      (v) => v.size?.toUpperCase() === selectedSize.toUpperCase()
+    );
+  }
+  if (!matchedVariant && variants.length > 0) {
+    matchedVariant = variants[0];
+  }
+
+  // Calculate available stock
+  let availableStock = 999; // Default if no variants defined
+  if (variants.length > 0) {
+    if (matchedVariant && matchedVariant.availableStock !== undefined) {
+      availableStock = Math.max(0, matchedVariant.availableStock);
+    } else {
+      // Sum all stock across variants as fallback
+      availableStock = variants.reduce(
+        (sum, v) => sum + Math.max(0, v.availableStock || 0),
+        0
+      );
+    }
+  }
+
+  const isOutOfStock = availableStock === 0;
+  const currentQuantity = isOutOfStock ? 0 : Math.min(quantity, availableStock);
+
+  const handleIncrement = () => {
+    if (isOutOfStock) return;
+    setQuantity((prev) => (prev < availableStock ? prev + 1 : prev));
+  };
+
+  const handleDecrement = () => {
+    if (isOutOfStock) return;
+    setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  };
 
   const getCartDetails = () => {
-    // Search for variants
-    const variants = (product as any).variants || [];
-    let matchedVariant = variants.find(
-      (v: any) => v.size === selectedSize && v.color?.toLowerCase() === selectedColor?.toLowerCase()
-    );
-    if (!matchedVariant) {
-      // Fallback matching size only
-      matchedVariant = variants.find((v: any) => v.size === selectedSize);
-    }
-    if (!matchedVariant && variants.length > 0) {
-      // Fallback to first variant
-      matchedVariant = variants[0];
-    }
-
-    const sku = matchedVariant?.sku || `${product.name.replace(/\s+/g, "-").toUpperCase()}-${selectedColor.replace("#", "")}-${selectedSize}`;
+    const sku =
+      matchedVariant?.sku ||
+      `${product.name.replace(/\s+/g, "-").toUpperCase()}-${selectedColor.replace("#", "")}-${selectedSize}`;
     const numericPrice = parseFloat(product.price.replace(/[^0-9.]/g, ""));
-    const colorName = colors.find((c) => c.value === selectedColor)?.name || "Olive";
-    const productId = (product as any).id || product.name;
+    const colorName =
+      colors.find((c) => c.value === selectedColor)?.name || "Olive";
+    const productId = product.id || product.name;
 
     return {
       productId,
@@ -56,46 +94,57 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
       size: selectedSize,
       color: colorName,
       salePrice: numericPrice,
-      quantity
+      quantity: Math.max(1, currentQuantity)
     };
   };
 
   const handleAddToCart = () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || isOutOfStock) return;
 
     const currentCartRaw = localStorage.getItem("hey_womania_cart");
     const currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];
     const itemDetails = getCartDetails();
 
-    const existingIndex = currentCart.findIndex((item: any) => item.sku === itemDetails.sku);
+    const existingIndex = currentCart.findIndex(
+      (item: any) => item.sku === itemDetails.sku
+    );
 
     if (existingIndex > -1) {
-      currentCart[existingIndex].quantity += quantity;
+      currentCart[existingIndex].quantity += itemDetails.quantity;
     } else {
       currentCart.push(itemDetails);
     }
 
     localStorage.setItem("hey_womania_cart", JSON.stringify(currentCart));
-    
-    // Custom trigger event so main navbar or other components can update if needed
     window.dispatchEvent(new Event("cart_updated"));
-    
-    window.location.href = "/cart"; // Redirect to cart
+    window.location.href = "/cart";
   };
 
   const handleBuyNow = () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || isOutOfStock) return;
 
     const itemDetails = getCartDetails();
-    // For Buy Now, we clear the cart and just put this single item, or add it and checkout directly
     localStorage.setItem("hey_womania_cart", JSON.stringify([itemDetails]));
-    
+
     window.dispatchEvent(new Event("cart_updated"));
-    window.location.href = "/checkout"; // Redirect to checkout
+    window.location.href = "/checkout";
   };
 
   return (
     <div>
+      {/* Stock Status Badge */}
+      <div className="mt-4">
+        {isOutOfStock ? (
+          <span className="inline-block rounded-full bg-[#fde8e8] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#e02424]">
+            Out of Stock
+          </span>
+        ) : (
+          <span className="inline-block rounded-full bg-[#def7ec] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#03543f]">
+            In Stock
+          </span>
+        )}
+      </div>
+
       {/* Colors */}
       <div className="mt-7">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
@@ -109,7 +158,7 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
               onClick={() => setSelectedColor(color.value)}
               className={`h-8 w-8 rounded-full border transition-all duration-200 ${
                 selectedColor === color.value
-                  ? "border-[#111111] scale-110 ring-2 ring-[#ece6df]"
+                  ? "scale-110 border-[#111111] ring-2 ring-[#ece6df]"
                   : "border-[#ddd5cc] hover:scale-105"
               }`}
               style={{ backgroundColor: color.value }}
@@ -133,7 +182,7 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
               className={`rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
                 size === selectedSize
                   ? "bg-[#111111] text-white shadow-md"
-                  : "border border-[#ddd5cc] text-[#6d655d] bg-white hover:bg-[#f4efe8]"
+                  : "border border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
               }`}
             >
               {size}
@@ -147,15 +196,21 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
         <button
           type="button"
           onClick={handleDecrement}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ddd5cc] text-[#111111] bg-white transition hover:bg-[#f4efe8] active:scale-90"
+          disabled={isOutOfStock || currentQuantity <= 1}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ddd5cc] bg-white text-[#111111] transition hover:bg-[#f4efe8] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Decrease quantity"
         >
           <FaMinus className="text-xs" />
         </button>
-        <span className="min-w-8 text-center text-sm font-semibold select-none">{quantity}</span>
+        <span className="min-w-8 select-none text-center text-sm font-semibold">
+          {currentQuantity}
+        </span>
         <button
           type="button"
           onClick={handleIncrement}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ddd5cc] text-[#111111] bg-white transition hover:bg-[#f4efe8] active:scale-90"
+          disabled={isOutOfStock || currentQuantity >= availableStock}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ddd5cc] bg-white text-[#111111] transition hover:bg-[#f4efe8] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Increase quantity"
         >
           <FaPlus className="text-xs" />
         </button>
@@ -166,15 +221,17 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+          disabled={isOutOfStock}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition-opacity hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#888888] disabled:opacity-60"
         >
           <FaShoppingBag className="text-sm" />
-          Add to Cart
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </button>
         <button
           type="button"
           onClick={handleBuyNow}
-          className="rounded-full border border-[#ddd5cc] px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#111111] bg-white transition hover:bg-[#f4efe8] active:scale-[0.98]"
+          disabled={isOutOfStock}
+          className="rounded-full border border-[#ddd5cc] bg-white px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#111111] transition hover:bg-[#f4efe8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Buy Now
         </button>

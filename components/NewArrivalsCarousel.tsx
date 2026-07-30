@@ -20,7 +20,7 @@ type NewArrivalsCarouselProps = {
 };
 
 export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouselProps) {
-  const cards = incomingCards || [];
+  const cards = (incomingCards || []).slice(0, 10);
   const [activeIndex, setActiveIndex] = useState(0);
   const visibleCards = [
     ...cards.slice(activeIndex),
@@ -44,7 +44,7 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
   }, [activeIndex, cards.length]);
 
   return (
-    <section id="shop-category-grid" className="bg-[#fcf9f4] px-0 py-0 md:px-0 md:py-0">
+    <section id="shop-category-grid" className="mt-8 bg-[#fcf9f4] px-0 py-2 md:mt-12 md:px-0 md:py-4">
       <div className="mx-auto max-w-7xl rounded-[2rem] bg-white px-4 py-8 shadow-[0_22px_60px_rgba(95,93,62,0.06)] md:px-8 md:py-10">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>

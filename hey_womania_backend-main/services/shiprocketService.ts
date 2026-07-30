@@ -261,9 +261,20 @@ async function upsertShipmentFromOrder(order: any, data: any) {
 
 export async function checkCourierServiceability(params: any) {
   const address = normalizeAddress(params);
+  const pickupPincode =
+    params.pickup_postcode ||
+    params.pickupPostcode ||
+    process.env.SHIPROCKET_PICKUP_PINCODE ||
+    "110001";
+  const deliveryPincode =
+    params.delivery_postcode ||
+    params.deliveryPostcode ||
+    address.pincode ||
+    "110001";
+
   const query = {
-    pickup_postcode: params.pickup_postcode || params.pickupPostcode || process.env.SHIPROCKET_PICKUP_PINCODE,
-    delivery_postcode: params.delivery_postcode || params.deliveryPostcode || address.pincode,
+    pickup_postcode: pickupPincode,
+    delivery_postcode: deliveryPincode,
     cod: params.cod ?? (String(params.paymentMethod || "").toLowerCase().includes("cod") ? 1 : 0),
     weight: params.weight || process.env.SHIPROCKET_PARCEL_WEIGHT_KG || 0.5
   };

@@ -116,7 +116,7 @@ async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const res = await fetch(`${apiUrl}/api/products?limit=24`, {
-      next: { revalidate: 300 }
+      cache: "no-store"
     });
     if (!res.ok) return [];
     const result = await res.json();
@@ -130,7 +130,7 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const res = await fetch(`${apiUrl}/api/products/best-sellers?limit=7`, {
-      next: { revalidate: 300 }
+      cache: "no-store"
     });
     if (!res.ok) return [];
     const result = await res.json();
@@ -142,7 +142,7 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
 
 function mapProductsToArrivals(products: Product[]) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  return products.slice(0, 12).map((product, index) => {
+  return products.slice(0, 10).map((product, index) => {
     const price = product.salePrice || product.price || 0;
     const compareAt = product.price > product.salePrice ? product.price : price * 1.2;
     const totalStock = product.variants?.reduce((sum, v) => sum + (v.availableStock || 0), 0) || 0;

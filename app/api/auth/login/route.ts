@@ -1,31 +1,32 @@
 import { NextResponse } from "next/server";
+import { callBackendApi } from "@/lib/server/backend-api";
 
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
-    
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+    const result = await callBackendApi<{ user?: unknown; error?: string }>("/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: payload
     });
-    
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, message: data.error }, { status: res.status });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, message: result.error || "Unable to sign in." },
+        { status: result.status }
+      );
     }
-    
-    const response = NextResponse.json({ ok: true, user: data.user });
-    
-    // Forward the session cookie
-    const cookieHeader = res.headers.get("set-cookie");
+
+    const response = NextResponse.json({ ok: true, user: result.data?.user });
+    const cookieHeader = result.setCookie;
     if (cookieHeader) {
       response.headers.set("set-cookie", cookieHeader);
     }
-    
+
     return response;
   } catch {
-    return NextResponse.json({ ok: false, message: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: "Invalid login request payload." },
+      { status: 400 }
+    );
   }
 }
-

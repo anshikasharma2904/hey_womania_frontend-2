@@ -224,11 +224,11 @@ export default async function CategoryDetailPage({
 
   try {
     const [productsRes, categoriesRes] = await Promise.all([
-      fetch(`${API_URL}/api/admin/products`, {
-        cache: "no-store"
+      fetch(`${API_URL}/api/products?limit=500`, {
+        next: { revalidate: 60, tags: ["products"] }
       }),
       fetch(`${API_URL}/api/categories?limit=500`, {
-        cache: "no-store"
+        next: { revalidate: 60, tags: ["categories"] }
       })
     ]);
 

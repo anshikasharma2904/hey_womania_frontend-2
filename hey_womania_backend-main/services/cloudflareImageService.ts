@@ -1,12 +1,19 @@
 type CloudflareImageConfig = {
   accountId: string;
   apiToken: string;
+  email?: string;
   deliveryBaseUrl?: string;
+};
+
+export type UploadedCloudflareImage = {
+  id: string;
+  url: string;
 };
 
 function getCloudflareImageConfig(): CloudflareImageConfig | null {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const apiToken = process.env.CLOUDFLARE_IMAGES_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
+  const email = process.env.CLOUDFLARE_EMAIL || process.env.SHIPROCKET_EMAIL || process.env.EMAIL_USER;
   const deliveryHash = process.env.CLOUDFLARE_IMAGES_DELIVERY_HASH;
   const deliveryBaseUrl = process.env.CLOUDFLARE_IMAGES_DELIVERY_BASE_URL
     || (deliveryHash ? `https://imagedelivery.net/${deliveryHash}` : undefined);
@@ -18,7 +25,20 @@ function getCloudflareImageConfig(): CloudflareImageConfig | null {
   return {
     accountId,
     apiToken,
+    email,
     deliveryBaseUrl
+  };
+}
+
+function getCloudflareAuthHeaders(config: CloudflareImageConfig): Record<string, string> {
+  if (config.apiToken.startsWith("cfk_") || config.email) {
+    return {
+      "X-Auth-Key": config.apiToken,
+      "X-Auth-Email": config.email || "hwomaniyaa@gmail.com"
+    };
+  }
+  return {
+    Authorization: `Bearer ${config.apiToken}`
   };
 }
 
@@ -30,7 +50,7 @@ export async function uploadImageToCloudflare(
   input: Buffer,
   fileName: string,
   sourceLabel: string
-) {
+): Promise<UploadedCloudflareImage | null> {
   const config = getCloudflareImageConfig();
   if (!config) {
     return null;
@@ -46,9 +66,7 @@ export async function uploadImageToCloudflare(
     `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiToken}`
-      },
+      headers: getCloudflareAuthHeaders(config),
       body: formData
     }
   );
@@ -64,13 +82,108 @@ export async function uploadImageToCloudflare(
     throw new Error(message);
   }
 
+  const imageId = String(data.result.id);
+  let deliveryUrl = "";
+
   if (Array.isArray(data.result.variants) && data.result.variants.length > 0) {
-    return String(data.result.variants[0]);
+    deliveryUrl = String(data.result.variants[0]);
+  } else if (config.deliveryBaseUrl) {
+    deliveryUrl = `${config.deliveryBaseUrl}/${imageId}/public`;
   }
 
-  if (config.deliveryBaseUrl) {
-    return `${config.deliveryBaseUrl}/${data.result.id}/public`;
+  return {
+    id: imageId,
+    url: deliveryUrl
+  };
+}
+
+export async function uploadImageUrlToCloudflare(
+  imageUrl: string,
+  sourceLabel: string
+): Promise<UploadedCloudflareImage | null> {
+  const config = getCloudflareImageConfig();
+  if (!config) {
+    return null;
   }
 
-  return null;
+  const formData = new FormData();
+  formData.append("url", imageUrl);
+  formData.append("metadata", JSON.stringify({ source: sourceLabel }));
+  formData.append("requireSignedURLs", "false");
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
+    {
+      method: "POST",
+      headers: getCloudflareAuthHeaders(config),
+      body: formData
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data?.success || !data?.result?.id) {
+    const message =
+      data?.errors?.[0]?.message ||
+      data?.messages?.[0]?.message ||
+      data?.result?.message ||
+      "Cloudflare image URL upload failed";
+    throw new Error(message);
+  }
+
+  const imageId = String(data.result.id);
+  let deliveryUrl = "";
+
+  if (Array.isArray(data.result.variants) && data.result.variants.length > 0) {
+    deliveryUrl = String(data.result.variants[0]);
+  } else if (config.deliveryBaseUrl) {
+    deliveryUrl = `${config.deliveryBaseUrl}/${imageId}/public`;
+  }
+
+  return {
+    id: imageId,
+    url: deliveryUrl
+  };
+}
+
+export async function processProductImagesForCloudflare(images: string[], productTitle: string) {
+  if (!isCloudflareImageUploadConfigured() || !Array.isArray(images) || images.length === 0) {
+    return { images: images || [], cloudflareImageIds: [] };
+  }
+
+  const updatedImages: string[] = [];
+  const cloudflareImageIds: string[] = [];
+
+  for (let index = 0; index < images.length; index += 1) {
+    const img = images[index];
+    if (!img) continue;
+
+    if (img.includes("imagedelivery.net") || img.includes("cloudflare")) {
+      updatedImages.push(img);
+      const match = img.match(/imagedelivery\.net\/[^/]+\/([^/]+)/);
+      if (match && match[1]) {
+        cloudflareImageIds.push(match[1]);
+      }
+      continue;
+    }
+
+    try {
+      if (img.startsWith("http")) {
+        const uploaded = await uploadImageUrlToCloudflare(img, `product-${productTitle}-${index + 1}`);
+        if (uploaded?.url) {
+          updatedImages.push(uploaded.url);
+          if (uploaded.id) cloudflareImageIds.push(uploaded.id);
+        } else {
+          updatedImages.push(img);
+        }
+      } else {
+        updatedImages.push(img);
+      }
+    } catch (err) {
+      console.error(`Failed to upload product image to Cloudflare:`, err);
+      updatedImages.push(img);
+    }
+  }
+
+  return { images: updatedImages, cloudflareImageIds };
 }
