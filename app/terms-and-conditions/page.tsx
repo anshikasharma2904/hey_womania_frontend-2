@@ -41,7 +41,7 @@ const sections = [
   { id: "returns", title: "7. Return Policy" },
   { id: "non-returnable", title: "8. Non-Returnable" },
   { id: "refund", title: "9. Refund Policy" },
-  { id: "rewards", title: "10. Sell Points & Rewards" },
+  { id: "rewards", title: "10. Rewards & Payouts" },
   { id: "kyc", title: "11. KYC & Withdrawals" },
 ];
 
@@ -110,7 +110,7 @@ export default function TermsAndConditions() {
               <div id="about" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">1. About HeyWomaniyaa</h2>
                 <p className="mb-4">HeyWomaniyaa is an e-commerce platform that offers women&apos;s fashion, lifestyle products, jewellery, accessories, beauty products, and related items.</p>
-                <p className="mb-4">HeyWomaniyaa may also provide a partner or reward program where eligible users can earn rewards, sell points, or payouts based on valid product sales and delivered orders. HeyWomaniyaa does not guarantee any fixed income, salary, investment return, or assured earning.</p>
+                <p className="mb-4">HeyWomaniyaa may also provide a partner or reward program where eligible users can earn rewards or payouts based on valid product sales and delivered orders. HeyWomaniyaa does not guarantee any fixed income, salary, investment return, or assured earning.</p>
               </div>
 
               <div id="account" className="scroll-mt-32 mb-10">
@@ -188,10 +188,10 @@ export default function TermsAndConditions() {
               </div>
 
               <div id="rewards" className="scroll-mt-32 mb-10">
-                <h2 className="text-2xl font-bold text-[#111111] mb-4">10. Sell Points, Rewards and Payouts</h2>
-                <p className="mb-4">HeyWomaniyaa may provide sell points, rewards, or payouts to eligible users or partners based on valid delivered orders.</p>
-                <p className="mb-4">Sell points and rewards are calculated only on eligible delivered orders. Cancelled, returned, refunded, rejected, fake, or unpaid orders will not be counted for final rewards, income, or payout.</p>
-                <p className="mb-4">HeyWomaniyaa may update sell point rules, reward rules, payout eligibility, payout cycle, and qualification conditions at any time.</p>
+                <h2 className="text-2xl font-bold text-[#111111] mb-4">10. Rewards and Payouts</h2>
+                <p className="mb-4">HeyWomaniyaa may provide rewards or payouts to eligible users or partners based on valid delivered orders.</p>
+                <p className="mb-4">Rewards are calculated only on eligible delivered orders. Cancelled, returned, refunded, rejected, fake, or unpaid orders will not be counted for final rewards, income, or payout.</p>
+                <p className="mb-4">HeyWomaniyaa may update reward rules, payout eligibility, payout cycle, and qualification conditions at any time.</p>
               </div>
 
               <div id="kyc" className="scroll-mt-32 mb-10">

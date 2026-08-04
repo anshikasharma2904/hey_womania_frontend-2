@@ -8,6 +8,8 @@ const variantSchema = new mongoose.Schema({
   reservedStock: { type: Number, default: 0 },
   returnStock: { type: Number, default: 0 },
   damagedStock: { type: Number, default: 0 },
+  images: [String],
+  cloudflareImageIds: [String],
   zohoItemId: String,
   zohoLastSyncedAt: String,
   zohoSyncStatus: String,
@@ -32,6 +34,7 @@ const productSchema = new mongoose.Schema({
   sellPoints: { type: Number, default: 0 }, // Calculated dynamically
   isActive: { type: Boolean, default: true },
   zohoItemId: String,
+  zohoGroupId: String,
   zohoSku: String,
   zohoLastSyncedAt: String,
   zohoSyncStatus: String,

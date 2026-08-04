@@ -19,6 +19,7 @@ import categoryRoutes from "./routes/categoryRoutes";
 import { shiprocketWebhook } from "./controllers/shiprocketController";
 import {
   getZohoInventoryStatus,
+  getZohoRateLimitInfo,
   syncZohoCategoriesToDb,
   syncZohoItemsToProducts
 } from "./services/zohoInventoryService";
@@ -61,17 +62,21 @@ async function runZohoAutoSync(trigger: "startup" | "interval") {
   zohoAutoSyncInProgress = true;
 
   try {
+    const rateLimit = getZohoRateLimitInfo();
+    if (rateLimit.isExceeded) {
+      console.log(`[Zoho Auto Sync] Skipping ${trigger} sync: Cooldown active (${rateLimit.cooldownRemainingSeconds}s remaining).`);
+      return;
+    }
+
     console.log(`[Zoho Auto Sync] Starting ${trigger} sync...`);
-    const [categoryResult, productResult] = await Promise.all([
-      syncZohoCategoriesToDb(),
-      syncZohoItemsToProducts()
-    ]);
+    const categoryResult = await syncZohoCategoriesToDb();
+    const productResult = await syncZohoItemsToProducts();
 
     console.log(
       `[Zoho Auto Sync] Completed ${trigger} sync. Categories: ${categoryResult.synced}, Products: ${productResult.synced}`
     );
-  } catch (error) {
-    console.error("[Zoho Auto Sync] Sync failed:", error);
+  } catch (error: any) {
+    console.warn(`[Zoho Auto Sync] ${trigger} sync paused:`, error.message || error);
   } finally {
     zohoAutoSyncInProgress = false;
   }

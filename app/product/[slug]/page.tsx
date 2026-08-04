@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductOptionsClient } from "@/components/ProductOptionsClient";
+import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
 import {
   catalogProducts,
   slugifyProductName
@@ -82,6 +83,17 @@ export default async function ProductDetailPage({
         .map((part: string) => part.trim())
         .filter(Boolean);
 
+      const normalizedVariants = (p.variants || []).map((v: any) => ({
+        ...v,
+        images: (v.images || [])
+          .map((img: string) => {
+            if (!img) return "";
+            if (img.startsWith("http")) return img;
+            return `${apiUrl}${img}`;
+          })
+          .filter(Boolean)
+      }));
+
       product = {
         id: p.id,
         name: p.title,
@@ -103,7 +115,7 @@ export default async function ProductDetailPage({
               .join(" ")
           : "All",
         relatedCategory: categoryParts[1] || categoryParts[0] || "all",
-        variants: p.variants || []
+        variants: normalizedVariants
       };
     }
   } catch (error) {
@@ -199,74 +211,7 @@ export default async function ProductDetailPage({
           <span className="text-[#1c1c19]">{product.name}</span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr]">
-          <ProductImageGallery name={product.name} images={product.gallery} />
-
-          <section className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-8">
-            <p className="text-[0.7rem] uppercase tracking-[0.18em] text-[#8f8279]">
-              {product.categoryTitle}
-            </p>
-            <h1 className="mt-3 text-3xl font-black uppercase leading-[0.96] tracking-[-0.05em] text-[#111111] md:text-5xl">
-              {product.name}
-            </h1>
-
-            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-              <div className="flex items-center gap-1 text-[#ffb000]">
-                {Array.from({ length: 5 }).map((_, starIndex) => (
-                  <span key={starIndex} className="text-sm">
-                    ★
-                  </span>
-                ))}
-              </div>
-              <span className="text-sm text-[#6d655d]">4.8 Rating</span>
-              <span className="text-sm text-[#6d655d]">146 Reviews</span>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-end gap-3">
-              <span className="text-3xl font-bold text-[#111111] md:text-4xl">
-                {product.price}
-              </span>
-              {product.originalPrice ? (
-                <>
-                  <span className="text-lg text-[#a7a09a] line-through">
-                    {product.originalPrice}
-                  </span>
-                  <span className="text-sm font-semibold text-[#ef6f63]">
-                    {product.discountPercent}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg text-[#a7a09a] line-through">₹300</span>
-                  <span className="text-sm font-semibold text-[#ef6f63]">40% OFF</span>
-                </>
-              )}
-            </div>
-
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-[#6d655d] md:text-base">
-              {product.subtitle} with clean finishing, premium fabric direction,
-              and a women’s fashion fit built for elevated everyday wear and
-              occasion styling.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-2">
-              {["Dress", "Slim", "Layer", "Curve"].map((tag) => (
-                <span
-                  key={tag}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] ${
-                    tag === "Layer"
-                      ? "bg-[#111111] text-white"
-                      : "bg-[#f4efe8] text-[#6d655d]"
-                  }`}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <ProductOptionsClient product={product as any} />
-          </section>
-        </div>
+        <ProductDetailInteractive product={product as any} />
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
           <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">

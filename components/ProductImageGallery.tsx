@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ProductImageGalleryProps = {
   name: string;
@@ -13,11 +13,16 @@ export function ProductImageGallery({
   images
 }: ProductImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [images]);
+
   const activeImage = images[activeIndex] || images[0] || "/products/product-placeholder.png";
 
   return (
     <section className="grid gap-4 lg:grid-cols-[108px_minmax(0,1fr)] lg:items-start">
-      <div className="grid grid-cols-4 gap-3 lg:grid-cols-1">
+      <div className="grid grid-cols-4 gap-3 lg:grid-cols-1 lg:max-h-[720px] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {images.map((image, index) => {
           const thumbSrc = image || "/products/product-placeholder.png";
           return (

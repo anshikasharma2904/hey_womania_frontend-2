@@ -39,12 +39,49 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProductBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    const product = await Product.findOne({ slug });
-    
+    const cleanSlug = decodeURIComponent(slug || "").trim();
+
+    if (!cleanSlug) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // 1. Try exact slug match
+    let product = await Product.findOne({ slug: cleanSlug });
+
+    // 2. Try id, zohoGroupId, or zohoItemId match
+    if (!product) {
+      product = await Product.findOne({
+        $or: [
+          { id: cleanSlug },
+          { zohoGroupId: cleanSlug },
+          { zohoItemId: cleanSlug }
+        ]
+      });
+    }
+
+    // 3. Try case-insensitive slug or title regex match
+    if (!product) {
+      const sanitized = cleanSlug.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const normalizedWords = cleanSlug.split(/[-_\s]+/).filter((w) => w.length > 2);
+      
+      const regexConditions: any[] = [
+        { slug: new RegExp(`^${sanitized}$`, "i") },
+        { title: new RegExp(`^${sanitized.replace(/\\-/g, "[\\s\\-]")}`, "i") }
+      ];
+
+      if (normalizedWords.length > 0) {
+        const firstTwoWords = normalizedWords.slice(0, 2).join(".*");
+        regexConditions.push({ title: new RegExp(firstTwoWords, "i") });
+        regexConditions.push({ slug: new RegExp(firstTwoWords, "i") });
+      }
+
+      product = await Product.findOne({ $or: regexConditions });
+    }
+
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
-    
+
     res.json(product);
   } catch (error) {
     console.error("Error fetching product by slug:", error);

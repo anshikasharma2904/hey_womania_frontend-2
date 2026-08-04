@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
 
 interface Variant {
@@ -8,6 +8,7 @@ interface Variant {
   size?: string;
   color?: string;
   availableStock?: number;
+  images?: string[];
 }
 
 interface ProductOptionsClientProps {
@@ -18,24 +19,81 @@ interface ProductOptionsClientProps {
     image?: string;
     variants?: Variant[];
   };
+  onColorChange?: (colorName: string) => void;
 }
 
-export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
-  const [selectedColor, setSelectedColor] = useState("#5a573d");
-  const [selectedSize, setSelectedSize] = useState("M");
+export function ProductOptionsClient({ product, onColorChange }: ProductOptionsClientProps) {
+  const variants = product.variants || [];
+
+  // Canonical size order for clothing
+  const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"];
+
+  // Extract dynamic unique sizes from product variants, sorted in clothing order
+  const sizes = Array.from(
+    new Set(
+      variants
+        .map((v) => (v.size || "").trim())
+        .filter((s) => s && !["DEFAULT", "QTY", "BOX", "PCS", "PIECES"].includes(s.toUpperCase()))
+    )
+  ).sort((a, b) => {
+    const ai = SIZE_ORDER.indexOf(a.toUpperCase());
+    const bi = SIZE_ORDER.indexOf(b.toUpperCase());
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  // Extract dynamic unique colors from product variants
+  const dynamicColors = Array.from(
+    new Set(
+      variants
+        .map((v) => (v.color || "").trim())
+        .filter((c) => c && !["DEFAULT", "QTY", "BOX", "PCS"].includes(c.toUpperCase()))
+    )
+  );
+
+  const colorMap: Record<string, string> = {
+    Blue: "#2563eb",
+    Red: "#dc2626",
+    Yellow: "#eab308",
+    Green: "#16a34a",
+    Black: "#111111",
+    White: "#ffffff",
+    Pink: "#ec4899",
+    "Blush Pink": "#f472b6",
+    "Mocha Brown": "#78350f",
+    "Chocolate Brown": "#451a03",
+    "Rust Brown": "#9a3412",
+    "Brown": "#78350f",
+    "Sky Blue": "#38bdf8",
+    "Mint Green": "#34d399",
+    "Emerald Green": "#059669",
+    Ivory: "#fef3c7",
+    Navy: "#1e3a8a",
+    Beige: "#f59e0b",
+    Maroon: "#881337",
+    Grey: "#6b7280",
+    Gray: "#6b7280",
+    Cream: "#fffbeb",
+    Orange: "#f97316",
+    Purple: "#9333ea"
+  };
+
+  const colors = dynamicColors.map((name) => ({ name, value: colorMap[name] || "#5a573d" }));
+
+  const [selectedColor, setSelectedColor] = useState(colors[0]?.name || "");
+  const [selectedSize, setSelectedSize] = useState(sizes[0] || "");
   const [quantity, setQuantity] = useState(1);
 
-  const colors = [
-    { value: "#5a573d", name: "Olive" },
-    { value: "#d8c0ae", name: "Beige" },
-    { value: "#3f3428", name: "Brown" },
-    { value: "#8f6b63", name: "Rosewood" }
-  ];
-
-  const sizes = ["XS", "S", "M", "L", "XL"];
+  // Trigger color change callback for the first color on mount
+  useEffect(() => {
+    if (colors.length > 0 && colors[0]?.name) {
+      onColorChange?.(colors[0].name);
+    }
+  }, []);
 
   // Find currently matched variant & stock
-  const variants = product.variants || [];
   let matchedVariant = variants.find(
     (v) =>
       v.size?.toUpperCase() === selectedSize.toUpperCase() &&
@@ -50,13 +108,12 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
     matchedVariant = variants[0];
   }
 
-  // Calculate available stock
-  let availableStock = 999; // Default if no variants defined
+  // Calculate available stock for selected variant
+  let availableStock = 999;
   if (variants.length > 0) {
     if (matchedVariant && matchedVariant.availableStock !== undefined) {
       availableStock = Math.max(0, matchedVariant.availableStock);
     } else {
-      // Sum all stock across variants as fallback
       availableStock = variants.reduce(
         (sum, v) => sum + Math.max(0, v.availableStock || 0),
         0
@@ -130,6 +187,42 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
     window.location.href = "/checkout";
   };
 
+  // Check if a specific color has stock for the selected size (or overall if no size)
+  const isColorStockAvailable = (colorName: string) => {
+    if (variants.length === 0) return true;
+    const exactVariant = variants.find(
+      (v) =>
+        v.color?.toLowerCase().trim() === colorName.toLowerCase().trim() &&
+        v.size?.toUpperCase().trim() === selectedSize.toUpperCase().trim()
+    );
+    if (exactVariant) {
+      return (exactVariant.availableStock ?? 1) > 0;
+    }
+    const colorVariants = variants.filter(
+      (v) => v.color?.toLowerCase().trim() === colorName.toLowerCase().trim()
+    );
+    if (colorVariants.length === 0) return false;
+    return colorVariants.some((v) => (v.availableStock ?? 1) > 0);
+  };
+
+  // Check if a specific size has stock for the selected color (or overall if no color)
+  const isSizeStockAvailable = (sizeName: string) => {
+    if (variants.length === 0) return true;
+    const exactVariant = variants.find(
+      (v) =>
+        v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim() &&
+        v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim()
+    );
+    if (exactVariant) {
+      return (exactVariant.availableStock ?? 1) > 0;
+    }
+    const sizeVariants = variants.filter(
+      (v) => v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim()
+    );
+    if (sizeVariants.length === 0) return false;
+    return sizeVariants.some((v) => (v.availableStock ?? 1) > 0);
+  };
+
   return (
     <div>
       {/* Stock Status Badge */}
@@ -146,50 +239,134 @@ export function ProductOptionsClient({ product }: ProductOptionsClientProps) {
       </div>
 
       {/* Colors */}
-      <div className="mt-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-          Colour
-        </p>
-        <div className="mt-3 flex gap-3">
-          {colors.map((color) => (
-            <button
-              key={color.value}
-              type="button"
-              onClick={() => setSelectedColor(color.value)}
-              className={`h-8 w-8 rounded-full border transition-all duration-200 ${
-                selectedColor === color.value
-                  ? "scale-110 border-[#111111] ring-2 ring-[#ece6df]"
-                  : "border-[#ddd5cc] hover:scale-105"
-              }`}
-              style={{ backgroundColor: color.value }}
-              aria-label={`Select color ${color.name}`}
-            />
-          ))}
+      {colors.length > 0 && (
+        <div className="mt-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+            Colour
+          </p>
+          <div className="mt-3 flex gap-3">
+            {colors.map((color) => {
+              const isAvailable = isColorStockAvailable(color.name);
+              const isSelected = selectedColor.toLowerCase() === color.name.toLowerCase();
+
+              // Find first variant image for this color
+              const colorVariantImg = variants.find(
+                (v: any) =>
+                  v.color?.toLowerCase().trim() === color.name.toLowerCase().trim() &&
+                  v.images &&
+                  v.images.length > 0 &&
+                  v.images[0]
+              )?.images?.[0];
+
+              return (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={() => {
+                    setSelectedColor(color.name);
+                    onColorChange?.(color.name);
+                  }}
+                  className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border shadow-sm transition-all duration-200 ${
+                    isSelected
+                      ? "scale-110 border-[#111111] ring-2 ring-[#ece6df]"
+                      : "border-[#ddd5cc] hover:scale-105"
+                  } ${!isAvailable ? "opacity-80" : ""}`}
+                  style={{ backgroundColor: color.value }}
+                  aria-label={`Select color ${color.name} ${!isAvailable ? "(Out of stock)" : ""}`}
+                >
+                  {colorVariantImg ? (
+                    <img
+                      src={colorVariantImg}
+                      alt={color.name}
+                      className="h-full w-full rounded-full"
+                    />
+                  ) : null}
+
+                  {!isAvailable && (
+                    <svg
+                      className="pointer-events-none absolute inset-0 h-full w-full z-10"
+                      viewBox="0 0 32 32"
+                      fill="none"
+                    >
+                      {/* Contrast shadow line */}
+                      <line
+                        x1="4"
+                        y1="28"
+                        x2="28"
+                        y2="4"
+                        stroke="#ffffff"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        opacity="0.8"
+                      />
+                      {/* Primary crisp diagonal slash */}
+                      <line
+                        x1="4"
+                        y1="28"
+                        x2="28"
+                        y2="4"
+                        stroke="#111111"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Sizes */}
-      <div className="mt-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-          Size
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {sizes.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setSelectedSize(size)}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
-                size === selectedSize
-                  ? "bg-[#111111] text-white shadow-md"
-                  : "border border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
-              }`}
-            >
-              {size}
-            </button>
-          ))}
+      {sizes.length > 0 && (
+        <div className="mt-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+            Size
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {sizes.map((size) => {
+              const isAvailable = isSizeStockAvailable(size);
+              const isSelected = size === selectedSize;
+
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setSelectedSize(size)}
+                  className={`relative overflow-hidden rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
+                    isSelected
+                      ? "bg-[#111111] text-white shadow-md"
+                      : "border border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
+                  } ${!isAvailable ? "opacity-75" : ""}`}
+                >
+                  <span className={!isAvailable ? "opacity-60" : ""}>{size}</span>
+                  {!isAvailable && (
+                    <svg
+                      className="pointer-events-none absolute inset-0 h-full w-full"
+                      preserveAspectRatio="none"
+                      viewBox="0 0 100 100"
+                      fill="none"
+                    >
+                      <line
+                        x1="10"
+                        y1="90"
+                        x2="90"
+                        y2="10"
+                        stroke={isSelected ? "#ffffff" : "#111111"}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                        opacity="0.85"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quantity Selector */}
       <div className="mt-7 flex items-center gap-3">

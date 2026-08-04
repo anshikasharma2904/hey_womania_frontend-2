@@ -130,8 +130,18 @@ export function CategoryDetailClient({
 
     const fallbackSizes = sizes.map((size) => normalizeSize(size)).filter(Boolean);
 
+    const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"];
+    const sizeSort = (a: string, b: string) => {
+      const ai = SIZE_ORDER.indexOf(a.toUpperCase());
+      const bi = SIZE_ORDER.indexOf(b.toUpperCase());
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    };
+
     return collectedSizes.size > 0
-      ? Array.from(collectedSizes).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      ? Array.from(collectedSizes).sort(sizeSort)
       : fallbackSizes;
   }, [category.products, sizes]);
 

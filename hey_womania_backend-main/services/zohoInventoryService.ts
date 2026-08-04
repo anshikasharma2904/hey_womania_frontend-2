@@ -10,7 +10,8 @@ import mongoose from "mongoose";
 import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
 import {
   isCloudflareImageUploadConfigured,
-  uploadImageToCloudflare
+  uploadImageToCloudflare,
+  deleteImageFromCloudflare
 } from "./cloudflareImageService";
 
 type ZohoConfig = {
@@ -183,6 +184,22 @@ export async function getZohoAccessToken() {
   return refreshZohoAccessToken();
 }
 
+let lastRateLimitExceededAt: number | null = null;
+
+export function getZohoRateLimitInfo() {
+  if (!lastRateLimitExceededAt) {
+    return { isExceeded: false, cooldownRemainingSeconds: 0 };
+  }
+  const elapsedMs = Date.now() - lastRateLimitExceededAt;
+  const cooldownMs = 60000; // 60-second window
+  if (elapsedMs >= cooldownMs) {
+    lastRateLimitExceededAt = null;
+    return { isExceeded: false, cooldownRemainingSeconds: 0 };
+  }
+  const remainingSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+  return { isExceeded: true, cooldownRemainingSeconds: remainingSeconds };
+}
+
 async function zohoRequest(path: string, init: RequestInit = {}, isRetry = false): Promise<any> {
   const config = getZohoConfig();
   if (!config) {
@@ -223,6 +240,9 @@ async function zohoRequest(path: string, init: RequestInit = {}, isRetry = false
 
   if (!response.ok || (data.code !== undefined && Number(data.code) !== 0)) {
     const message = data?.message || data?.error || "Zoho Inventory request failed";
+    if (response.status === 429 || Number(data.code) === 1000 || message.toLowerCase().includes("rate limit")) {
+      lastRateLimitExceededAt = Date.now();
+    }
     throw new Error(`${message}`);
   }
 
@@ -294,32 +314,7 @@ export async function streamZohoDocumentImage(documentId: string, res: any) {
   res.send(Buffer.from(arrayBuffer));
 }
 
-async function fetchZohoItemImageBuffer(itemId: string) {
-  const config = getZohoConfig();
-  if (!config) {
-    throw new Error("Zoho Inventory is not configured");
-  }
-
-  const tokenDoc = await ZohoToken.findOne();
-  const token = await getZohoAccessToken();
-  const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
-  const response = await fetch(
-    `${apiDomain}/items/${encodeURIComponent(itemId)}/image?organization_id=${config.organizationId}`,
-    {
-      headers: {
-        Authorization: `Zoho-oauthtoken ${token}`
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Zoho item image: ${response.statusText}`);
-  }
-
-  return Buffer.from(await response.arrayBuffer());
-}
-
-async function fetchZohoDocumentImageBuffer(documentId: string): Promise<Buffer | null> {
+async function fetchZohoItemImageBuffer(itemId: string, retries = 2): Promise<Buffer | null> {
   try {
     const config = getZohoConfig();
     if (!config) return null;
@@ -327,6 +322,48 @@ async function fetchZohoDocumentImageBuffer(documentId: string): Promise<Buffer 
     const tokenDoc = await ZohoToken.findOne();
     const token = await getZohoAccessToken();
     const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    const response = await fetch(
+      `${apiDomain}/items/${encodeURIComponent(itemId)}/image?organization_id=${config.organizationId}`,
+      {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${token}`
+        }
+      }
+    );
+
+    if (response.status === 429 && retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return fetchZohoItemImageBuffer(itemId, retries - 1);
+    }
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return fetchZohoItemImageBuffer(itemId, retries - 1);
+    }
+    return null;
+  }
+}
+
+async function fetchZohoDocumentImageBuffer(documentId: string, retries = 2): Promise<Buffer | null> {
+  try {
+    const config = getZohoConfig();
+    if (!config) return null;
+
+    const tokenDoc = await ZohoToken.findOne();
+    const token = await getZohoAccessToken();
+    const apiDomain = getInventoryApiDomain(tokenDoc?.apiDomain || config.apiDomain);
+
+    await new Promise((r) => setTimeout(r, 150));
+
     const response = await fetch(
       `${apiDomain}/documents/${encodeURIComponent(documentId)}?organization_id=${config.organizationId}`,
       {
@@ -336,90 +373,190 @@ async function fetchZohoDocumentImageBuffer(documentId: string): Promise<Buffer 
       }
     );
 
+    if (response.status === 429 && retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return fetchZohoDocumentImageBuffer(documentId, retries - 1);
+    }
+
     if (!response.ok) {
       return null;
     }
 
     return Buffer.from(await response.arrayBuffer());
   } catch (err) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return fetchZohoDocumentImageBuffer(documentId, retries - 1);
+    }
     return null;
   }
 }
 
 async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlug: string) {
-  const existingProduct = await Product.findOne({ zohoItemId: itemId });
-  if (
-    existingProduct &&
-    Array.isArray(existingProduct.images) &&
-    existingProduct.images.length > 0 &&
-    existingProduct.images.some((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"))
-  ) {
+  let itemData = finalItem;
+  if ((!itemData?.documents || !Array.isArray(itemData.documents)) && itemId) {
+    try {
+      const detailed = await fetchZohoItem(itemId);
+      if (detailed?.item) {
+        itemData = detailed.item;
+      }
+    } catch (e) {
+      // Fallback if rate limited
+    }
+  }
+
+  const existingProduct = await Product.findOne({
+    $or: [{ zohoItemId: itemId }, { "variants.zohoItemId": itemId }]
+  });
+
+  const existingUrls: string[] = existingProduct?.images || [];
+  const existingCfIds: string[] = existingProduct?.cloudflareImageIds || [];
+
+  const documents = Array.isArray(itemData.documents) ? itemData.documents : [];
+  const hasAttachment = Boolean(itemData.has_attachment || itemData.image_id || itemData.image_name);
+
+  const zohoDocIds = documents.map((d: any) => String(d.document_id || "").trim()).filter(Boolean);
+  const zohoImageCount = zohoDocIds.length > 0 ? zohoDocIds.length : (hasAttachment ? 1 : 0);
+
+  console.log(`----------------------------------`);
+  console.log(`Syncing item: ${itemId}`);
+  console.log(`Existing DB image: ${existingUrls.length > 0 ? existingUrls.join(", ") : "None"}`);
+
+  // 1. IF REMOVED IN ZOHO (zohoImageCount === 0)
+  if (zohoImageCount === 0) {
+    console.log(`Zoho image: None`);
+    if (existingCfIds.length > 0) {
+      console.log(`Removing image from storage...`);
+      for (const cfId of existingCfIds) {
+        if (cfId) {
+          try {
+            await deleteImageFromCloudflare(cfId);
+          } catch (e) {
+            console.error(`Failed deleting storage image ${cfId}:`, e);
+          }
+        }
+      }
+    }
+    console.log(`Clearing MongoDB image fields...`);
+    console.log(`Done.`);
+    console.log(`----------------------------------`);
+
     return {
-      imageUrls: existingProduct.images,
-      cloudflareImageIds: existingProduct.cloudflareImageIds || []
+      imageUrls: [],
+      cloudflareImageIds: []
     };
   }
 
-  const fallbackImageUrls = (finalItem.documents || []).map(
+  console.log(`Zoho image: ${zohoDocIds.length > 0 ? `Documents [${zohoDocIds.join(", ")}]` : "Item Attachment"}`);
+
+  // 2. CHECK IDEMPOTENCY / NO CHANGE
+  const allDocIdsSynced =
+    zohoDocIds.length > 0 &&
+    zohoDocIds.every((docId: string) => existingCfIds.some((cfId) => cfId.includes(docId)));
+
+  const singleAttachmentSynced =
+    zohoDocIds.length === 0 &&
+    hasAttachment &&
+    existingCfIds.some((cfId) => cfId.includes(itemId));
+
+  if ((allDocIdsSynced || singleAttachmentSynced) && existingUrls.length === zohoImageCount) {
+    console.log(`Image changed: No`);
+    console.log(`----------------------------------`);
+    return {
+      imageUrls: existingUrls,
+      cloudflareImageIds: existingCfIds
+    };
+  }
+
+  // 3. IMAGE CHANGED / NEW / REPLACED
+  console.log(`Image changed: Yes`);
+
+  // Identify old CF IDs that no longer exist in Zoho and delete them
+  const cfIdsToDelete = existingCfIds.filter((cfId) => {
+    if (zohoDocIds.length > 0) {
+      return !zohoDocIds.some((docId: string) => cfId.includes(docId));
+    }
+    return !cfId.includes(itemId);
+  });
+
+  if (cfIdsToDelete.length > 0) {
+    console.log(`Deleting old image...`);
+    for (const oldId of cfIdsToDelete) {
+      try {
+        await deleteImageFromCloudflare(oldId);
+      } catch (e) {
+        console.error(`Error deleting old storage image ${oldId}:`, e);
+      }
+    }
+  }
+
+  const fallbackUrls: string[] = (documents || []).map(
     (doc: any) => `/api/zoho/documents/${doc.document_id}`
   );
-
-  if (fallbackImageUrls.length === 0 && finalItem.has_attachment) {
-    fallbackImageUrls.push(`/api/zoho/items/${itemId}/image`);
+  if (fallbackUrls.length === 0 && hasAttachment) {
+    fallbackUrls.push(`/api/zoho/items/${itemId}/image`);
   }
 
-  if (!isCloudflareImageUploadConfigured()) {
-    return { imageUrls: fallbackImageUrls, cloudflareImageIds: [] };
-  }
+  const newUrls: string[] = [];
+  const newCfIds: string[] = [];
 
-  try {
-    const uploadedUrls: string[] = [];
-    const cloudflareImageIds: string[] = [];
-    const documents = Array.isArray(finalItem.documents) ? finalItem.documents : [];
+  if (isCloudflareImageUploadConfigured()) {
+    console.log(`Downloading image...`);
+    console.log(`Uploading image...`);
 
     for (let index = 0; index < documents.length; index += 1) {
       const document = documents[index];
       const documentId = String(document?.document_id || "").trim();
       if (!documentId) continue;
 
-      const buffer = await fetchZohoDocumentImageBuffer(documentId);
-      if (!buffer) continue;
-
-      const uploaded = await uploadImageToCloudflare(
-        buffer,
-        `${baseSlug}-${documentId}-${index + 1}.jpg`,
-        "zoho-document"
-      );
-
-      if (uploaded?.url) {
-        uploadedUrls.push(uploaded.url);
-        if (uploaded.id) cloudflareImageIds.push(uploaded.id);
-      }
-    }
-
-    if (uploadedUrls.length === 0 && finalItem.has_attachment) {
-      const buffer = await fetchZohoItemImageBuffer(itemId);
-      if (buffer) {
-        const uploaded = await uploadImageToCloudflare(
-          buffer,
-          `${baseSlug}-${itemId}.jpg`,
-          "zoho-item-image"
-        );
-
-        if (uploaded?.url) {
-          uploadedUrls.push(uploaded.url);
-          if (uploaded.id) cloudflareImageIds.push(uploaded.id);
+      try {
+        const buffer = await fetchZohoDocumentImageBuffer(documentId);
+        if (buffer) {
+          const uploaded = await uploadImageToCloudflare(
+            buffer,
+            `${baseSlug}-${documentId}-${index + 1}.jpg`,
+            "zoho-document"
+          );
+          if (uploaded?.url) {
+            if (!newUrls.includes(uploaded.url)) newUrls.push(uploaded.url);
+            if (uploaded.id && !newCfIds.includes(uploaded.id)) newCfIds.push(uploaded.id);
+          }
         }
+      } catch (err) {
+        console.error(`Graceful Error: Failed downloading/uploading Zoho document ${documentId}:`, err);
       }
     }
 
-    return {
-      imageUrls: uploadedUrls.length > 0 ? uploadedUrls : fallbackImageUrls,
-      cloudflareImageIds
-    };
-  } catch (error) {
-    return { imageUrls: fallbackImageUrls, cloudflareImageIds: [] };
+    if (newUrls.length === 0 && hasAttachment) {
+      try {
+        const buffer = await fetchZohoItemImageBuffer(itemId);
+        if (buffer) {
+          const uploaded = await uploadImageToCloudflare(
+            buffer,
+            `${baseSlug}-${itemId}.jpg`,
+            "zoho-item-image"
+          );
+          if (uploaded?.url) {
+            if (!newUrls.includes(uploaded.url)) newUrls.push(uploaded.url);
+            if (uploaded.id && !newCfIds.includes(uploaded.id)) newCfIds.push(uploaded.id);
+          }
+        }
+      } catch (err) {
+        console.error(`Graceful Error: Failed downloading/uploading Zoho item image ${itemId}:`, err);
+      }
+    }
   }
+
+  const finalUrls = newUrls.length > 0 ? newUrls : fallbackUrls;
+  const finalCfIds = newCfIds.length > 0 ? newCfIds : existingCfIds.filter((id) => !cfIdsToDelete.includes(id));
+
+  console.log(`MongoDB updated successfully.`);
+  console.log(`----------------------------------`);
+
+  return {
+    imageUrls: finalUrls,
+    cloudflareImageIds: finalCfIds
+  };
 }
 
 export async function fetchZohoItemGroups() {
@@ -471,17 +608,100 @@ function getZohoItemCategoryInfo(item: any) {
   };
 }
 
-export async function syncSingleZohoItemToProduct(item: any, detailedItem: any = null) {
+function parseVariantSizeAndColor(itemName: string, groupName: string) {
+  let suffix = itemName;
+  if (groupName && itemName.toLowerCase().startsWith(groupName.toLowerCase())) {
+    suffix = itemName.slice(groupName.length).replace(/^[-\s/]+/, "");
+  }
+
+  const sizes = ["3XL", "4XL", "5XL", "XXL", "XL", "XS", "S", "M", "L", "Free Size", "Free", "One Size"];
+  const colors = [
+    "Yellow", "Red", "Blue", "Green", "Black", "White", "Pink", "Blush Pink",
+    "Mocha Brown", "Chocolate Brown", "Rust Brown", "Brown", "Sky Blue", "Mint Green",
+    "Emerald Green", "Ivory", "Navy", "Beige", "Maroon", "Grey", "Gray", "Cream",
+    "Orange", "Purple", "Gold", "Silver", "Multicolor", "Default"
+  ];
+
+  let foundSize = "";
+  let foundColor = "";
+
+  const parts = suffix.split(/[-/\s]+/).map((p) => p.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    const upper = part.toUpperCase();
+    if (!foundSize && sizes.includes(upper)) {
+      foundSize = upper;
+    }
+  }
+
+  for (const part of parts) {
+    const titleCase = part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    if (!foundColor && colors.some((c) => c.toLowerCase() === part.toLowerCase())) {
+      foundColor = titleCase;
+    }
+  }
+
+  if (!foundSize) {
+    foundSize = parts.find((p) => /^(S|M|L|XL|XXL|3XL|4XL)$/i.test(p))?.toUpperCase() || "Default";
+  }
+
+  if (!foundColor) {
+    foundColor = parts[parts.length - 1] || "Default";
+  }
+
+  return {
+    size: foundSize,
+    color: foundColor
+  };
+}
+
+export async function syncSingleZohoItemToProduct(
+  item: any,
+  detailedItem: any = null,
+  sessionColorImageCache?: Map<string, { imageUrls: string[]; cloudflareImageIds: string[] }>
+) {
   const itemId = String(item.item_id || "");
   if (!itemId) return null;
   const now = new Date().toISOString();
-  
-  const title = getZohoItemName(item);
+  const finalItem = detailedItem || item;
+
+  const rawGroupId = finalItem?.group_id || finalItem?.item_group_id || item?.group_id || item?.item_group_id;
+  const groupId = rawGroupId && String(rawGroupId).trim() !== "undefined" ? String(rawGroupId).trim() : "";
+
+  const rawGroupName = finalItem?.group_name || finalItem?.item_group_name || item?.group_name || item?.item_group_name;
+  const groupName = rawGroupName && String(rawGroupName).trim() !== "undefined" ? String(rawGroupName).trim() : "";
+
+  const isExplicitGroup = Boolean(groupId && groupName);
+
+  // Extract base product title (e.g. "Rosé Bloom Co-Ord Set" or "Midnight Bloom Embroidered Co-Ord Set")
+  const rawItemName = getZohoItemName(item);
+  let parsedTitle = isExplicitGroup ? groupName : "";
+
+  if (!parsedTitle && rawItemName) {
+    const knownSizes = ["3XL", "4XL", "5XL", "XXL", "XL", "XS", "S", "M", "L", "Free Size", "Free", "One Size"];
+    const knownColors = [
+      "Yellow", "Red", "Blue", "Green", "Black", "White", "Pink", "Blush Pink",
+      "Mocha Brown", "Chocolate Brown", "Rust Brown", "Brown", "Sky Blue", "Mint Green",
+      "Emerald Green", "Ivory", "Navy", "Beige", "Maroon", "Grey", "Gray", "Cream",
+      "Orange", "Purple", "Gold", "Silver", "Multicolor"
+    ];
+
+    const tokens = rawItemName.split(/[-/\s]+/).map((t: string) => t.trim()).filter(Boolean);
+    const titleTokens = tokens.filter((t: string) => {
+      const upper = t.toUpperCase();
+      const isSizeToken = knownSizes.includes(upper);
+      const isColorToken = knownColors.some((c) => c.toLowerCase() === t.toLowerCase());
+      return !isSizeToken && !isColorToken && t.toLowerCase() !== "pcs" && t.toLowerCase() !== "default";
+    });
+
+    parsedTitle = titleTokens.join(" ").trim();
+  }
+
+  const title = parsedTitle || rawItemName;
   const price = getZohoItemRate(item);
   const sku = item.sku || itemId;
   const stock = getZohoItemStock(item);
   const baseSlug = slugify(title || itemId) || itemId;
-  const finalItem = detailedItem || item;
   const { categoryName, subcategoryName } = getZohoItemCategoryInfo(finalItem);
   const categorySlug = slugify(categoryName);
 
@@ -509,63 +729,153 @@ export async function syncSingleZohoItemToProduct(item: any, detailedItem: any =
     { upsert: true }
   );
 
-  const { imageUrls, cloudflareImageIds } = await getSyncedImageDataForItem(finalItem, itemId, baseSlug);
+  // Find existing product by zohoGroupId, baseSlug, or variant's zohoItemId
+  let existingProduct = await Product.findOne({
+    $or: [
+      ...(groupId ? [{ zohoGroupId: groupId }] : []),
+      { slug: baseSlug },
+      { "variants.zohoItemId": itemId }
+    ]
+  });
 
-  const product = await Product.findOneAndUpdate(
-    { zohoItemId: itemId },
-    {
-      $set: {
-        title,
-        slug: `${baseSlug}-${itemId}`,
-        description: finalItem.description || item.description || title,
-        price,
-        salePrice: price,
-        images: imageUrls,
-        cloudflareImageIds,
-        category: categoryName,
-        subcategory: subcategoryName || undefined,
-        isReturnable: true,
-        isCodAllowed: true,
-        isSellPointEligible: true,
-        sellPoints: Number((price / 5).toFixed(2)),
-        isActive: item.status ? item.status === "active" : true,
-        zohoItemId: itemId,
-        zohoSku: sku,
-        zohoLastSyncedAt: now,
-        zohoSyncStatus: "synced",
-        zohoSyncError: "",
-        updatedAt: now
-      },
-      $setOnInsert: {
-        id: crypto.randomUUID(),
-        createdAt: now
-      }
-    },
-    { upsert: true, new: true }
-  );
+  const variantInfo = parseVariantSizeAndColor(getZohoItemName(item), title);
 
-  await Product.findOneAndUpdate(
-    { id: product.id },
-    {
-      variants: [
-        {
-          sku,
-          size: item.unit || "Default",
-          color: "Default",
-          availableStock: stock,
-          reservedStock: 0,
-          returnStock: 0,
-          damagedStock: 0,
-          zohoItemId: itemId,
-          zohoLastSyncedAt: now,
-          zohoSyncStatus: "synced",
-          zohoSyncError: ""
-        }
-      ]
+  let finalVariantImages: string[] = [];
+  let finalVariantCfIds: string[] = [];
+
+  // 1. Check session-level cache first (same color already fetched this sync run)
+  const sessionCacheKey = `${groupId || baseSlug}::${variantInfo.color.toLowerCase().trim()}`;
+  if (sessionColorImageCache && sessionColorImageCache.has(sessionCacheKey)) {
+    const cached = sessionColorImageCache.get(sessionCacheKey)!;
+    finalVariantImages = cached.imageUrls;
+    finalVariantCfIds = cached.cloudflareImageIds;
+  }
+
+  // 2. Check DB for same-color variant already saved
+  if (finalVariantImages.length === 0 && existingProduct) {
+    const sameColorVariant = (existingProduct.variants || []).find(
+      (v: any) =>
+        v.color?.toLowerCase().trim() === variantInfo.color.toLowerCase().trim() &&
+        v.images &&
+        v.images.length > 0
+    );
+    if (sameColorVariant) {
+      finalVariantImages = sameColorVariant.images || [];
+      finalVariantCfIds = sameColorVariant.cloudflareImageIds || [];
     }
-  );
+  }
 
-  return { zohoItemId: itemId, productId: product.id, sku, title };
+  // 3. Fetch from Zoho only if not cached anywhere
+  if (finalVariantImages.length === 0) {
+    let detailedItem = finalItem;
+    if (!detailedItem.documents && itemId) {
+      try {
+        const detailedData = await fetchZohoItem(itemId);
+        if (detailedData?.item) detailedItem = detailedData.item;
+      } catch (e) {
+        // Fallback to basic item if detailed item fetch is rate-limited
+      }
+    }
+    const { imageUrls, cloudflareImageIds } = await getSyncedImageDataForItem(detailedItem, itemId, baseSlug);
+    finalVariantImages = imageUrls;
+    finalVariantCfIds = cloudflareImageIds;
+    // Store in session cache so other sizes of same color skip the fetch
+    if (sessionColorImageCache && finalVariantImages.length > 0) {
+      sessionColorImageCache.set(sessionCacheKey, { imageUrls: finalVariantImages, cloudflareImageIds: finalVariantCfIds });
+    }
+  }
+
+  const newVariant = {
+    sku,
+    size: variantInfo.size,
+    color: variantInfo.color,
+    availableStock: stock,
+    reservedStock: 0,
+    returnStock: 0,
+    damagedStock: 0,
+    images: finalVariantImages,
+    cloudflareImageIds: finalVariantCfIds,
+    zohoItemId: itemId,
+    zohoLastSyncedAt: now,
+    zohoSyncStatus: "synced",
+    zohoSyncError: ""
+  };
+
+  if (!existingProduct) {
+    const slug = baseSlug;
+    existingProduct = new Product({
+      id: crypto.randomUUID(),
+      title,
+      slug,
+      description: finalItem.description || item.description || title,
+      price,
+      salePrice: price,
+      images: finalVariantImages,
+      cloudflareImageIds: finalVariantCfIds,
+      category: categoryName,
+      subcategory: subcategoryName || undefined,
+      isReturnable: true,
+      isCodAllowed: true,
+      isSellPointEligible: true,
+      sellPoints: Number((price / 5).toFixed(2)),
+      isActive: item.status ? item.status === "active" : true,
+      zohoItemId: itemId,
+      zohoGroupId: groupId || undefined,
+      zohoSku: sku,
+      variants: [newVariant],
+      zohoLastSyncedAt: now,
+      zohoSyncStatus: "synced",
+      zohoSyncError: "",
+      createdAt: now,
+      updatedAt: now
+    });
+    await existingProduct.save();
+  } else {
+    const currentVariants = (existingProduct.variants || []).map((v: any) =>
+      typeof v.toObject === "function" ? v.toObject() : v
+    );
+    const variantIndex = currentVariants.findIndex(
+      (v: any) => v.zohoItemId === itemId || v.sku === sku
+    );
+
+    if (variantIndex >= 0) {
+      currentVariants[variantIndex] = { ...currentVariants[variantIndex], ...newVariant };
+    } else {
+      currentVariants.push(newVariant);
+    }
+
+    const mergedImages = Array.from(new Set([...(existingProduct.images || []), ...finalVariantImages])).filter(Boolean);
+    const mergedCfIds = Array.from(
+      new Set([...(existingProduct.cloudflareImageIds || []), ...finalVariantCfIds])
+    ).filter(Boolean);
+
+    // Update product-level details from Zoho
+    if (title) existingProduct.title = title;
+    const newDescription = finalItem.description || item.description;
+    if (newDescription) existingProduct.description = newDescription;
+    if (price && price > 0) {
+      existingProduct.price = price;
+      existingProduct.salePrice = price;
+      existingProduct.sellPoints = Number((price / 5).toFixed(2));
+    }
+    if (categoryName) existingProduct.category = categoryName;
+    if (subcategoryName) existingProduct.subcategory = subcategoryName;
+    if (item.status) existingProduct.isActive = item.status === "active";
+
+    existingProduct.set("variants", currentVariants);
+    existingProduct.images = mergedImages;
+    existingProduct.cloudflareImageIds = mergedCfIds;
+    existingProduct.updatedAt = now;
+    existingProduct.zohoLastSyncedAt = now;
+
+    // Always ensure zohoGroupId is stamped — in case product was found via variant lookup
+    if (groupId && !existingProduct.zohoGroupId) {
+      existingProduct.zohoGroupId = groupId;
+    }
+    await existingProduct.save();
+  }
+
+  return { zohoItemId: itemId, productId: existingProduct.id, sku, title };
 }
 
 export async function syncZohoItemsToProducts() {
@@ -585,20 +895,16 @@ export async function syncZohoItemsToProducts() {
   const items = Array.isArray(data.items) ? data.items : [];
   const results = [];
 
+  // In-memory cache: key = "groupId::color" → { imageUrls, cloudflareImageIds }
+  // Prevents re-fetching Zoho document images for same-color variants (e.g. Blue/S, Blue/M, Blue/L)
+  const sessionColorImageCache = new Map<string, { imageUrls: string[]; cloudflareImageIds: string[] }>();
+
   for (const item of items) {
     const itemId = String(item.item_id || "");
     if (!itemId) continue;
 
     try {
-      let detailedItem = item;
-      try {
-        const detailedData = await fetchZohoItem(itemId);
-        if (detailedData?.item) detailedItem = detailedData.item;
-      } catch (e) {
-        // Fallback to basic item if detailed item fetch is rate-limited
-      }
-
-      const result = await syncSingleZohoItemToProduct(item, detailedItem);
+      const result = await syncSingleZohoItemToProduct(item, item, sessionColorImageCache);
       if (result) results.push(result);
     } catch (err) {
       console.error(`Failed to sync item ${itemId}`, err);

@@ -10,6 +10,7 @@ import {
   fetchZohoSalesOrders,
   getInventoryApiDomain,
   getZohoInventoryStatus,
+  getZohoRateLimitInfo,
   getStoredZohoToken,
   refreshZohoAccessToken,
   streamZohoItemImage,
@@ -93,6 +94,7 @@ export const connectZoho = async (_req: Request, res: Response) => {
 export const getZohoStatus = async (_req: Request, res: Response) => {
   const tokenDoc = await getStoredZohoToken();
   const configStatus = getZohoInventoryStatus();
+  const rateLimit = getZohoRateLimitInfo();
 
   return res.json({
     connected: Boolean(tokenDoc?.refreshToken),
@@ -102,7 +104,14 @@ export const getZohoStatus = async (_req: Request, res: Response) => {
     expiresAt: tokenDoc?.expiresAt || null,
     organizationId: configStatus.organizationId,
     apiDomain: getInventoryApiDomain(tokenDoc?.apiDomain || configStatus.apiDomain),
-    tokenCollection: "zoho_tokens"
+    tokenCollection: "zoho_tokens",
+    rateLimitStatus: {
+      isExceeded: rateLimit.isExceeded,
+      cooldownRemainingSeconds: rateLimit.cooldownRemainingSeconds,
+      statusMessage: rateLimit.isExceeded
+        ? `Rate limit hit. Cooldown active for ${rateLimit.cooldownRemainingSeconds} seconds.`
+        : "Zoho API rate limit normal. Sync ready."
+    }
   });
 };
 

@@ -125,7 +125,7 @@ export default function PrivacyPolicy() {
                 <ul className="list-disc pl-5 mb-4 space-y-2">
                   <li>Create and manage your account</li>
                   <li>Process orders, deliveries, returns, and refunds</li>
-                  <li>Manage rewards, sell points, and payouts</li>
+                  <li>Manage rewards and payouts</li>
                   <li>Verify KYC details</li>
                   <li>Prevent fraud and misuse of the platform</li>
                   <li>Send order updates and service-related messages</li>

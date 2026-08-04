@@ -187,3 +187,25 @@ export async function processProductImagesForCloudflare(images: string[], produc
 
   return { images: updatedImages, cloudflareImageIds };
 }
+
+export async function deleteImageFromCloudflare(imageId: string): Promise<boolean> {
+  const config = getCloudflareImageConfig();
+  if (!config || !imageId) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1/${imageId}`,
+      {
+        method: "DELETE",
+        headers: getCloudflareAuthHeaders(config)
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    return response.ok && Boolean(data?.success);
+  } catch (err) {
+    console.error(`Failed to delete image ${imageId} from Cloudflare:`, err);
+    return false;
+  }
+}
