@@ -60,7 +60,7 @@ export function ProductDetailInteractive({ product }: ProductDetailInteractivePr
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr]">
+    <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] w-full max-w-full min-w-0">
       {/* Product Image Gallery (updates when color changes) */}
       <ProductImageGallery name={product.name} images={currentGallery} />
 

@@ -601,12 +601,12 @@ export function CategoryDetailClient({
                 className="group overflow-hidden rounded-[1.75rem] border border-[#ece6df] bg-white shadow-[0_14px_34px_rgba(95,93,62,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(95,93,62,0.1)]"
               >
                 <div className="p-4 pb-0">
-                  <div className="relative aspect-[4/4.9] overflow-hidden rounded-[1.35rem] bg-[#f4efe8]">
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-[1.35rem] bg-[#f4efe8] flex items-center justify-center p-1">
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
-                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+                    className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                   </div>
                 </div>

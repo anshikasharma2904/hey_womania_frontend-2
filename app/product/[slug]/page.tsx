@@ -199,7 +199,7 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-40 md:pt-44 text-[#1c1c19] md:px-10 lg:px-16">
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-56 sm:pt-60 md:pt-44 text-[#1c1c19] md:px-10 lg:px-16">
       <section className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
           <Link href="/">Home</Link>
@@ -270,13 +270,13 @@ export default async function ProductDetailPage({
                   href={`/product/${item.slug || slugifyProductName(item.name)}`}
                   className="group rounded-[1.35rem] border border-[#f0e7de] bg-[#fffdfa] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-[#e1d1c6] hover:shadow-[0_18px_34px_rgba(95,93,62,0.08)]"
                 >
-                  <div className="overflow-hidden rounded-[1.1rem] bg-[#f4efe8]">
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.1rem] bg-[#f4efe8] flex items-center justify-center p-1">
                     <Image
                       src={item.image}
                       alt={item.name}
                       width={260}
-                      height={320}
-                      className="h-[180px] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
+                      height={340}
+                      className="h-full w-full object-contain mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
                     />
                   </div>
                   <div className="mt-3">
