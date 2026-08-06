@@ -490,13 +490,6 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     }
   }
 
-  const fallbackUrls: string[] = (documents || []).map(
-    (doc: any) => `/api/zoho/documents/${doc.document_id}`
-  );
-  if (fallbackUrls.length === 0 && hasAttachment) {
-    fallbackUrls.push(`/api/zoho/items/${itemId}/image`);
-  }
-
   const newUrls: string[] = [];
   const newCfIds: string[] = [];
 
@@ -547,7 +540,11 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     }
   }
 
-  const finalUrls = newUrls.length > 0 ? newUrls : fallbackUrls;
+  // Only store Cloudflare CDN URLs (no direct Zoho API fallback URLs)
+  const finalUrls =
+    newUrls.length > 0
+      ? newUrls
+      : existingUrls.filter((img) => img.includes("imagedelivery.net") || img.includes("cloudflare"));
   const finalCfIds = newCfIds.length > 0 ? newCfIds : existingCfIds.filter((id) => !cfIdsToDelete.includes(id));
 
   console.log(`MongoDB updated successfully.`);

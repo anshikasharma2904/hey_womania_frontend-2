@@ -42,8 +42,46 @@ const allowedOrigins = [
   process.env.NEXT_PUBLIC_FRONTEND_URL
 ].filter(Boolean) as string[];
 let zohoAutoSyncInProgress = false;
+let zohoSyncTimeout: NodeJS.Timeout | null = null;
 
-async function runZohoAutoSync(trigger: "startup" | "interval") {
+function getMsUntilNextIST1230(): number {
+  const now = new Date();
+
+  // Format current date in IST time zone
+  const istFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  });
+
+  const parts = istFormatter.formatToParts(now);
+  let year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+  for (const p of parts) {
+    if (p.type === "year") year = parseInt(p.value, 10);
+    if (p.type === "month") month = parseInt(p.value, 10) - 1;
+    if (p.type === "day") day = parseInt(p.value, 10);
+    if (p.type === "hour") hour = parseInt(p.value, 10);
+    if (p.type === "minute") minute = parseInt(p.value, 10);
+    if (p.type === "second") second = parseInt(p.value, 10);
+  }
+
+  // 12:30 PM IST corresponds to 07:00:00 AM UTC (12:30 - 5:30 = 07:00)
+  const targetUTC = new Date(Date.UTC(year, month, day, 7, 0, 0, 0));
+
+  // If 12:30 PM IST today has already passed, schedule for 12:30 PM IST tomorrow
+  if (now.getTime() >= targetUTC.getTime()) {
+    targetUTC.setUTCDate(targetUTC.getUTCDate() + 1);
+  }
+
+  return targetUTC.getTime() - now.getTime();
+}
+
+async function runZohoAutoSync(trigger: string) {
   if (!ZOHO_AUTO_SYNC_ENABLED) {
     return;
   }
@@ -68,15 +106,15 @@ async function runZohoAutoSync(trigger: "startup" | "interval") {
       return;
     }
 
-    console.log(`[Zoho Auto Sync] Starting ${trigger} sync...`);
+    console.log(`[Zoho Auto Sync] Starting daily 12:30 PM IST sync...`);
     const categoryResult = await syncZohoCategoriesToDb();
     const productResult = await syncZohoItemsToProducts();
 
     console.log(
-      `[Zoho Auto Sync] Completed ${trigger} sync. Categories: ${categoryResult.synced}, Products: ${productResult.synced}`
+      `[Zoho Auto Sync] Completed daily sync. Categories: ${categoryResult.synced}, Products: ${productResult.synced}`
     );
   } catch (error: any) {
-    console.warn(`[Zoho Auto Sync] ${trigger} sync paused:`, error.message || error);
+    console.warn(`[Zoho Auto Sync] Daily sync paused:`, error.message || error);
   } finally {
     zohoAutoSyncInProgress = false;
   }
@@ -88,15 +126,23 @@ function startZohoAutoSync() {
     return;
   }
 
-  const intervalMs = ZOHO_AUTO_SYNC_INTERVAL_MINUTES * 60 * 1000;
+  if (zohoSyncTimeout) {
+    clearTimeout(zohoSyncTimeout);
+  }
+
+  const delayMs = getMsUntilNextIST1230();
+  const nextRunDate = new Date(Date.now() + delayMs);
+  const nextRunIST = nextRunDate.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
   console.log(
-    `[Zoho Auto Sync] Enabled. Products will sync every ${ZOHO_AUTO_SYNC_INTERVAL_MINUTES} minutes.`
+    `[Zoho Auto Sync] Enabled (Once a day at 12:30 PM IST). Next scheduled run: ${nextRunIST} IST.`
   );
 
-  void runZohoAutoSync("startup");
-  setInterval(() => {
-    void runZohoAutoSync("interval");
-  }, intervalMs);
+  zohoSyncTimeout = setTimeout(() => {
+    void runZohoAutoSync("daily_1230pm_ist");
+    // Schedule for next day
+    startZohoAutoSync();
+  }, delayMs);
 }
 
 // Middlewares
