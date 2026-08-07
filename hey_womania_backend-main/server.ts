@@ -24,7 +24,9 @@ import {
   syncZohoItemsToProducts
 } from "./services/zohoInventoryService";
 
-dotenv.config(); // Load backend/.env
+dotenv.config(); // Load .env
+dotenv.config({ path: "env" }); // Load env (without dot fallback)
+dotenv.config({ path: "../.env" });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

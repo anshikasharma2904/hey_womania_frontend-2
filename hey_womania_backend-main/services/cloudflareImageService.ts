@@ -14,11 +14,12 @@ function getCloudflareImageConfig(): CloudflareImageConfig | null {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const apiToken = process.env.CLOUDFLARE_IMAGES_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
   const email = process.env.CLOUDFLARE_EMAIL || process.env.SHIPROCKET_EMAIL || process.env.EMAIL_USER;
-  const deliveryHash = process.env.CLOUDFLARE_IMAGES_DELIVERY_HASH;
+  const deliveryHash = process.env.CLOUDFLARE_IMAGES_DELIVERY_HASH || "xcfP08AjIq0qrHgFMvkROA";
   const deliveryBaseUrl = process.env.CLOUDFLARE_IMAGES_DELIVERY_BASE_URL
     || (deliveryHash ? `https://imagedelivery.net/${deliveryHash}` : undefined);
 
   if (!accountId || !apiToken) {
+    console.error("[Cloudflare Config Warning] CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_IMAGES_API_TOKEN missing from server environment!");
     return null;
   }
 
