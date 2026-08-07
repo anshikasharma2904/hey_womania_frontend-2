@@ -438,7 +438,11 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
   }
 
   const documents = Array.isArray(itemData.documents) ? itemData.documents : [];
-  const zohoDocIds = documents.map((d: any) => String(d.document_id || "").trim()).filter(Boolean);
+  let zohoDocIds = documents.map((d: any) => String(d.document_id || "").trim()).filter(Boolean);
+
+  if (zohoDocIds.length === 0 && itemData?.image_document_id) {
+    zohoDocIds.push(String(itemData.image_document_id).trim());
+  }
   const zohoImageCount = zohoDocIds.length > 0 ? zohoDocIds.length : (hasAttachment ? 1 : 0);
 
   console.log(`----------------------------------`);
@@ -520,9 +524,10 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     console.log(`Downloading image...`);
     console.log(`Uploading image...`);
 
-    for (let index = 0; index < documents.length; index += 1) {
-      const document = documents[index];
-      const documentId = String(document?.document_id || "").trim();
+    const targetDocIds = zohoDocIds.length > 0 ? zohoDocIds : (itemData?.image_document_id ? [String(itemData.image_document_id)] : []);
+
+    for (let index = 0; index < targetDocIds.length; index += 1) {
+      const documentId = String(targetDocIds[index] || "").trim();
       if (!documentId) continue;
 
       try {
