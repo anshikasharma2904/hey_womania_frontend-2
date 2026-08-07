@@ -165,13 +165,20 @@ export const getZohoDocumentImage = async (_req: Request, res: Response) => {
 };
 
 export const syncZohoItems = async (_req: Request, res: Response) => {
-  try {
-    const data = await syncZohoItemsToProducts();
-    return res.json(data);
-  } catch (error: any) {
-    console.log("ZOHO SYNC ERROR:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Failed to sync Zoho items" });
-  }
+  res.json({
+    success: true,
+    message: "Zoho item sync started in background. Protecting API connection from Nginx timeouts.",
+    status: "processing"
+  });
+
+  // Run sync process in background without blocking HTTP response
+  syncZohoItemsToProducts()
+    .then((data) => {
+      console.log("[Zoho Background Sync Complete]", data);
+    })
+    .catch((error) => {
+      console.error("[Zoho Background Sync Error]", error.response?.data || error.message);
+    });
 };
 
 export const getZohoCategories = async (_req: Request, res: Response) => {
