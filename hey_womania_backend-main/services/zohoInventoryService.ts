@@ -393,6 +393,38 @@ async function fetchZohoDocumentImageBuffer(documentId: string, retries = 2): Pr
 }
 
 async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlug: string) {
+  // 1. CHECK MONGODB FIRST BEFORE MAKING ANY ZOHO API CALLS
+  const existingProduct = await Product.findOne({
+    $or: [{ zohoItemId: itemId }, { "variants.zohoItemId": itemId }]
+  });
+
+  const existingUrls: string[] = existingProduct?.images || [];
+  const existingCfIds: string[] = existingProduct?.cloudflareImageIds || [];
+  const hasCloudflareUrls =
+    existingUrls.length > 0 &&
+    existingUrls.every((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"));
+
+  const hasAttachment = Boolean(finalItem?.has_attachment || finalItem?.image_id || finalItem?.image_name);
+
+  // If DB already has valid Cloudflare images, return immediately with 0 Zoho API calls!
+  if (hasCloudflareUrls && existingCfIds.length > 0) {
+    console.log(`[Zero-API Skip] Item ${itemId} already has ${existingUrls.length} Cloudflare images in DB.`);
+    return {
+      imageUrls: existingUrls,
+      cloudflareImageIds: existingCfIds
+    };
+  }
+
+  // If item has no image in Zoho list summary and no DB image, skip Zoho detail call
+  if (!hasAttachment && existingUrls.length === 0) {
+    console.log(`[No Image Skip] Item ${itemId} has no image attached in Zoho.`);
+    return {
+      imageUrls: [],
+      cloudflareImageIds: []
+    };
+  }
+
+  // 2. ONLY FETCH ZOHO ITEM DETAIL IF NEW PRODUCT OR MISSING CLOUDFLARE IMAGES
   let itemData = finalItem;
   if ((!itemData?.documents || !Array.isArray(itemData.documents)) && itemId) {
     try {
@@ -405,16 +437,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     }
   }
 
-  const existingProduct = await Product.findOne({
-    $or: [{ zohoItemId: itemId }, { "variants.zohoItemId": itemId }]
-  });
-
-  const existingUrls: string[] = existingProduct?.images || [];
-  const existingCfIds: string[] = existingProduct?.cloudflareImageIds || [];
-
   const documents = Array.isArray(itemData.documents) ? itemData.documents : [];
-  const hasAttachment = Boolean(itemData.has_attachment || itemData.image_id || itemData.image_name);
-
   const zohoDocIds = documents.map((d: any) => String(d.document_id || "").trim()).filter(Boolean);
   const zohoImageCount = zohoDocIds.length > 0 ? zohoDocIds.length : (hasAttachment ? 1 : 0);
 
@@ -422,7 +445,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
   console.log(`Syncing item: ${itemId}`);
   console.log(`Existing DB image: ${existingUrls.length > 0 ? existingUrls.join(", ") : "None"}`);
 
-  // 1. IF REMOVED IN ZOHO (zohoImageCount === 0)
+  // 3. IF REMOVED IN ZOHO
   if (zohoImageCount === 0) {
     console.log(`Zoho image: None`);
     if (existingCfIds.length > 0) {
@@ -449,11 +472,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
 
   console.log(`Zoho image: ${zohoDocIds.length > 0 ? `Documents [${zohoDocIds.join(", ")}]` : "Item Attachment"}`);
 
-  // 2. CHECK IDEMPOTENCY / NO CHANGE
-  const hasCloudflareUrls =
-    existingUrls.length > 0 &&
-    existingUrls.every((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"));
-
+  // 4. CHECK IDEMPOTENCY / NO CHANGE
   const allDocIdsSynced =
     zohoDocIds.length > 0 &&
     zohoDocIds.every((docId: string) => existingCfIds.some((cfId) => cfId.includes(docId)));
