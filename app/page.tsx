@@ -1,6 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { BestSellersCoverflow } from "@/components/BestSellersCoverflow";
-import { ElaraHeroSection } from "@/components/ElaraHeroSection";
+import { HeroVideoSlider } from "@/components/HeroVideoSlider";
 import { LuxuryCategoryNavigation } from "@/components/LuxuryCategoryNavigation";
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
 import { StoreFooter } from "@/components/StoreFooter";
@@ -214,6 +215,51 @@ function mapProductsToBestSellers(products: BestSellerProduct[]) {
   });
 }
 
+function mapProductsToTestimonials(products: Product[]) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const validProducts = products.filter(p => p.images && p.images.length > 0);
+
+  const fallbackReviews = [
+    {
+      name: "Sarah M.",
+      tag: "Verified Buyer",
+      quote: "Loved the fit and fabric quality. The suit set looked even better in person and arrived beautifully packed."
+    },
+    {
+      name: "Aisha K.",
+      tag: "Verified Buyer",
+      quote: "The festive embroidery felt premium, light to wear, and easy to style. Delivery and size guidance were both smooth."
+    },
+    {
+      name: "Meera D.",
+      tag: "Verified Buyer",
+      quote: "The detailing and finish stood out immediately. It finally feels like a fashion store with real statement pieces."
+    }
+  ];
+
+  return fallbackReviews.map((review, index) => {
+    const prod = validProducts[index % Math.max(1, validProducts.length)];
+    let imageUrl = arrivalImages[index % arrivalImages.length];
+
+    if (prod && prod.images && prod.images.length > 0) {
+      imageUrl = prod.images[0].startsWith("http")
+        ? prod.images[0]
+        : `${apiUrl}${prod.images[0]}`;
+    }
+
+    return {
+      name: review.name,
+      tag: review.tag,
+      productTitle: prod ? prod.title : "Exclusive Collection",
+      href: prod ? `/product/${prod.slug || slugifyProductName(prod.title)}` : "#",
+      image: imageUrl,
+      quote: prod
+        ? `Loved the fit and finish of ${prod.title}. The fabric quality looked even better in person!`
+        : review.quote
+    };
+  });
+}
+
 export default async function Home() {
   const [products, bestSellerProducts] = await Promise.all([
     fetchProducts(),
@@ -222,10 +268,11 @@ export default async function Home() {
   const arrivalCards = mapProductsToArrivals(products);
   const categories = mapProductsToCategories(products);
   const bestSellerItems = mapProductsToBestSellers(bestSellerProducts);
+  const testimonials = mapProductsToTestimonials(products);
 
   return (
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
-      <ElaraHeroSection />
+      <HeroVideoSlider />
 
       <NewArrivalsCarousel cards={arrivalCards} />
 
@@ -253,43 +300,52 @@ export default async function Home() {
 
           <div className="mt-8 grid gap-4 lg:mt-10 lg:grid-cols-3">
             {testimonials.map((item) => (
-              <article
+              <Link
                 key={item.name}
-                className="rounded-[1.6rem] border border-[#ece6df] bg-white p-5 shadow-[0_18px_40px_rgba(95,93,62,0.06)]"
+                href={item.href}
+                className="group block rounded-[1.6rem] border border-[#ece6df] bg-white p-5 shadow-[0_18px_40px_rgba(95,93,62,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-start gap-4">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-[1rem] bg-[#f3ede6]">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[1rem] bg-[#f4efe8] p-1 flex items-center justify-center">
                     <Image
                       src={item.image}
-                      alt={item.name}
+                      alt={item.productTitle}
                       fill
-                      className="object-contain object-bottom"
-                      sizes="64px"
+                      className="object-contain transition-transform duration-300 group-hover:scale-105"
+                      sizes="80px"
                     />
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1 text-[#ffb000]">
-                      {Array.from({ length: 5 }).map((_, starIndex) => (
-                        <span key={starIndex} className="text-sm">
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <p className="mt-4 text-sm leading-7 text-[#554f49] md:text-[15px]">
-                      {item.quote}
-                    </p>
-                    <div className="mt-5">
-                      <p className="text-sm font-bold text-[#111111]">
-                        {item.name}
-                      </p>
-                      <p className="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#ef6f63]">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 text-[#ffb000]">
+                        {Array.from({ length: 5 }).map((_, starIndex) => (
+                          <span key={starIndex} className="text-xs">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#ef6f63]">
                         {item.tag}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 line-clamp-1 text-xs font-semibold uppercase tracking-wider text-[#9c4049]">
+                      {item.productTitle}
+                    </p>
+
+                    <p className="mt-2 text-xs leading-5 text-[#554f49] sm:text-sm">
+                      "{item.quote}"
+                    </p>
+
+                    <div className="mt-3 border-t border-[#f4efe8] pt-2">
+                      <p className="text-xs font-bold text-[#111111]">
+                        {item.name}
                       </p>
                     </div>
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
 

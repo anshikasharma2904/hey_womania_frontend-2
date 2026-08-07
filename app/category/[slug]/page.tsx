@@ -437,8 +437,8 @@ export default async function CategoryDetailPage({
       : categoryFilterColumns[slug] ?? categoryFilterColumns.all;
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-52 text-[#1c1c19] md:px-10 md:pt-40 lg:pt-44 lg:px-16">
-      <section className="mx-auto max-w-7xl">
+    <main className="min-h-screen w-full max-w-full min-w-0 overflow-x-hidden bg-[#fcf9f4] px-2 sm:px-4 pb-12 pt-4 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
+      <section className="mx-auto w-full max-w-7xl min-w-0">
         <CategoryDetailClient
           slug={slug}
           category={category}

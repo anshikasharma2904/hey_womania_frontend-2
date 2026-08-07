@@ -156,28 +156,12 @@ export const getZohoItemById = async (req: Request, res: Response) => {
   }
 };
 
-export const getZohoItemImage = async (req: Request, res: Response) => {
-  try {
-    const { itemId } = req.params;
-    await streamZohoItemImage(itemId, res);
-  } catch (error: any) {
-    console.log("ZOHO ITEM IMAGE ERROR:", error.message);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: "Failed to stream Zoho item image" });
-    }
-  }
+export const getZohoItemImage = async (_req: Request, res: Response) => {
+  return res.status(404).json({ error: "Direct Zoho image loading is disabled. Images are served via Cloudflare CDN." });
 };
 
-export const getZohoDocumentImage = async (req: Request, res: Response) => {
-  try {
-    const { documentId } = req.params;
-    await streamZohoDocumentImage(documentId, res);
-  } catch (error: any) {
-    console.log("ZOHO DOCUMENT IMAGE ERROR:", error.message);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: "Failed to stream Zoho document image" });
-    }
-  }
+export const getZohoDocumentImage = async (_req: Request, res: Response) => {
+  return res.status(404).json({ error: "Direct Zoho document image loading is disabled. Images are served via Cloudflare CDN." });
 };
 
 export const syncZohoItems = async (_req: Request, res: Response) => {

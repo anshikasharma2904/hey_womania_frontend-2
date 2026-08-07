@@ -83,19 +83,38 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
       if (!directMenus.some((menu) => menu.label === label)) {
         directMenus.push({
           label,
-          href: "#",
-          columns: [
-            {
-              title: "Coming Soon",
-              links: []
-            }
-          ]
+          href,
+          columns: []
         });
       }
       continue;
     }
 
-    if (parts.length < 2) continue;
+    if (parts.length === 2) {
+      const [mainRaw, linkRaw] = parts;
+      const mainCategory = normalizeMainCategory(mainRaw);
+      const heading = "Categories";
+      const linkLabel = formatCategoryLabel(linkRaw);
+
+      if (!menuMap.has(mainCategory)) {
+        menuMap.set(mainCategory, {
+          label: mainCategory,
+          href: `/category/${slugify(mainCategory)}`,
+          columns: new Map()
+        });
+      }
+      const menu = menuMap.get(mainCategory)!;
+      if (!menu.columns.has(heading)) {
+        menu.columns.set(heading, []);
+      }
+      const links = menu.columns.get(heading)!;
+      if (!links.some((item) => item.label === linkLabel)) {
+        links.push({ label: linkLabel, href });
+      }
+      continue;
+    }
+
+    if (parts.length < 3) continue;
 
     const [mainRaw, headingRaw, linkRaw] = parts;
     const mainCategory = normalizeMainCategory(mainRaw);
@@ -154,9 +173,59 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
     return MENU_PRIORITY[key] ?? 99;
   };
 
-  const allMenus = [...parsedMenus, ...directMenus];
+  const DEFAULT_FALLBACK_MENUS: CategoryMenu[] = [
+    {
+      label: "Clothes",
+      href: "/category/clothes",
+      columns: [
+        {
+          title: "Traditional Wear",
+          links: [
+            { label: "Kurta Sets", href: "/category/clothes-traditional-wear-kurta-set-for-women" },
+            { label: "Kurta Sets with Dupatta", href: "/category/clothes-traditional-wear-kurta-set-for-women-with-dupatta" },
+            { label: "Suit Sets", href: "/category/suit-set" },
+            { label: "Lawn Suits", href: "/category/lawn-suit" }
+          ]
+        },
+        {
+          title: "Western Wear",
+          links: [
+            { label: "Co-Ord Sets", href: "/category/clothes-western-wear-co-ordset" }
+          ]
+        }
+      ]
+    },
+    {
+      label: "Jewellery",
+      href: "/category/jewellery",
+      columns: [
+        {
+          title: "Categories",
+          links: [
+            { label: "Necklace", href: "/category/jewellery-necklace" }
+          ]
+        }
+      ]
+    },
+    {
+      label: "Bags",
+      href: "/category/bag",
+      columns: [
+        {
+          title: "Categories",
+          links: [
+            { label: "Mini Bags", href: "/category/bag-mini-bags" },
+            { label: "Quilted Handbags", href: "/category/bag-mini-bags-quilted-handbag" }
+          ]
+        }
+      ]
+    }
+  ];
 
-  return allMenus.sort((a, b) => {
+  const allMenus = [...parsedMenus, ...directMenus];
+  const finalMenus = allMenus.length > 0 ? allMenus : DEFAULT_FALLBACK_MENUS;
+
+  return finalMenus.sort((a, b) => {
     const pA = getPriority(a.label);
     const pB = getPriority(b.label);
     if (pA !== pB) return pA - pB;
@@ -268,12 +337,12 @@ export function MainNavbar() {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50">
+    <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
       <div className="bg-[#5f5d3e] px-5 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white md:px-16">
         Free shipping on orders above ₹199 • New-season arrivals now live
       </div>
 
-      <header className="border-b border-[#cac7b9]/30 bg-[#fcf9f4]/92 px-5 py-3 backdrop-blur-xl md:px-12">
+      <header className="border-b border-[#cac7b9]/40 bg-[#fcf9f4] px-5 py-3 md:px-12">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-4">
             <button
@@ -291,7 +360,7 @@ export function MainNavbar() {
               <img src="/logo.png" alt="HeyWomaniyaa" className="h-16 w-auto object-contain md:h-18" />
             </Link>
 
-            <nav className="hidden min-w-0 items-center gap-4 2xl:gap-5 xl:relative xl:flex">
+            <nav className="hidden min-w-0 items-center gap-3 lg:flex 2xl:gap-5">
               {navbarMenus.map((menu) => (
                 <div key={menu.label} className="group relative">
                   <Link

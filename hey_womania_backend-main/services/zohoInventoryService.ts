@@ -450,6 +450,10 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
   console.log(`Zoho image: ${zohoDocIds.length > 0 ? `Documents [${zohoDocIds.join(", ")}]` : "Item Attachment"}`);
 
   // 2. CHECK IDEMPOTENCY / NO CHANGE
+  const hasCloudflareUrls =
+    existingUrls.length > 0 &&
+    existingUrls.every((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"));
+
   const allDocIdsSynced =
     zohoDocIds.length > 0 &&
     zohoDocIds.every((docId: string) => existingCfIds.some((cfId) => cfId.includes(docId)));
@@ -459,7 +463,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     hasAttachment &&
     existingCfIds.some((cfId) => cfId.includes(itemId));
 
-  if ((allDocIdsSynced || singleAttachmentSynced) && existingUrls.length === zohoImageCount) {
+  if (hasCloudflareUrls && (allDocIdsSynced || singleAttachmentSynced) && existingUrls.length === zohoImageCount) {
     console.log(`Image changed: No`);
     console.log(`----------------------------------`);
     return {
@@ -726,11 +730,12 @@ export async function syncSingleZohoItemToProduct(
     { upsert: true }
   );
 
-  // Find existing product by zohoGroupId, baseSlug, or variant's zohoItemId
+  // Find existing product by zohoGroupId, baseSlug, title regex, or variant's zohoItemId
   let existingProduct = await Product.findOne({
     $or: [
       ...(groupId ? [{ zohoGroupId: groupId }] : []),
       { slug: baseSlug },
+      { title: new RegExp(`^${title.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i") },
       { "variants.zohoItemId": itemId }
     ]
   });
@@ -820,13 +825,36 @@ export async function syncSingleZohoItemToProduct(
       zohoGroupId: groupId || undefined,
       zohoSku: sku,
       variants: [newVariant],
-      zohoLastSyncedAt: now,
-      zohoSyncStatus: "synced",
-      zohoSyncError: "",
       createdAt: now,
       updatedAt: now
     });
-    await existingProduct.save();
+    try {
+      await existingProduct.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        const dupProduct = await Product.findOne({ slug: baseSlug });
+        if (dupProduct) {
+          const currentVariants = (dupProduct.variants || []).map((v: any) =>
+            typeof v.toObject === "function" ? v.toObject() : v
+          );
+          const variantIndex = currentVariants.findIndex(
+            (v: any) => v.zohoItemId === itemId || v.sku === sku
+          );
+          if (variantIndex >= 0) {
+            currentVariants[variantIndex] = { ...currentVariants[variantIndex], ...newVariant };
+          } else {
+            currentVariants.push(newVariant);
+          }
+          dupProduct.set("variants", currentVariants);
+          if (finalVariantImages.length > 0) dupProduct.images = Array.from(new Set([...(dupProduct.images || []), ...finalVariantImages])).filter(Boolean);
+          if (finalVariantCfIds.length > 0) dupProduct.cloudflareImageIds = Array.from(new Set([...(dupProduct.cloudflareImageIds || []), ...finalVariantCfIds])).filter(Boolean);
+          await dupProduct.save();
+          existingProduct = dupProduct;
+        }
+      } else {
+        throw saveErr;
+      }
+    }
   } else {
     const currentVariants = (existingProduct.variants || []).map((v: any) =>
       typeof v.toObject === "function" ? v.toObject() : v

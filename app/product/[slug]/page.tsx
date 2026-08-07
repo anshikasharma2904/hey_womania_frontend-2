@@ -199,7 +199,7 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-56 sm:pt-60 md:pt-44 text-[#1c1c19] md:px-10 lg:px-16">
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-6 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
       <section className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
           <Link href="/">Home</Link>
