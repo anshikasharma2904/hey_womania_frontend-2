@@ -38,7 +38,7 @@ export default async function AnnualClubPage() {
           : "Not yet qualified";
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-44 text-[#1c1c19] md:pt-40 lg:pt-44">
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-10 text-[#1c1c19] md:pt-10 lg:pt-10">
       <section className="mx-auto max-w-5xl rounded-[2rem] border border-[#ead9d1] bg-white/90 p-5 shadow-[0_22px_60px_rgba(127,49,68,0.08)] md:p-8">
         <Link href="/earnings" className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9c4049]">
           Back to Dashboard

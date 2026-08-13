@@ -47,38 +47,7 @@ export function PartnerDashboardCards({
   };
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {/* Total Sell Points */}
-      <div className="rounded-[1.6rem] border border-[#ece6df] bg-white p-6 shadow-[0_10px_28px_rgba(95,93,62,0.04)]">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#6d655d]">
-            Total Sell Points
-          </p>
-          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#9c4049]">
-            <FaCoins className="text-[1.2rem]" />
-          </div>
-        </div>
-        <h3 className="mt-4 text-3xl font-black tracking-tight text-[#1c1c19]">
-          {totalSP}
-        </h3>
-        <p className="mt-2 text-xs text-[#8b837b]">Cumulative points earned</p>
-      </div>
-
-      {/* Current Month SP */}
-      <div className="rounded-[1.6rem] border border-[#ece6df] bg-white p-6 shadow-[0_10px_28px_rgba(95,93,62,0.04)]">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#6d655d]">
-            Current Month SP
-          </p>
-          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#9c4049]">
-            <FaAward className="text-[1.2rem]" />
-          </div>
-        </div>
-        <h3 className="mt-4 text-3xl font-black tracking-tight text-[#1c1c19]">
-          {currentMonthSP}
-        </h3>
-        <p className="mt-2 text-xs text-[#8b837b]">Points earned this month</p>
-      </div>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
       {/* Wallet Balance */}
       <div className="rounded-[1.6rem] border border-[#ece6df] bg-white p-6 shadow-[0_10px_28px_rgba(95,93,62,0.04)]">

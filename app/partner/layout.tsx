@@ -35,7 +35,7 @@ export default async function PartnerLayout({ children }: { children: ReactNode 
   }
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-5 pb-16 pt-44 text-[#1c1c19] md:px-16 md:pt-40 lg:pt-44">
+    <main className="min-h-screen bg-[#fcf9f4] px-5 pb-16 pt-10 text-[#1c1c19] md:px-16 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-8 lg:flex-row">
           <PartnerSidebar />

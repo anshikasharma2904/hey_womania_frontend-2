@@ -348,7 +348,7 @@ const shortcutCategories = [
   });
 
   return (
-    <main className="min-h-screen bg-[#f7f0e7] px-4 pb-12 pt-40 text-[#1c1c19] md:px-10 md:pt-44 lg:px-16">
+    <main className="min-h-screen bg-[#f7f0e7] px-4 pb-12 pt-6 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
       <section className="mx-auto max-w-[1840px]">
         <section className="rounded-[2.2rem] bg-[radial-gradient(circle_at_top,#fff9f2_0%,#fbf3ea_48%,#f7efe6_100%)] px-6 py-10 shadow-[0_30px_80px_rgba(121,91,66,0.09)] md:px-10 md:py-16 lg:px-16">
           <p className="text-[0.78rem] font-semibold uppercase tracking-[0.42em] text-[#bf9685]">
@@ -406,7 +406,7 @@ const shortcutCategories = [
                   className="group flex flex-col rounded-[1.8rem] border border-[#f0e5d9] bg-white/88 p-4 text-center shadow-[0_18px_36px_rgba(121,91,66,0.06)] transition-transform duration-300 hover:-translate-y-1"
                 >
                   <div
-                    className={`relative flex h-[132px] w-full items-center justify-center overflow-hidden rounded-[1.45rem] border shadow-[0_16px_34px_rgba(121,91,66,0.08)] ${
+                    className={`relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-[1.45rem] border shadow-[0_16px_34px_rgba(121,91,66,0.08)] ${
                       isSale
                         ? "border-[#111111] bg-[#111111] text-white"
                         : "border-[#f0e5d9] bg-[#faf4ed] text-[#b08d7b]"
@@ -417,13 +417,12 @@ const shortcutCategories = [
                         src={category.image}
                         alt={category.title}
                         fill
-                        sizes="(max-width: 768px) 50vw, 180px"
-                        className={`transition-transform duration-500 group-hover:scale-[1.05] ${
-                          isSale ? "object-cover opacity-80" : "object-cover object-top"
+                        sizes="(max-width: 768px) 50vw, 240px"
+                        className={`object-cover object-top transition-transform duration-500 group-hover:scale-[1.05] ${
+                          isSale ? "opacity-80" : ""
                         }`}
                       />
                     ) : null}
-                    <div className="absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(34,26,21,0.12)_100%)]" />
                   </div>
                   <div className="mt-4 space-y-1 px-1">
                     <p className="text-[0.98rem] font-medium leading-8 text-[#77675d]">{category.title}</p>
@@ -490,14 +489,14 @@ const shortcutCategories = [
         <section className="mt-16 grid gap-8 xl:grid-cols-[1.12fr_1fr]">
           <div className="overflow-hidden rounded-[3rem] bg-[linear-gradient(135deg,#7f6253_0%,#6f6a42_100%)] px-6 py-8 text-white shadow-[0_28px_80px_rgba(86,69,50,0.2)] md:px-10 md:py-12">
             <p className="text-[0.82rem] font-semibold uppercase tracking-[0.38em] text-white/72">
-              Store Highlight
+              Hey Womaniyaa Signature
             </p>
-            <h2 className="mt-6 max-w-[12ch] font-[family:var(--font-display)] text-[2.4rem] leading-[0.95] tracking-[-0.05em] md:text-[3.9rem]">
-              One category page that leads into every buying path.
+            <h2 className="mt-6 max-w-[14ch] font-[family:var(--font-display)] text-[2.4rem] leading-[0.95] tracking-[-0.05em] md:text-[3.9rem]">
+              Curated elegance for every mood and occasion.
             </h2>
             <p className="mt-5 max-w-4xl text-base leading-8 text-white/88">
-              Use this page like a fashion navigation hub: enter from imagery, jump by
-              category shortcut, or move directly into sale and accessories.
+              Explore Hey Womaniyaa&apos;s signature edits — seamlessly navigate through handcrafted
+              traditional wear, modern western silhouettes, statement jewellery, and everyday essentials.
             </p>
 
             <div className="mt-10 grid gap-5 md:grid-cols-2">
@@ -526,15 +525,15 @@ const shortcutCategories = [
               <Link
                 key={card.slug}
                 href={card.href}
-                className="rounded-[2.2rem] border border-[#f3e8dd] bg-[#fffaf4] p-5 shadow-[0_22px_56px_rgba(121,91,66,0.08)]"
+                className="group rounded-[2.2rem] border border-[#f3e8dd] bg-[#fffaf4] p-5 shadow-[0_22px_56px_rgba(121,91,66,0.08)] transition-transform duration-300 hover:-translate-y-1"
               >
-                <div className="relative h-[240px] overflow-hidden rounded-[1.8rem] bg-[#fdf8f2]">
+                <div className="relative aspect-[4/5] w-full h-auto overflow-hidden rounded-[1.8rem] bg-[#fcf9f4]">
                   <Image
                     src={card.image}
                     alt={card.title}
                     fill
                     sizes="(max-width: 1024px) 100vw, 25vw"
-                    className="object-cover object-top"
+                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
                   />
                 </div>
                 <p className="mt-6 text-[0.82rem] font-semibold uppercase tracking-[0.34em] text-[#cb6e67]">

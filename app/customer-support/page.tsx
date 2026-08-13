@@ -5,7 +5,7 @@ export default function CustomerSupportPage() {
   return (
     <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19]">
 
-      <main className="px-4 pb-16 pt-40 md:px-10 md:pt-44 lg:px-16">
+      <main className="px-4 pb-16 pt-10 md:px-10 md:pt-10 lg:px-16 lg:pt-10">
         {/* Hero Section */}
         <section className="mx-auto max-w-4xl mb-12 text-center md:px-8">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/80">

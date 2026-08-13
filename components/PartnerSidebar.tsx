@@ -20,7 +20,6 @@ const partnerLinks = [
   { label: "Dashboard", href: "/partner/dashboard", icon: FaChartLine },
   { label: "Wallet", href: "/partner/wallet", icon: FaWallet },
   { label: "Referral Team", href: "/partner/team", icon: FaUsers },
-  { label: "Sell Points", href: "/partner/sell-points", icon: FaCoins },
   { label: "KYC Documents", href: "/partner/kyc", icon: FaIdCard },
   { label: "Withdraw Request", href: "/partner/withdraw", icon: FaMoneyBillWave },
 ];

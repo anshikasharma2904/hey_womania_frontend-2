@@ -1,42 +1,31 @@
 import Link from "next/link";
-import { FaArrowLeft, FaBoxOpen, FaChartLine, FaCheckCircle, FaTruck } from "react-icons/fa";
+import { FaArrowLeft, FaBoxOpen, FaCheckCircle, FaTruck } from "react-icons/fa";
 import { getPartnerOrders } from "@/lib/server/partner-dashboard";
 
 export default async function PartnerOrdersPage() {
-  const dbOrders = await getPartnerOrders() || [];
+  const rawOrders = await getPartnerOrders();
+  const dbOrders = Array.isArray(rawOrders) ? rawOrders : rawOrders?.data ?? [];
   
   const totalOrders = dbOrders.length;
   const deliveredCount = dbOrders.filter((o: any) => o.status === "Delivered").length;
   const inTransitCount = dbOrders.filter((o: any) => o.status === "Shipped" || o.status === "Ongoing").length;
-  
-  let totalSP = 0;
-  const orders = dbOrders.map((o: any) => {
-    const numericTotal = parseFloat((o.total || "").replace(/[^0-9.]/g, ""));
-    const sp = !isNaN(numericTotal) ? numericTotal / 5 : 0;
-    if (o.status === "Delivered") {
-      totalSP += sp;
-    }
-    
-    return {
-      id: o.orderNumber || o.id || "N/A",
-      customer: o.address?.fullName || o.address?.name || "Self",
-      product: o.items?.[0]?.name || "Product Bundle",
-      amount: o.total || "₹0",
-      sellPoints: `${sp.toFixed(1)} SP`,
-      status: o.status || "Pending",
-      earning: `₹${(sp * 0.10).toFixed(2)}`,
-      date: o.date || "N/A"
-    };
-  });
+
+  const orders = dbOrders.map((o: any) => ({
+    id: o.orderNumber || o.id || "N/A",
+    customer: o.address?.fullName || o.address?.name || "Self",
+    product: o.items?.[0]?.name || "Product Bundle",
+    amount: o.total || "₹0",
+    status: o.status || "Pending",
+    date: o.date || "N/A"
+  }));
 
   const stats = [
     { label: "Total Orders", value: `${totalOrders}`, icon: FaBoxOpen },
     { label: "Delivered", value: `${deliveredCount}`, icon: FaCheckCircle },
-    { label: "In Transit", value: `${inTransitCount}`, icon: FaTruck },
-    { label: "Sell Points", value: `${totalSP.toFixed(1)}`, icon: FaChartLine }
+    { label: "In Transit", value: `${inTransitCount}`, icon: FaTruck }
   ];
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] pt-44 text-[#1c1c19] sm:pt-36 md:pt-40 lg:pt-44">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] pt-10 text-[#1c1c19] sm:pt-10 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-6xl px-4 pb-20 sm:px-5 md:px-8 lg:px-10">
         <div className="rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)]">
           <div className="flex items-center justify-between gap-3 border-b border-[#ead9d1] px-4 py-4 sm:px-5 md:px-6">
@@ -49,7 +38,7 @@ export default async function PartnerOrdersPage() {
                 Partner Orders
               </p>
               <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#9c4049]/80 sm:text-[0.72rem]">
-                Sell price, sell points, and self sell income
+                Order history and delivery status
               </p>
             </div>
             <div className="w-[82px] sm:w-[110px]" />
@@ -83,22 +72,13 @@ export default async function PartnerOrdersPage() {
               <div className="mt-4 space-y-3 md:space-y-4">
                 {orders.length > 0 ? (
                   orders.map((order) => (
-                    <div key={order.id} className="grid gap-3 rounded-[1rem] bg-[#fff9f7] p-3 md:grid-cols-[1.1fr_0.8fr_0.7fr_0.6fr] md:items-center md:gap-4 md:rounded-[1.2rem] md:p-4">
+                    <div key={order.id} className="grid gap-3 rounded-[1rem] bg-[#fff9f7] p-3 md:grid-cols-[1.4fr_0.9fr] md:items-center md:gap-4 md:rounded-[1.2rem] md:p-4">
                       <div>
                         <p className="text-[0.68rem] uppercase tracking-[0.16em] text-[#9c4049]/70">{order.id}</p>
                         <p className="mt-1 text-sm font-semibold text-[#2a2430] md:text-base">{order.product}</p>
                         <p className="mt-1 text-xs leading-5 text-[#6d655d] md:text-sm">Customer: {order.customer}</p>
                       </div>
-                      <div>
-                        <p className="text-[0.68rem] uppercase tracking-[0.16em] text-[#7b6f69]">Sell Points</p>
-                        <p className="mt-1 text-sm text-[#2a2430]">{order.sellPoints}</p>
-                      </div>
-                      <div>
-                        <p className="text-[0.68rem] uppercase tracking-[0.16em] text-[#7b6f69]">Self Sell Income</p>
-                        <p className="mt-1 text-sm font-semibold text-[#2a2430]">{order.earning}</p>
-                        <p className="mt-1 text-[0.65rem] text-[#7b6f69]">10% income</p>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 md:justify-end md:text-right">
+                  <div className="flex items-center justify-between gap-3 md:justify-end md:text-right">
                         <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#9c4049] bg-[#fff0f3]">{order.status}</span>
                         <div>
                           <p className="text-sm font-semibold text-[#2a2430] md:text-base">{order.amount}</p>

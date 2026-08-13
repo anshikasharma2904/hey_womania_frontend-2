@@ -58,12 +58,12 @@ const buildPartnerStats = (stats: {
   totalOrders: number;
   totalReferrals: number;
   rank: string;
-  sellPointsTotal: number;
+  activeDirects: number;
 }) => [
   { value: `${stats.totalOrders}`, label: "My Orders", icon: FaShoppingBag },
   { value: `${stats.totalReferrals}`, label: "My Referrals", icon: FaUsers },
   { value: stats.rank || "Starter", label: "My Rank", icon: MdLeaderboard },
-  { value: `${stats.sellPointsTotal.toLocaleString()}`, label: "Total Sell Points", icon: FaCalculator }
+  { value: `${stats.activeDirects}`, label: "Active Directs", icon: FaUsers }
 ];
 
 const quickActions = [
@@ -90,7 +90,7 @@ const mobileNavItems = [
 const incomeCards = [
   {
     title: "Self Sell Income",
-    copy: "10% of the partner’s own sell points."
+    copy: "10% of the partner’s own order value."
   },
   {
     title: "Fast Track Level Income",
@@ -114,7 +114,7 @@ const incomeCards = [
   },
   {
     title: "Annual Club",
-    copy: "Super Club, Mega Club, and Luxury Life Club by yearly SP."
+    copy: "Super Club, Mega Club, and Luxury Life Club rewards."
   },
   {
     title: "Timely Rewards",
@@ -125,17 +125,17 @@ const incomeCards = [
 const scoreRules = [
   {
     title: "Glam Score",
-    rule: "2,500 SP from total team",
+    rule: "2,500 team volume",
     pool: "15% of company turnover divided by Glam Score achievers"
   },
   {
     title: "Style Score",
-    rule: "25,000 SP from total team",
+    rule: "25,000 team volume",
     pool: "12% of company turnover divided by Style Score achievers"
   },
   {
     title: "Gorgeous Score",
-    rule: "100,000 SP from total team",
+    rule: "100,000 team volume",
     pool: "10% of company turnover divided by Gorgeous Score achievers"
   },
   {
@@ -148,17 +148,17 @@ const scoreRules = [
 const clubRules = [
   {
     title: "Super Club",
-    rule: "50 lakh yearly sell points",
+    rule: "50 lakh yearly volume",
     pool: "1% of yearly turnover"
   },
   {
     title: "Mega Club",
-    rule: "2 crore yearly sell points",
+    rule: "2 crore yearly volume",
     pool: "1.5% of yearly turnover"
   },
   {
     title: "Luxury Life Club",
-    rule: "5 crore yearly sell points",
+    rule: "5 crore yearly volume",
     pool: "2.5% of yearly turnover"
   }
 ];
@@ -202,21 +202,20 @@ export default async function EarningsPage() {
   const displayRank = dashboard?.rank || user?.rank || "Starter";
   const totalOrders = dashboard?.totalOrders ?? 0;
   const totalReferrals = dashboard?.totalReferrals ?? user?.teamIds?.length ?? 0;
-  const sellPointsTotal = dashboard?.sellPointsTotal ?? 0;
   const walletBalance = dashboard?.walletBalance ?? 0;
+  const activeDirects = dashboard?.activeDirects ?? 0;
   const referralCode = user?.referralCode || "N/A";
   const partnerStats = buildPartnerStats({
     totalOrders,
     totalReferrals,
     rank: displayRank,
-    sellPointsTotal
+    activeDirects
   });
 
   const recentOrder = (partnerData as any)?.recentOrder;
-  const recentSp = recentOrder ? parseFloat((recentOrder.total || "").replace(/[^0-9.]/g, "")) / 5 : 0;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] pt-44 text-[#1c1c19] sm:pt-36 md:pt-40 lg:pt-44">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] pt-10 text-[#1c1c19] sm:pt-10 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-5 md:px-8 md:pb-20 lg:px-10">
         <div className="overflow-hidden rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)]">
           <header className="flex items-center justify-between gap-3 border-b border-[#ead9d1] px-4 py-4 sm:px-5 md:px-6">
@@ -330,24 +329,6 @@ export default async function EarningsPage() {
               })}
             </div>
 
-            <div className="mt-4 grid gap-3 rounded-[1.35rem] border border-[#f0ddd6] bg-white p-4 shadow-[0_12px_28px_rgba(95,93,62,0.04)] md:mt-5 md:grid-cols-[1fr_auto_auto] md:items-center md:rounded-[1.6rem] md:p-5">
-              <div>
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#9c4049]">
-                  Sell Points Formula
-                </p>
-                <h2 className="mt-2 font-[family:var(--font-display)] text-[1.45rem] leading-none tracking-[-0.03em] text-[#382933] md:text-[2rem]">
-                  {businessPlan?.formula || "Selling price divided by 5 becomes sell points."}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-[#695c56]">
-                  Example: ₹220 selling price ÷ 5 = 44 sell points. Minimum {businessPlan?.minimumPayoutSellPoints ?? 500} sell points and {businessPlan?.minimumActiveDirects ?? 2} active direct partners are required to receive payout.
-                </p>
-              </div>
-              <div className="rounded-[1.2rem] bg-[#5f5d3e] px-5 py-4 text-white md:min-w-[240px]">
-                <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/70">Example</p>
-                <p className="mt-2 text-2xl font-bold tracking-[-0.04em]">₹220 ÷ 5 = 44 SP</p>
-              </div>
-            </div>
-
             <div className="mt-4 overflow-hidden rounded-[1.35rem] bg-[linear-gradient(120deg,#7d2746_0%,#a64863_45%,#d0848d_100%)] px-4 py-5 text-white shadow-[0_14px_38px_rgba(125,39,70,0.22)] md:mt-5 md:rounded-[1.5rem] md:px-6 md:py-6">
               <p className="font-[family:var(--font-display)] text-[1.55rem] italic tracking-[-0.04em] sm:text-[1.8rem] md:text-[2.25rem]">
                 You are Amazing,
@@ -404,8 +385,6 @@ export default async function EarningsPage() {
                     </p>
                     <p className="mt-1 text-xs leading-5 text-[#6d655d] md:text-sm md:leading-6">
                       Order ID: #{recentOrder.orderNumber || "N/A"}
-                      <br />
-                      Sell Points: {recentSp.toFixed(1)} SP
                     </p>
                   </div>
                   <div className="text-right">

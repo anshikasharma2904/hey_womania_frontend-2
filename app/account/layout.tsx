@@ -82,7 +82,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   }, 0);
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-5 pb-16 pt-44 text-[#1c1c19] md:px-16 md:pt-40 lg:pt-44">
+    <main className="min-h-screen bg-[#fcf9f4] px-5 pb-16 pt-10 text-[#1c1c19] md:px-16 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-6xl">
         {/* Total Sell Points Box at the very top */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between rounded-[2rem] border border-[#eddad3] bg-[linear-gradient(180deg,#fff_0%,#fff7f3_100%)] p-6 shadow-[0_18px_40px_rgba(91,77,57,0.08)] md:p-8">
