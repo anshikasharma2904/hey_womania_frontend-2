@@ -22,7 +22,7 @@ export default function CustomerSupportPage() {
         <section className="mx-auto max-w-4xl rounded-[1.4rem] border border-[#ece6df] bg-white/95 p-5 shadow-[0_8px_30px_rgba(95,93,62,0.04)] md:p-8 mb-6">
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <a href="mailto:heywomaniyaa@gmail.com" className="group rounded-[1.2rem] border border-[#ece6df] bg-[#fcf9f4] p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_12px_30px_rgba(95,93,62,0.06)] block">
+            <a href="mailto:support@heywomaniyaa.com" className="group rounded-[1.2rem] border border-[#ece6df] bg-[#fcf9f4] p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_12px_30px_rgba(95,93,62,0.06)] block">
               <h2 className="text-base font-bold text-[#111111] transition-colors duration-300 group-hover:text-[#9c4049]">
                 Email Support
               </h2>
@@ -30,11 +30,11 @@ export default function CustomerSupportPage() {
                 Send us your order ID and issue details.
               </p>
               <span className="mt-2 inline-block text-[0.8rem] font-semibold text-[#9c4049]">
-                Heywomaniyaa@gmail.com
+                support@heywomaniyaa.com
               </span>
             </a>
 
-            <a href="tel:+916398283789" className="group rounded-[1.2rem] border border-[#ece6df] bg-[#fcf9f4] p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_12px_30px_rgba(95,93,62,0.06)] block">
+            <a href="tel:+918006637777" className="group rounded-[1.2rem] border border-[#ece6df] bg-[#fcf9f4] p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_12px_30px_rgba(95,93,62,0.06)] block">
               <h2 className="text-base font-bold text-[#111111] transition-colors duration-300 group-hover:text-[#9c4049]">
                 Phone / WhatsApp
               </h2>
@@ -42,7 +42,7 @@ export default function CustomerSupportPage() {
                 Contact us during support hours.
               </p>
               <span className="mt-2 inline-block text-[0.8rem] font-semibold text-[#9c4049]">
-                +91 63982 83789
+                +91 8006637777
               </span>
             </a>
           </div>

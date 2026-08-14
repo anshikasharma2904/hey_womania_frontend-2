@@ -87,25 +87,26 @@ export default async function AccountLayout({ children }: { children: ReactNode 
         {/* Total Sell Points Box at the very top */}
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between rounded-[2rem] border border-[#eddad3] bg-[linear-gradient(180deg,#fff_0%,#fff7f3_100%)] p-6 shadow-[0_18px_40px_rgba(91,77,57,0.08)] md:p-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9c4049]/80">
-              Total Sell Points
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#5f5d3e]/80">
+              Welcome Back,
             </p>
-            <h2 className="mt-2 font-[family:var(--font-display)] text-[2.5rem] leading-none tracking-[-0.04em] text-[#3a2630] md:text-[3.5rem]"> {formatSP(sellPointsDisplay)}
+            <h2 className="mt-2 font-[family:var(--font-display)] text-[2.5rem] leading-none tracking-[-0.04em] text-[#3a2630] md:text-[3.5rem]">
+              {displayName}
             </h2>
             <p className="mt-2 text-sm text-[#7c6e68]">
-              Keep shopping or referring to earn more points!
+              Manage your orders, profile, and account details here.
             </p>
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
             {isPartner && (
               <Link
                 href="/earnings"
-                className="flex items-center justify-center rounded-xl bg-[#9c4049] px-6 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-md transition-all hover:bg-[#81353f] hover:-translate-y-0.5"
+                className="flex items-center justify-center rounded-xl bg-[#5f5d3e] px-6 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-md transition-all hover:bg-[#48473d] hover:-translate-y-0.5"
               >
                 Enter Earning Panel
               </Link>
             )}
-            <div className="hidden h-16 w-16 items-center justify-center rounded-full bg-[#fff0f1] text-[#9c4049] shadow-inner sm:flex md:h-20 md:w-20">
+            <div className="hidden h-16 w-16 items-center justify-center rounded-full bg-[#fcf9f4] text-[#5f5d3e] shadow-inner sm:flex md:h-20 md:w-20">
               <FaStar className="text-[1.5rem] md:text-[2rem]" />
             </div>
           </div>

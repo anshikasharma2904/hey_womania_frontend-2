@@ -193,7 +193,7 @@ const getCategoryPathParts = (value: string) =>
   value
     .split("/")
     .map((part) => part.trim())
-    .filter(Boolean);
+    .filter((part) => part && part.toLowerCase() !== "categories");
 
 const toTitleCase = (value: string) =>
   value
@@ -379,10 +379,12 @@ export default async function CategoryDetailPage({
       }
     }
 
-    return Array.from(groups.entries()).map(([title, links]) => ({
-      title,
-      links: links.sort((a, b) => a.label.localeCompare(b.label))
-    }));
+    return Array.from(groups.entries())
+      .filter(([_, links]) => links.length > 0)
+      .map(([title, links]) => ({
+        title,
+        links: links.sort((a, b) => a.label.localeCompare(b.label))
+      }));
   })();
 
   if (mappedLive.length === 0 && slug !== "all") {

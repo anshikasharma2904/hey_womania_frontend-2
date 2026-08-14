@@ -57,7 +57,7 @@ const getCategoryPathParts = (value: string) =>
   value
     .split("/")
     .map((part) => part.trim())
-    .filter(Boolean);
+    .filter((part) => part && part.toLowerCase() !== "categories");
 
 const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
   const activeCategories = categories
@@ -76,7 +76,7 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
 
   for (const category of activeCategories) {
     const parts = getCategoryPathParts(category.name || "");
-    const href = `/category/${category.slug || slugify(category.name)}`;
+    const href = `/category/${slugify(category.slug || category.name)}`;
 
     if (parts.length === 1) {
       const label = normalizeMainCategory(parts[0]);
@@ -91,10 +91,12 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
     }
 
     if (parts.length === 2) {
+      // The user requested to remove the "View All" links for 2-level categories from the main navbar.
+      // We still want to ensure the column heading exists so that the 3-level categories have a place to go,
+      // or if there are no 3-level categories, at least the heading is shown.
       const [mainRaw, linkRaw] = parts;
       const mainCategory = normalizeMainCategory(mainRaw);
-      const heading = "Categories";
-      const linkLabel = formatCategoryLabel(linkRaw);
+      const heading = formatCategoryLabel(linkRaw);
 
       if (!menuMap.has(mainCategory)) {
         menuMap.set(mainCategory, {
@@ -106,10 +108,6 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
       const menu = menuMap.get(mainCategory)!;
       if (!menu.columns.has(heading)) {
         menu.columns.set(heading, []);
-      }
-      const links = menu.columns.get(heading)!;
-      if (!links.some((item) => item.label === linkLabel)) {
-        links.push({ label: linkLabel, href });
       }
       continue;
     }
@@ -140,7 +138,7 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
 
     const linkLabel = formatCategoryLabel(linkRaw);
     const links = menu.columns.get(heading)!;
-    const exists = links.some((item) => item.label === linkLabel && item.href === href);
+    const exists = links.some((item) => item.label === linkLabel);
     if (!exists) {
       links.push({
         label: linkLabel,
@@ -339,7 +337,7 @@ export function MainNavbar() {
   return (
     <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
       <div className="bg-[#5f5d3e] px-5 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white md:px-16">
-        Free shipping on orders above ₹199 • New-season arrivals now live
+        Free shipping on orders above ₹999 • New-season arrivals now live
       </div>
 
       <header className="border-b border-[#cac7b9]/40 bg-[#fcf9f4] px-5 py-3 md:px-12">
@@ -410,9 +408,9 @@ export function MainNavbar() {
                               </p>
                               <div className="mt-4 space-y-2">
                                 {column.links.length > 0 ? (
-                                  column.links.map((item) => (
+                                  column.links.map((item, linkIdx) => (
                                     <Link
-                                      key={item.label}
+                                      key={`${item.label}-${linkIdx}`}
                                       href={item.href}
                                       className="block text-[0.96rem] leading-7 text-[#2d3147] transition-colors duration-200 hover:text-[#9c4049]"
                                     >
@@ -720,9 +718,9 @@ export function MainNavbar() {
                         </p>
                         <div className="mt-2 space-y-2">
                           {column.links.length > 0 ? (
-                            column.links.map((item) => (
+                            column.links.map((item, linkIdx) => (
                               <Link
-                                key={item.label}
+                                key={`${item.label}-${linkIdx}`}
                                 href={item.href}
                                 onClick={() => setMobileMenuOpen(false)}
                                 className="block text-sm leading-6 text-[#2d3147]"

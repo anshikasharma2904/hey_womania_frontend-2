@@ -41,7 +41,7 @@ export default function ReturnPolicy() {
   return (
     <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19]">
 
-      <main className="px-4 pb-16 pt-40 md:px-10 md:pt-44 lg:px-16">
+      <main className="px-4 pb-16 pt-8 md:px-10 md:pt-12 lg:px-16">
         
         {/* Hero Section */}
         <section className="mx-auto max-w-5xl mb-12 text-center md:px-8">

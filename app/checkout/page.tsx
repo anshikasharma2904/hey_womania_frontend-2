@@ -254,7 +254,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-16 pt-44 text-[#1c1c19] md:px-10 md:pt-40 lg:pt-44 lg:px-16">
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-16 pt-8 text-[#1c1c19] md:px-10 md:pt-12 lg:pt-16 lg:px-16">
       <section className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
           <Link href="/">Home</Link>

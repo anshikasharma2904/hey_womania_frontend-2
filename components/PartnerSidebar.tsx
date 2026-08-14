@@ -39,7 +39,7 @@ export function PartnerSidebar() {
       <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)] backdrop-blur-md">
         {/* Earnings Section */}
         <div className="mb-4 pb-4 border-b border-[#ece6df]">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[#9c4049]">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[#5f5d3e]">
             Partner Panel
           </p>
           <h2 className="mt-1.5 text-lg font-bold uppercase tracking-tight text-[#1c1c19]">
@@ -57,8 +57,8 @@ export function PartnerSidebar() {
                 href={item.href}
                 className={`flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium transition duration-300 ${
                   isActive
-                    ? "bg-[#9c4049] text-white shadow-md shadow-[#9c4049]/20"
-                    : "text-[#48473d] hover:bg-[#fcf9f4] hover:text-[#9c4049]"
+                    ? "bg-[#5f5d3e] text-white shadow-md shadow-[#5f5d3e]/20"
+                    : "text-[#48473d] hover:bg-[#fcf9f4] hover:text-[#5f5d3e]"
                 }`}
               >
                 <Icon className={`text-[1rem] ${isActive ? "text-white" : "text-[#8b837b]"}`} />
@@ -89,7 +89,7 @@ export function PartnerSidebar() {
                 className={`flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium transition duration-300 ${
                   isActive
                     ? "bg-[#5f5d3e] text-white shadow-md shadow-[#5f5d3e]/20"
-                    : "text-[#48473d] hover:bg-[#fcf9f4] hover:text-[#9c4049]"
+                    : "text-[#48473d] hover:bg-[#fcf9f4] hover:text-[#5f5d3e]"
                 }`}
               >
                 <Icon className={`text-[1rem] ${isActive ? "text-white" : "text-[#8b837b]"}`} />

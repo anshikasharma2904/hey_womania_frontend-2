@@ -28,7 +28,7 @@ const wishbagItems = [
 
 export default function WishbagPage() {
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-52 text-[#1c1c19] md:px-16 md:pb-24 md:pt-32">
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-8 text-[#1c1c19] md:px-16 md:pb-24 md:pt-12 lg:pt-16">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>

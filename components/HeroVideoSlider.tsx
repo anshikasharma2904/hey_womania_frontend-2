@@ -48,10 +48,14 @@ export function HeroVideoSlider() {
                 src={item.src}
                 muted
                 playsInline
+                disablePictureInPicture
+                preload="auto"
                 autoPlay={isActive}
                 onEnded={goToNextSlide}
                 className="h-full w-full object-cover object-center"
               />
+              {/* Subtle cinematic overlay to mask compression artifacts and improve premium feel */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply pointer-events-none" />
             </div>
           );
         })}

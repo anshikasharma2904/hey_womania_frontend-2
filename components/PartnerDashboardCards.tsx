@@ -55,7 +55,7 @@ export function PartnerDashboardCards({
           <p className="text-xs font-semibold uppercase tracking-wider text-[#6d655d]">
             Wallet Balance
           </p>
-          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#9c4049]">
+          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#5f5d3e]">
             <FaWallet className="text-[1.2rem]" />
           </div>
         </div>
@@ -103,7 +103,7 @@ export function PartnerDashboardCards({
           <p className="text-xs font-semibold uppercase tracking-wider text-[#6d655d]">
             Referral Code / Team
           </p>
-          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#9c4049]">
+          <div className="rounded-full bg-[#fcf9f4] p-3 text-[#5f5d3e]">
             <FaUserPlus className="text-[1.2rem]" />
           </div>
         </div>

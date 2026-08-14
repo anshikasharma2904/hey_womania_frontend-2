@@ -9,7 +9,7 @@ const filters = ["All", "Level 1", "Level 2", "Level 3"];
 function buildOverviewCards(activeDirects: number, teamSp: number, score: string) {
   return [
     { label: "Active Direct", value: `${activeDirects}`, icon: FaUsers },
-    { label: "Monthly Team SP", value: `${teamSp.toLocaleString("en-IN")}`, icon: MdOutlineCurrencyRupee },
+    { label: "Monthly Team Sales", value: `₹${teamSp.toLocaleString("en-IN")}`, icon: MdOutlineCurrencyRupee },
     { label: "Unlocked Score", value: score, icon: MdLeaderboard }
   ];
 }
@@ -40,21 +40,21 @@ export default async function TeamPage() {
     ...dbL1.map((u: any) => ({
       name: u.name,
       level: "Level 1",
-      business: `${u.totalSP.toFixed(1)} SP`,
+      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     })),
     ...dbL2.map((u: any) => ({
       name: u.name,
       level: "Level 2",
-      business: `${u.totalSP.toFixed(1)} SP`,
+      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     })),
     ...dbL3.map((u: any) => ({
       name: u.name,
       level: "Level 3",
-      business: `${u.totalSP.toFixed(1)} SP`,
+      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     }))
@@ -64,12 +64,12 @@ export default async function TeamPage() {
   const sortedPerformers = [...allTeamMembers].sort((a, b) => (b.totalSP || 0) - (a.totalSP || 0));
   const performers = sortedPerformers.slice(0, 3).map((u, idx) => ({
     name: u.name,
-    amount: `${(u.totalSP || 0).toFixed(1)} SP`,
+    amount: `₹${(u.totalSP || 0).toLocaleString('en-IN')}`,
     tag: idx === 0 ? "Top performer" : idx === 1 ? "Fast growth" : "Steady growth"
   }));
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] px-4 pb-20 pt-10 text-[#1c1c19] sm:px-5 sm:pt-10 md:px-8 md:pt-10 lg:pt-10 lg:px-10">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] px-4 pb-20 pt-10 text-[#1c1c19] sm:px-5 sm:pt-10 md:px-8 md:pt-10 lg:pt-10 lg:px-10">
       <div className="mx-auto max-w-6xl">
         <div className="overflow-hidden rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)]">
           <div className="flex items-center justify-between gap-3 border-b border-[#ead9d1] px-4 py-4 sm:px-5 md:px-6">
@@ -78,7 +78,7 @@ export default async function TeamPage() {
                 My Team
               </p>
               <p className="mt-1 text-sm text-[#7c6e68]">
-                Direct partners, level depth, and team sell points
+                Direct partners, level depth, and team sales
               </p>
             </div>
             <Link
@@ -227,12 +227,10 @@ export default async function TeamPage() {
                     Team note
                   </p>
                   <p className="mt-2 font-[family:var(--font-display)] text-[1.45rem] leading-[1.08] tracking-[-0.03em] md:text-[1.8rem]">
-                    {businessPlan?.fastTrackIncome
-                      ? `${businessPlan.fastTrackIncome.join(", ")} fast track levels.`
-                      : "5%, 3%, 2% fast track levels."}
+                    5%, 2%, 1%, 0.5% level income.
                   </p>
                   <p className="mt-2 text-sm text-[#ffe5ea]">
-                    Level 1, 2, and 3 sales build your fast track income. Strong direct partners help unlock partnership bonus.
+                    Level 1, 2, and 3 sales build your level income. Strong direct partners help unlock Womaniyaa Points.
                   </p>
                 </div>
 

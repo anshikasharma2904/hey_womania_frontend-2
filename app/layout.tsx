@@ -54,6 +54,9 @@ export default function RootLayout({
         <SmoothScrollProvider>
           <MainNavbar />
           {children}
+          <footer className="w-full bg-[#fcf9f4] py-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
+            <p>© 2026 HeyWomaniyaa. All Rights Reserved.</p>
+          </footer>
           <LatestOffersWidget />
         </SmoothScrollProvider>
       </body>

@@ -274,6 +274,18 @@ export default async function Home() {
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
       <HeroVideoSlider />
 
+      <section className="relative overflow-hidden bg-[#fcf9f4] py-16 md:py-24 border-b border-[#ece6df]">
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+          <span className="font-[family:var(--font-display)] text-[12vw] font-black uppercase whitespace-nowrap">HeyWomaniyaa</span>
+        </div>
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
+          <h2 className="font-[family:var(--font-display)] text-5xl md:text-7xl lg:text-[6.5rem] font-black uppercase leading-[0.9] tracking-[-0.02em] text-[#111111]">
+            Every Day <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9c4049] to-[#5f5d3e] italic pr-2">A Fashion Day</span>
+          </h2>
+        </div>
+      </section>
+
       <NewArrivalsCarousel cards={arrivalCards} />
 
       <LuxuryCategoryNavigation categories={categories} />

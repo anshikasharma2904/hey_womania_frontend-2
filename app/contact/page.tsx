@@ -2,11 +2,11 @@ import Link from "next/link";
 import { StoreFooter } from "@/components/StoreFooter";
 import { MainNavbar } from "@/components/MainNavbar";
 
-const SUPPORT_EMAIL = "Heywomaniyaa@gmail.com";
-const SUPPORT_PHONE_DISPLAY = "+91 63982 83789";
-const SUPPORT_PHONE_LINK = "+916398283789";
-const WHATSAPP_LINK = "https://wa.me/916398283789";
-const BUSINESS_ADDRESS = "Shop No. G-08, Central Plaza, Golf Course Road, Sector 53, Wazirabad, Gurugram, Gurgaon, Haryana, 122011";
+const SUPPORT_EMAIL = "support@heywomaniyaa.com";
+const SUPPORT_PHONE_DISPLAY = "+91 8006637777";
+const SUPPORT_PHONE_LINK = "+918006637777";
+const WHATSAPP_LINK = "https://wa.me/918006637777";
+const BUSINESS_ADDRESS = "490/42, Sector 43, Gurgaon, Basement";
 
 const contactMethods = [
   {
@@ -33,7 +33,7 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19]">
 
-      <main className="px-4 pb-16 pt-40 md:px-10 md:pt-44 lg:px-16">
+      <main className="px-4 pb-16 pt-8 md:px-10 md:pt-12 lg:px-16">
         
         {/* Hero Section */}
         <section className="mx-auto max-w-5xl mb-12 text-center md:px-8">
@@ -84,12 +84,13 @@ export default function ContactPage() {
                 <h2 className="text-base font-bold text-[#111111]">
                   Email Support
                 </h2>
-                <a
-                  href={`mailto:${SUPPORT_EMAIL}`}
-                  className="mt-1 inline-block font-semibold text-[#9c4049]"
-                >
-                  {SUPPORT_EMAIL}
-                </a>
+                <div className="mt-2 space-y-1">
+                  <p className="flex flex-col sm:flex-row sm:items-center sm:gap-2"><span className="font-semibold text-[#111111] min-w-[120px]">Support:</span> <a href="mailto:support@heywomaniyaa.com" className="text-[#9c4049]">support@heywomaniyaa.com</a></p>
+                  <p className="flex flex-col sm:flex-row sm:items-center sm:gap-2"><span className="font-semibold text-[#111111] min-w-[120px]">Sales:</span> <a href="mailto:sales@heywomaniyaa.com" className="text-[#9c4049]">sales@heywomaniyaa.com</a></p>
+                  <p className="flex flex-col sm:flex-row sm:items-center sm:gap-2"><span className="font-semibold text-[#111111] min-w-[120px]">Admin:</span> <a href="mailto:admin@heywomaniyaa.com" className="text-[#9c4049]">admin@heywomaniyaa.com</a></p>
+                  <p className="flex flex-col sm:flex-row sm:items-center sm:gap-2"><span className="font-semibold text-[#111111] min-w-[120px]">Partner Program:</span> <a href="mailto:partnerprogram@heywomaniyaa.com" className="text-[#9c4049]">partnerprogram@heywomaniyaa.com</a></p>
+                  <p className="flex flex-col sm:flex-row sm:items-center sm:gap-2"><span className="font-semibold text-[#111111] min-w-[120px]">General Info:</span> <a href="mailto:info@heywomaniyaa.com" className="text-[#9c4049]">info@heywomaniyaa.com</a></p>
+                </div>
               </div>
               <div>
                 <h2 className="text-base font-bold text-[#111111]">

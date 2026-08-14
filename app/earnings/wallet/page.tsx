@@ -161,7 +161,7 @@ export default function PartnerWalletPage() {
           title: "Wallet Withdrawal",
           meta: `Today • ${withdrawMethod.toUpperCase()} payout request`,
           amount: `-₹${amountVal.toFixed(2)}`,
-          tone: "text-[#9c4049]"
+          tone: "text-[#5f5d3e]"
         },
         ...prev
       ]);
@@ -201,7 +201,7 @@ export default function PartnerWalletPage() {
               <p className="font-[family:var(--font-display)] text-[1.9rem] leading-[0.95] tracking-[-0.04em] text-[#5c2530] sm:text-[2.4rem] md:text-[3rem]">
                 My Wallet
               </p>
-              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#9c4049]/80 sm:text-[0.72rem]">
+              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#5f5d3e]/80 sm:text-[0.72rem]">
                 Sell income, level payouts, pools, and withdrawals
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function PartnerWalletPage() {
                   const Icon = stat.icon;
                   return (
                     <div key={stat.label} className="rounded-[1.35rem] border border-[#f0ddd6] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)]">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff3ee] text-[#9c4049]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff3ee] text-[#5f5d3e]">
                         <Icon className="text-[1.05rem]" />
                       </div>
                       <p className="mt-3 text-[1.25rem] font-bold tracking-[-0.04em] text-[#2a2430]">{stat.value}</p>
@@ -266,7 +266,7 @@ export default function PartnerWalletPage() {
                 <h2 className="font-[family:var(--font-display)] text-[1.25rem] tracking-[-0.03em] text-[#382933] sm:text-[1.45rem] md:text-[1.7rem]">
                   Income Ledger
                 </h2>
-                <Link href="/earnings/orders" className="text-sm font-semibold text-[#9c4049]">
+                <Link href="/earnings/orders" className="text-sm font-semibold text-[#5f5d3e]">
                   Sell Points
                 </Link>
               </div>
@@ -298,7 +298,7 @@ export default function PartnerWalletPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#2d251f]/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-[#ece6df] bg-white p-6 shadow-xl text-[#1c1c19]">
             <div className="flex items-center justify-between border-b pb-4 mb-4">
-              <h3 className="text-lg font-black uppercase text-[#9c4049] tracking-wider">KYC Document Verification</h3>
+              <h3 className="text-lg font-black uppercase text-[#5f5d3e] tracking-wider">KYC Document Verification</h3>
               <button onClick={() => setKycModalOpen(false)} className="text-gray-500 hover:text-gray-700 font-bold">✕</button>
             </div>
             
@@ -340,7 +340,7 @@ export default function PartnerWalletPage() {
               <button
                 type="submit"
                 disabled={isKycSubmitting}
-                className="w-full rounded-xl bg-[#9c4049] py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow hover:opacity-90 disabled:opacity-50 transition"
+                className="w-full rounded-xl bg-[#5f5d3e] py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow hover:opacity-90 disabled:opacity-50 transition"
               >
                 {isKycSubmitting ? "Verifying..." : "Verify via DigiLocker"}
               </button>

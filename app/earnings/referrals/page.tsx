@@ -17,16 +17,16 @@ import CopyInviteButton from "@/components/CopyInviteButton";
 function buildSummaryCards(totalTeam: number, teamSellPoints: number, score: string, status: string) {
   return [
     { label: "Total Team", value: `${totalTeam}`, sub: "Members", icon: FaUsers },
-    { label: "Team Sell Points", value: `${teamSellPoints.toLocaleString("en-IN")}`, sub: "This Month", icon: MdOutlineCurrencyRupee },
-    { label: "Score Income", value: score, sub: "Unlocked", icon: FaRegStar },
-    { label: "Payout Status", value: status, sub: "500 SP + 2 Direct", icon: FaCrown }
+    { label: "Team Sales", value: `₹${teamSellPoints.toLocaleString("en-IN")}`, sub: "This Month", icon: MdOutlineCurrencyRupee },
+    { label: "Rank", value: score, sub: "Unlocked", icon: FaRegStar },
+    { label: "Payout Status", value: status, sub: "Qualified", icon: FaCrown }
   ];
 }
 
 const level1 = [
-  { name: "Priya S.", amount: "9,000 SP", avatar: MODEL_ASSETS.western, members: "3 Members", crown: true },
-  { name: "Neha R.", amount: "7,700 SP", avatar: MODEL_ASSETS.traditional, members: "3 Members" },
-  { name: "Anjali K.", amount: "10,400 SP", avatar: MODEL_ASSETS.couture, members: "3 Members" }
+  { name: "Priya S.", amount: "₹9,000", avatar: MODEL_ASSETS.western, members: "3 Members", crown: true },
+  { name: "Neha R.", amount: "₹7,700", avatar: MODEL_ASSETS.traditional, members: "3 Members" },
+  { name: "Anjali K.", amount: "₹10,400", avatar: MODEL_ASSETS.couture, members: "3 Members" }
 ];
 
 const level2Clusters = [
@@ -34,9 +34,9 @@ const level2Clusters = [
     label: "Level 2",
     members: "9 Members",
     items: [
-      { name: "Riya M.", amount: "3,600 SP", avatar: MODEL_ASSETS.minimal },
-      { name: "Mira P.", amount: "4,480 SP", avatar: MODEL_ASSETS.formal },
-      { name: "Aanya J.", amount: "3,300 SP", avatar: MODEL_ASSETS.editorial }
+      { name: "Riya M.", amount: "₹3,600", avatar: MODEL_ASSETS.minimal },
+      { name: "Mira P.", amount: "₹4,480", avatar: MODEL_ASSETS.formal },
+      { name: "Aanya J.", amount: "₹3,300", avatar: MODEL_ASSETS.editorial }
     ],
     more: "+9 More"
   },
@@ -44,9 +44,9 @@ const level2Clusters = [
     label: "Level 2",
     members: "9 Members",
     items: [
-      { name: "Tara N.", amount: "4,800 SP", avatar: MODEL_ASSETS.western },
-      { name: "Isha D.", amount: "2,940 SP", avatar: MODEL_ASSETS.traditional },
-      { name: "Sana L.", amount: "4,060 SP", avatar: MODEL_ASSETS.couture }
+      { name: "Tara N.", amount: "₹4,800", avatar: MODEL_ASSETS.western },
+      { name: "Isha D.", amount: "₹2,940", avatar: MODEL_ASSETS.traditional },
+      { name: "Sana L.", amount: "₹4,060", avatar: MODEL_ASSETS.couture }
     ],
     more: "+8 More"
   },
@@ -54,9 +54,9 @@ const level2Clusters = [
     label: "Level 2",
     members: "9 Members",
     items: [
-      { name: "Ritu", amount: "1,560 SP", avatar: MODEL_ASSETS.minimal },
-      { name: "Meera", amount: "1,680 SP", avatar: MODEL_ASSETS.formal },
-      { name: "Pooja", amount: "1,240 SP", avatar: MODEL_ASSETS.editorial }
+      { name: "Ritu", amount: "₹1,560", avatar: MODEL_ASSETS.minimal },
+      { name: "Meera", amount: "₹1,680", avatar: MODEL_ASSETS.formal },
+      { name: "Pooja", amount: "₹1,240", avatar: MODEL_ASSETS.editorial }
     ],
     more: "+10 More"
   }
@@ -64,33 +64,33 @@ const level2Clusters = [
 
 const level3Clusters = [
   [
-    { name: "Kriti", amount: "1,900 SP", avatar: MODEL_ASSETS.western },
-    { name: "Anita", amount: "1,180 SP", avatar: MODEL_ASSETS.traditional },
-    { name: "Ira", amount: "1,420 SP", avatar: MODEL_ASSETS.couture }
+    { name: "Kriti", amount: "₹1,900", avatar: MODEL_ASSETS.western },
+    { name: "Anita", amount: "₹1,180", avatar: MODEL_ASSETS.traditional },
+    { name: "Ira", amount: "₹1,420", avatar: MODEL_ASSETS.couture }
   ],
   [
-    { name: "Nisha", amount: "1,360 SP", avatar: MODEL_ASSETS.minimal },
-    { name: "Rhea", amount: "1,640 SP", avatar: MODEL_ASSETS.formal },
-    { name: "Palak", amount: "1,300 SP", avatar: MODEL_ASSETS.editorial }
+    { name: "Nisha", amount: "₹1,360", avatar: MODEL_ASSETS.minimal },
+    { name: "Rhea", amount: "₹1,640", avatar: MODEL_ASSETS.formal },
+    { name: "Palak", amount: "₹1,300", avatar: MODEL_ASSETS.editorial }
   ],
   [
-    { name: "Sara", amount: "1,780 SP", avatar: MODEL_ASSETS.western },
-    { name: "Meera", amount: "1,580 SP", avatar: MODEL_ASSETS.traditional },
-    { name: "Asha", amount: "1,340 SP", avatar: MODEL_ASSETS.couture }
+    { name: "Sara", amount: "₹1,780", avatar: MODEL_ASSETS.western },
+    { name: "Meera", amount: "₹1,580", avatar: MODEL_ASSETS.traditional },
+    { name: "Asha", amount: "₹1,340", avatar: MODEL_ASSETS.couture }
   ]
 ];
 
 const teamSummary = [
-  { label: "Level 1", members: "3 Members", amount: "27,100 SP" },
-  { label: "Level 2", members: "9 Members", amount: "14,460 SP" },
-  { label: "Level 3", members: "27 Members", amount: "7,440 SP" },
-  { label: "Total", members: "39 Members", amount: "49,000 SP" }
+  { label: "Level 1", members: "3 Members", amount: "₹27,100" },
+  { label: "Level 2", members: "9 Members", amount: "₹14,460" },
+  { label: "Level 3", members: "27 Members", amount: "₹7,440" },
+  { label: "Total", members: "39 Members", amount: "₹49,000" }
 ];
 
 const topPerformers = [
-  { name: "Neha R.", amount: "10,400 SP", badge: "Crown Seller" },
-  { name: "Anjali K.", amount: "9,060 SP", badge: "Growth Lead" },
-  { name: "Priya S.", amount: "7,700 SP", badge: "Style Mentor" }
+  { name: "Neha R.", amount: "₹10,400", badge: "Crown Seller" },
+  { name: "Anjali K.", amount: "₹9,060", badge: "Growth Lead" },
+  { name: "Priya S.", amount: "₹7,700", badge: "Style Mentor" }
 ];
 
 function StatCard({
@@ -309,9 +309,9 @@ export default async function ReferralsPage() {
   const summaryCards = buildSummaryCards(totalTeam, dashboard?.sellPointsTotal ?? 0, score, status);
 
   const level1Nodes = [
-    { id: "", name: "Open Slot", amount: "0 SP", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false },
-    { id: "", name: "Open Slot", amount: "0 SP", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false },
-    { id: "", name: "Open Slot", amount: "0 SP", avatar: MODEL_ASSETS.couture, members: "No referrals", crown: false }
+    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false },
+    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false },
+    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.couture, members: "No referrals", crown: false }
   ];
 
   dbL1.forEach((r: any, idx: number) => {
@@ -319,7 +319,7 @@ export default async function ReferralsPage() {
       level1Nodes[idx] = {
         id: r.id,
         name: r.name,
-        amount: `${r.totalSP.toFixed(1)} SP`,
+        amount: `₹${r.totalSP.toLocaleString('en-IN')}`,
         avatar: MODEL_ASSETS.western,
         members: `${r.ordersCount} Order${r.ordersCount !== 1 ? 's' : ''}`,
         crown: r.ordersCount > 0
@@ -343,7 +343,7 @@ export default async function ReferralsPage() {
           items: children.map((c: any) => ({
             id: c.id,
             name: c.name,
-            amount: `${c.totalSP.toFixed(1)} SP`,
+            amount: `₹${c.totalSP.toLocaleString('en-IN')}`,
             avatar: MODEL_ASSETS.couture
           })),
           more: "Active",
@@ -358,7 +358,7 @@ export default async function ReferralsPage() {
     if (cluster.items.length === 0) {
       cluster.items.push({
         name: "Open Slot",
-        amount: "0.0 SP",
+        amount: "₹0",
         avatar: MODEL_ASSETS.western
       });
     }
@@ -377,7 +377,7 @@ export default async function ReferralsPage() {
         if (children.length > 0) {
           level3Clusters[idx].push(...children.map((c: any) => ({
             name: c.name,
-            amount: `${c.totalSP.toFixed(1)} SP`,
+            amount: `₹${c.totalSP.toLocaleString('en-IN')}`,
             avatar: MODEL_ASSETS.traditional
           })));
         }
@@ -386,17 +386,17 @@ export default async function ReferralsPage() {
     if (level3Clusters[idx].length === 0) {
       level3Clusters[idx].push({
         name: "Open Slot",
-        amount: "0.0 SP",
+        amount: "₹0",
         avatar: MODEL_ASSETS.traditional
       });
     }
   });
 
   const teamSummary = [
-    { label: "Level 1", members: `${dbL1.length} Member${dbL1.length !== 1 ? 's' : ''}`, amount: `${l1SP.toFixed(1)} SP` },
-    { label: "Level 2", members: `${dbL2.length} Member${dbL2.length !== 1 ? 's' : ''}`, amount: `${l2SP.toFixed(1)} SP` },
-    { label: "Level 3", members: `${dbL3.length} Member${dbL3.length !== 1 ? 's' : ''}`, amount: `${l3SP.toFixed(1)} SP` },
-    { label: "Total", members: `${totalTeam} Member${totalTeam !== 1 ? 's' : ''}`, amount: `${teamSellPoints.toFixed(1)} SP` }
+    { label: "Level 1", members: `${dbL1.length} Member${dbL1.length !== 1 ? 's' : ''}`, amount: `₹${l1SP.toLocaleString('en-IN')}` },
+    { label: "Level 2", members: `${dbL2.length} Member${dbL2.length !== 1 ? 's' : ''}`, amount: `₹${l2SP.toLocaleString('en-IN')}` },
+    { label: "Level 3", members: `${dbL3.length} Member${dbL3.length !== 1 ? 's' : ''}`, amount: `₹${l3SP.toLocaleString('en-IN')}` },
+    { label: "Total", members: `${totalTeam} Member${totalTeam !== 1 ? 's' : ''}`, amount: `₹${teamSellPoints.toLocaleString('en-IN')}` }
   ];
 
   const allTeamMembers = [...dbL1, ...dbL2, ...dbL3];
@@ -404,15 +404,15 @@ export default async function ReferralsPage() {
   const topPerformers = sortedPerformers.length > 0
     ? sortedPerformers.slice(0, 3).map((u, idx) => ({
         name: u.name,
-        amount: `${(u.totalSP || 0).toFixed(1)} SP`,
+        amount: `₹${(u.totalSP || 0).toLocaleString('en-IN')}`,
         badge: idx === 0 ? "Crown Seller" : idx === 1 ? "Growth Lead" : "Style Mentor"
       }))
     : [
-        { name: "No active leaders", amount: "0.0 SP", badge: "None" }
+        { name: "No active leaders", amount: "₹0", badge: "None" }
       ];
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] px-4 pb-20 pt-10 text-[#1c1c19] sm:px-5 sm:pt-10 md:px-8 md:pt-10 lg:pt-10 lg:px-10">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] px-4 pb-20 pt-10 text-[#1c1c19] sm:px-5 sm:pt-10 md:px-8 md:pt-10 lg:pt-10 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="overflow-hidden rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)]">
           <div className="flex items-center justify-between gap-3 border-b border-[#ead9d1] px-4 py-4 sm:px-5 md:px-6">
