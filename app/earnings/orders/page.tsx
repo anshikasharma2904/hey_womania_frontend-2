@@ -71,7 +71,7 @@ export default async function PartnerOrdersPage() {
               </div>
               <div className="mt-4 space-y-3 md:space-y-4">
                 {orders.length > 0 ? (
-                  orders.map((order) => (
+                  orders.map((order: any) => (
                     <div key={order.id} className="grid gap-3 rounded-[1rem] bg-[#fff9f7] p-3 md:grid-cols-[1.4fr_0.9fr] md:items-center md:gap-4 md:rounded-[1.2rem] md:p-4">
                       <div>
                         <p className="text-[0.68rem] uppercase tracking-[0.16em] text-[#9c4049]/70">{order.id}</p>
