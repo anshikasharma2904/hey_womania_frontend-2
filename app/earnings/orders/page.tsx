@@ -4,7 +4,7 @@ import { getPartnerOrders } from "@/lib/server/partner-dashboard";
 
 export default async function PartnerOrdersPage() {
   const rawOrders = await getPartnerOrders();
-  const dbOrders = Array.isArray(rawOrders) ? rawOrders : rawOrders?.data ?? [];
+  const dbOrders = Array.isArray(rawOrders) ? rawOrders : (rawOrders as any)?.data ?? [];
   
   const totalOrders = dbOrders.length;
   const deliveredCount = dbOrders.filter((o: any) => o.status === "Delivered").length;
