@@ -79,109 +79,19 @@ export const slugifyProductName = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
-  {
-    label: "Clothes",
-    href: "/category/all",
-    columns: [
-      {
-        title: "Traditional Wear",
-        links: [
-          { label: "Suits Festive", href: "/category/traditional" },
-          { label: "Suits Casual", href: "/category/traditional" },
-          { label: "Kurtas", href: "/category/traditional" },
-          { label: "Sarees", href: "/category/traditional" },
-          { label: "Ethnic Wear", href: "/category/traditional" },
-          { label: "Leggings", href: "/category/traditional" },
-          { label: "Salwar and Suits", href: "/category/traditional" },
-          { label: "Plazzo", href: "/category/traditional" }
-        ]
-      },
-      {
-        title: "Western Wear",
-        links: [
-          { label: "Dresses", href: "/category/western" },
-          { label: "Tops", href: "/category/shirts" },
-          { label: "Tshirts", href: "/category/shirts" },
-          { label: "Jeans", href: "/category/jeans" },
-          { label: "Trousers & Capris", href: "/category/western" },
-          { label: "Co-ords", href: "/category/western" },
-          { label: "Jumpsuits", href: "/category/western" },
-          { label: "Jackets & Coats", href: "/category/western" },
-          { label: "Blazers & Waistcoats", href: "/category/western" }
-        ]
-      }
-    ]
-  },
-  {
-    label: "Jewellery",
-    href: "/category/jewellery",
-    columns: [
-      {
-        title: "Jewellery",
-        links: [
-          { label: "Necklaces", href: "/category/jewellery" },
-          { label: "Earrings", href: "/category/jewellery" },
-          { label: "Rings", href: "/category/jewellery" },
-          { label: "Bangles", href: "/category/jewellery" }
-        ]
-      }
-    ]
-  },
-  {
-    label: "Bags",
-    href: "/category/bags",
-    columns: [
-      {
-        title: "Bags",
-        links: [
-          { label: "Mini Bags", href: "/category/bags" },
-          { label: "Shoulder Bags", href: "/category/bags" },
-          { label: "Evening Clutches", href: "/category/bags" },
-          { label: "Daily Use", href: "/category/bags" }
-        ]
-      }
-    ]
-  },
-  {
-    label: "Plus Size",
-    href: "/category/plus-size",
-    columns: [
-      {
-        title: "Plus Size",
-        links: [
-          { label: "Curve Dresses", href: "/category/plus-size" },
-          { label: "Curve Tops", href: "/category/plus-size" },
-          { label: "Curve Formals", href: "/category/plus-size" },
-          { label: "Curve Occasion", href: "/category/plus-size" }
-        ]
-      }
-    ]
-  },
-  {
-    label: "Sale",
-    href: "/category/sale",
-    columns: [
-      {
-        title: "Sale",
-        links: [
-          { label: "Western Deals", href: "/category/sale" },
-          { label: "Traditional Deals", href: "/category/sale" },
-          { label: "Formal Deals", href: "/category/sale" },
-          { label: "Accessory Deals", href: "/category/sale" }
-        ]
-      }
-    ]
-  },
-  {
-    label: "Combo",
-    href: "#",
-    columns: [
-      {
-        title: "Coming Soon",
-        links: []
-      }
-    ]
-  }
+  { label: "MOST LOVED", href: "/category/most-loved", columns: [] },
+  { label: "JUST DROPPED", href: "/category/just-dropped", columns: [] },
+  { label: "LAST CHANCE", href: "/category/last-chance", columns: [] },
+  { label: "EVERYDAY", href: "/category/everyday", columns: [] },
+  { label: "CO-ORDS", href: "/category/co-ords", columns: [] },
+  { label: "SHIRTS STORIES", href: "/category/shirts-stories", columns: [] },
+  { label: "TOP STYLE", href: "/category/top-style", columns: [] },
+  { label: "DESI COLLECTIONS", href: "/category/desi-collections", columns: [] },
+  { label: "BRANDS STUDIO", href: "/category/brands-studio", columns: [] },
+  { label: "JEWEL ROOM", href: "/category/jewel-room", columns: [] },
+  { label: "BAG AFFAIRS", href: "/category/bag-affairs", columns: [] },
+  { label: "BIG SIZES STYL", href: "/category/big-sizes-styl", columns: [] },
+  { label: "DRESS GALLERY", href: "/category/dress-gallery", columns: [] }
 ];
 
 const createProduct = (

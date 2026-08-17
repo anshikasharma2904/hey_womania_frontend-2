@@ -192,7 +192,7 @@ export function BestSellersCoverflow({
       className="bg-[radial-gradient(circle_at_top,rgba(255,244,232,0.9),transparent_24%),linear-gradient(180deg,#e8dfd6_0%,#d8ccbf_22%,#23201d_100%)] px-5 pb-20 pt-8 md:px-16 md:pb-28"
     >
       <div className="mb-10 flex items-center justify-between gap-4">
-        <h2 className="font-sans text-4xl font-black tracking-[-0.06em] text-[#111111] md:text-6xl">
+        <h2 className="font-sans text-3xl font-black tracking-[-0.06em] text-[#111111] md:text-5xl ">
           {title}
         </h2>
         <Link
@@ -249,7 +249,7 @@ export function BestSellersCoverflow({
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#ef8b76]">
                 #{item.id}
               </p>
-              <h3 className="mt-2 font-sans text-[1.6rem] font-black tracking-[-0.05em] text-white md:text-[2rem]">
+              <h3 className="mt-2 font-sans text-4xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-4xl font-weight-700">
                 {item.title}
               </h3>
               <p className="mt-2 text-sm text-white/58 md:text-[0.95rem]">

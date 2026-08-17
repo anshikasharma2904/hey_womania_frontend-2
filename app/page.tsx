@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BestSellersCoverflow } from "@/components/BestSellersCoverflow";
+import { ShopByCategory } from "@/components/ShopByCategory";
 import { HeroVideoSlider } from "@/components/HeroVideoSlider";
 import { LuxuryCategoryNavigation } from "@/components/LuxuryCategoryNavigation";
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
@@ -121,7 +122,8 @@ async function fetchProducts(): Promise<Product[]> {
     });
     if (!res.ok) return [];
     const result = await res.json();
-    return result.data ? result.data : Array.isArray(result) ? result : [];
+    let list = result.data ? result.data : Array.isArray(result) ? result : [];
+    return list.filter((p: any) => p.title !== "U.S polo" && p.title !== "T shirt - pcs / Default");
   } catch {
     return [];
   }
@@ -135,7 +137,8 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
     });
     if (!res.ok) return [];
     const result = await res.json();
-    return result.data ? result.data : Array.isArray(result) ? result : [];
+    let list = result.data ? result.data : Array.isArray(result) ? result : [];
+    return list.filter((p: any) => p.title !== "U.S polo" && p.title !== "T shirt - pcs / Default");
   } catch {
     return [];
   }
@@ -274,17 +277,17 @@ export default async function Home() {
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
       <HeroVideoSlider />
 
-      <section className="relative overflow-hidden bg-[#fcf9f4] py-16 md:py-24 border-b border-[#ece6df]">
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-          <span className="font-[family:var(--font-display)] text-[12vw] font-black uppercase whitespace-nowrap">HeyWomaniyaa</span>
-        </div>
+      <section className="relative overflow-hidden bg-[#fcf9f4] py-4 md:py-4 pt-10">
+
         <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
-          <h2 className="font-[family:var(--font-display)] text-5xl md:text-7xl lg:text-[6.5rem] font-black uppercase leading-[0.9] tracking-[-0.02em] text-[#111111]">
-            Every Day <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9c4049] to-[#5f5d3e] italic pr-2">A Fashion Day</span>
+          <h2 className="mt-8 text-3xl md:text-3xl lg:text-[4.0rem] leading-[0.9] tracking-[-0.02em] text-[#111111] text-center">
+            <span className="normal-case font-normal pr-2" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle' }}>Every Day</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9c4049] to-[#5f5d3e] pr-2 normal-case font-normal" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle', paddingLeft: '0.2em' }}>A Fashion Day</span>
           </h2>
         </div>
       </section>
+
+      <ShopByCategory />
 
       <NewArrivalsCarousel cards={arrivalCards} />
 

@@ -234,7 +234,8 @@ export default async function CategoryDetailPage({
 
     if (productsRes.ok) {
       const data = await productsRes.json();
-      liveProducts = data.data ? data.data : Array.isArray(data) ? data : [];
+      let list = data.data ? data.data : Array.isArray(data) ? data : [];
+      liveProducts = list.filter((p: any) => p.title !== "U.S polo" && p.title !== "T shirt - pcs / Default");
     }
 
     if (categoriesRes.ok) {

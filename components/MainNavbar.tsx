@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
 import { IoMdHeart } from "react-icons/io";
+import { NAVBAR_CATEGORY_MENUS } from "../app/category/category-data";
 
 type CategoryLink = {
   label: string;
@@ -147,88 +148,7 @@ const buildCategoryMenus = (categories: LiveCategory[]): CategoryMenu[] => {
     }
   }
 
-  const parsedMenus = Array.from(menuMap.values()).map((menu) => ({
-    label: menu.label,
-    href: menu.href,
-    columns: Array.from(menu.columns.entries()).map(([title, links]) => ({
-      title,
-      links: links.sort((a, b) => a.label.localeCompare(b.label))
-    }))
-  }));
-
-  const MENU_PRIORITY: Record<string, number> = {
-    clothes: 1,
-    cloths: 1,
-    jewellery: 2,
-    jewelry: 2,
-    bag: 3,
-    bags: 3,
-    combo: 4
-  };
-
-  const getPriority = (label: string) => {
-    const key = String(label || "").toLowerCase();
-    return MENU_PRIORITY[key] ?? 99;
-  };
-
-  const DEFAULT_FALLBACK_MENUS: CategoryMenu[] = [
-    {
-      label: "Clothes",
-      href: "/category/clothes",
-      columns: [
-        {
-          title: "Traditional Wear",
-          links: [
-            { label: "Kurta Sets", href: "/category/clothes-traditional-wear-kurta-set-for-women" },
-            { label: "Kurta Sets with Dupatta", href: "/category/clothes-traditional-wear-kurta-set-for-women-with-dupatta" },
-            { label: "Suit Sets", href: "/category/suit-set" },
-            { label: "Lawn Suits", href: "/category/lawn-suit" }
-          ]
-        },
-        {
-          title: "Western Wear",
-          links: [
-            { label: "Co-Ord Sets", href: "/category/clothes-western-wear-co-ordset" }
-          ]
-        }
-      ]
-    },
-    {
-      label: "Jewellery",
-      href: "/category/jewellery",
-      columns: [
-        {
-          title: "Categories",
-          links: [
-            { label: "Necklace", href: "/category/jewellery-necklace" }
-          ]
-        }
-      ]
-    },
-    {
-      label: "Bags",
-      href: "/category/bag",
-      columns: [
-        {
-          title: "Categories",
-          links: [
-            { label: "Mini Bags", href: "/category/bag-mini-bags" },
-            { label: "Quilted Handbags", href: "/category/bag-mini-bags-quilted-handbag" }
-          ]
-        }
-      ]
-    }
-  ];
-
-  const allMenus = [...parsedMenus, ...directMenus];
-  const finalMenus = allMenus.length > 0 ? allMenus : DEFAULT_FALLBACK_MENUS;
-
-  return finalMenus.sort((a, b) => {
-    const pA = getPriority(a.label);
-    const pB = getPriority(b.label);
-    if (pA !== pB) return pA - pB;
-    return a.label.localeCompare(b.label);
-  });
+  return NAVBAR_CATEGORY_MENUS;
 };
 
 export function MainNavbar() {
@@ -237,7 +157,7 @@ export function MainNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [user, setUser] = useState<{ name: string; role: string; isPartner: boolean } | null>(null);
-  const [navbarMenus, setNavbarMenus] = useState<CategoryMenu[]>(() => buildCategoryMenus([]));
+  const [navbarMenus, setNavbarMenus] = useState<CategoryMenu[]>(NAVBAR_CATEGORY_MENUS);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
   const submitSearch = () => {
@@ -276,24 +196,6 @@ export function MainNavbar() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/categories?limit=500`, { cache: "no-store" as RequestCache })
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
-      .then((data) => {
-        const categories = data?.data
-          ? data.data
-          : Array.isArray(data)
-            ? data
-            : [];
-        setNavbarMenus(buildCategoryMenus(categories));
-      })
-      .catch(() => {
-        setNavbarMenus(buildCategoryMenus([]));
-      });
-  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -342,161 +244,48 @@ export function MainNavbar() {
 
       <header className="border-b border-[#cac7b9]/40 bg-[#fcf9f4] px-5 py-3 md:px-12">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-4">
+          {/* Left Side: Menu and Search */}
+          <div className="flex min-w-0 flex-1 items-center gap-4 lg:gap-6">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#cac7b9]/60 text-[#5f5d3e] transition-opacity duration-300 hover:opacity-70 md:hidden"
+              className="flex items-center gap-2 text-[#343434] transition-opacity duration-300 hover:opacity-70"
             >
-              <span className="material-symbols-outlined">menu</span>
+              <span className="material-symbols-outlined text-[1.4rem]">menu</span>
             </button>
+            <Link
+              href="/category/all"
+              className="hidden items-center gap-2 lg:flex text-[#343434] transition-opacity duration-200 hover:opacity-70"
+            >
+              <span className="material-symbols-outlined text-[1.2rem]">search</span>
+              <span className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#343434] mr-2">Search</span>
+            </Link>
+            <Link
+              href="/category/all"
+              className="flex items-center text-[#343434] lg:hidden"
+            >
+              <span className="material-symbols-outlined text-[1.3rem]">search</span>
+            </Link>
+          </div>
 
+          {/* Center: Logo */}
+          <div className="flex shrink-0 justify-center">
             <Link
               href="/"
               className="flex items-center"
             >
               <img src="/logo.png" alt="HeyWomaniyaa" className="h-16 w-auto object-contain md:h-18" />
             </Link>
-
-            <nav className="hidden min-w-0 items-center gap-3 lg:flex 2xl:gap-5">
-              {navbarMenus.map((menu) => (
-                <div key={menu.label} className="group relative">
-                  <Link
-                    href={menu.href}
-                    className="relative whitespace-nowrap text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[#343434] transition-colors duration-200 hover:text-[#9c4049] 2xl:text-[0.75rem]"
-                  >
-                    {menu.label}
-                  </Link>
-
-                  {menu.columns.length > 0 ? (
-                    <div
-                      className={`pointer-events-none absolute top-full z-40 pt-3 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100 ${
-                        ["Clothes", "Jewellery", "Jewelry", "Bag", "Bags"].includes(menu.label)
-                          ? "left-0 translate-x-0"
-                          : "left-0 xl:left-1/2 xl:-translate-x-1/2"
-                      }`}
-                    >
-                      <div
-                        className={`border border-[#efe4d8] bg-[#fcf9f4] shadow-[0_24px_60px_rgba(58,45,35,0.14)] ${
-                          menu.columns.length >= 4
-                            ? "w-[min(92vw,1080px)]"
-                            : menu.columns.length === 2
-                              ? "w-[min(92vw,620px)]"
-                              : "w-[min(92vw,340px)]"
-                        }`}
-                      >
-                        <div
-                          className={`grid gap-0 ${
-                            menu.columns.length >= 4
-                              ? "xl:grid-cols-4"
-                              : menu.columns.length === 2
-                                ? "xl:grid-cols-2"
-                                : "xl:grid-cols-1"
-                          }`}
-                        >
-                          {menu.columns.map((column, columnIndex) => (
-                            <div
-                              key={`${menu.label}-${column.title}`}
-                              className={`min-h-full px-6 py-6 ${
-                                columnIndex !== menu.columns.length - 1
-                                  ? "border-r border-[#efe4d8]"
-                                  : ""
-                              }`}
-                            >
-                              <p className="text-[0.98rem] font-semibold text-[#9c4049]">
-                                {column.title}
-                              </p>
-                              <div className="mt-4 space-y-2">
-                                {column.links.length > 0 ? (
-                                  column.links.map((item, linkIdx) => (
-                                    <Link
-                                      key={`${item.label}-${linkIdx}`}
-                                      href={item.href}
-                                      className="block text-[0.96rem] leading-7 text-[#2d3147] transition-colors duration-200 hover:text-[#9c4049]"
-                                    >
-                                      {item.label}
-                                    </Link>
-                                  ))
-                                ) : column.title === "Coming Soon" ? (
-                                  <p className="text-[0.96rem] leading-7 text-[#8b837b]">Coming soon</p>
-                                ) : null}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </nav>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 lg:gap-3">
-            <div className="flex items-center gap-3 md:hidden">
-              {user ? (
-                <Link
-                  href={user.role === "partner" || user.isPartner ? "/earnings" : "/account"}
-                  className="flex min-w-[42px] flex-col items-center justify-center text-[#22253a]"
-                >
-                  <FaUserAlt className="text-[1rem] text-[#c53b45]" />
-                  <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.04em]">
-                    {user.role === "partner" || user.isPartner ? "Dashboard" : "Account"}
-                  </span>
-                </Link>
-              ) : (
-                <Link
-                  href="/register"
-                  className="flex min-w-[42px] flex-col items-center justify-center text-[#22253a]"
-                >
-                  <FaUserAlt className="text-[1rem] text-[#c53b45]" />
-                  <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.04em]">
-                    Register
-                  </span>
-                </Link>
-              )}
-
-              <Link
-                href="/wishbag"
-                className="flex min-w-[42px] flex-col items-center justify-center text-[#22253a]"
-              >
-                <IoMdHeart className="text-[1.15rem] text-[#c53b45]" />
-                <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.04em]">
-                  Wishbag
-                </span>
-              </Link>
-
-              <Link
-                href="/cart"
-                className="flex min-w-[42px] flex-col items-center justify-center text-[#22253a]"
-              >
-                <HiMiniShoppingBag className="text-[1.1rem] text-[#c53b45]" />
-                <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.04em]">
-                  Bag
-                </span>
-              </Link>
-            </div>
-
-            <div className="hidden items-center gap-2 rounded-2xl bg-[#f5f5f5] px-3 py-2 lg:flex xl:px-4">
-              <button
-                type="button"
-                onClick={submitSearch}
-                aria-label="Search products"
-                className="flex items-center justify-center text-[#6d7287] transition-opacity duration-200 hover:opacity-70"
-              >
-                <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
-                  search
-                </span>
-              </button>
-              <input
-                type="text"
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search for products, brands and more"
-                className="w-[8rem] bg-transparent text-sm text-[#48473d] outline-none placeholder:text-[#8c8f9e] xl:w-[12rem] 2xl:w-[18rem]"
-              />
-            </div>
+          {/* Right Side: CONTACT US, Icons */}
+          <div className="flex flex-1 shrink-0 items-center justify-end gap-2 lg:gap-5">
+            <Link
+              href="/contact"
+              className="hidden text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#343434] transition-colors hover:text-[#9c4049] lg:block"
+            >
+              Contact Us
+            </Link>
 
             <div
               ref={profileRef}
@@ -512,9 +301,6 @@ export function MainNavbar() {
                 className="flex min-w-[58px] flex-col items-center justify-center text-[#22253a]"
               >
                 <FaUserAlt className="text-[1.15rem] text-[#c53b45]" />
-                <span className="mt-1 text-[11px] font-semibold">
-                  {user ? (user.role === "partner" || user.isPartner ? "Dashboard" : "Account") : "Register"}
-                </span>
               </button>
 
               <div
@@ -606,7 +392,6 @@ export function MainNavbar() {
               className="hidden min-w-[58px] shrink-0 flex-col items-center justify-center text-[#22253a] md:flex"
             >
               <IoMdHeart className="text-[1.35rem] text-[#c53b45]" />
-              <span className="mt-1 text-[11px] font-semibold">Wishbag</span>
             </Link>
 
             <Link
@@ -614,44 +399,22 @@ export function MainNavbar() {
               className="hidden min-w-[58px] shrink-0 flex-col items-center justify-center text-[#22253a] md:flex"
             >
               <HiMiniShoppingBag className="text-[1.3rem] text-[#c53b45]" />
-              <span className="mt-1 text-[11px] font-semibold">My Bag</span>
             </Link>
           </div>
         </div>
 
-        <div className="mt-3 md:hidden">
-          <div className="flex items-center gap-2 rounded-2xl bg-[#f5f5f5] px-3 py-2">
-            <button
-              type="button"
-              onClick={submitSearch}
-              aria-label="Search products"
-              className="flex items-center justify-center text-[#6d7287]"
-            >
-              <span className="material-symbols-outlined text-[1.15rem] text-[#6d7287]">
-                search
-              </span>
-            </button>
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search products, categories and more"
-              className="w-full bg-transparent text-sm text-[#48473d] outline-none placeholder:text-[#8c8f9e]"
-            />
-          </div>
-        </div>
+
       </header>
 
       <div
-        className={`fixed inset-0 z-[60] bg-[#2d251f]/40 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-[60] bg-[#2d251f]/40 transition-opacity duration-300 ${
           mobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       <aside
-        className={`fixed left-0 top-0 z-[70] flex h-full w-[88vw] max-w-[360px] flex-col bg-[linear-gradient(180deg,#fffdfb_0%,#f8f0e8_100%)] shadow-[0_24px_60px_rgba(58,45,35,0.18)] transition-transform duration-300 md:hidden ${
+        className={`fixed left-0 top-0 z-[70] flex h-full w-[88vw] max-w-[360px] flex-col bg-[linear-gradient(180deg,#fffdfb_0%,#f8f0e8_100%)] shadow-[0_24px_60px_rgba(58,45,35,0.18)] transition-transform duration-300 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -704,9 +467,10 @@ export function MainNavbar() {
                 <Link
                   href={menu.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-sm font-semibold uppercase tracking-[0.14em] text-[#9c4049]"
+                  className="flex items-center justify-between text-sm font-semibold uppercase tracking-[0.14em] text-[#9c4049]"
                 >
-                  {menu.label}
+                  <span>{menu.label}</span>
+                  <span className="material-symbols-outlined text-[1.2rem]">expand_more</span>
                 </Link>
 
                 {menu.columns.length > 0 ? (

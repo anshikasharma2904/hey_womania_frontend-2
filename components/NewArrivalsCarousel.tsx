@@ -51,7 +51,7 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
               Shop by Category
             </p>
-            <h3 className="mt-2 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
+            <h3 className="mt-2 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl ">
               New Arrivals
             </h3>
           </div>

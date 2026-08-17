@@ -190,7 +190,8 @@ async function getProducts(): Promise<LiveProduct[]> {
       cache: "no-store"
     });
     const result = await res.json().catch(() => ({}));
-    return result.data ? result.data : Array.isArray(result) ? result : [];
+    let list = result.data ? result.data : Array.isArray(result) ? result : [];
+    return list.filter((p: any) => p.title !== "U.S polo" && p.title !== "T shirt - pcs / Default");
   } catch (err) {
     console.error("Error fetching products", err);
     return [];

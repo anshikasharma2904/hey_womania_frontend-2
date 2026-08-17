@@ -80,6 +80,7 @@ export function CategoryDetailClient({
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [priceLimit, setPriceLimit] = useState<number>(3000);
+  const [localSearch, setLocalSearch] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const ITEMS_PER_PAGE = 12;
 
@@ -163,6 +164,23 @@ export function CategoryDetailClient({
 
   const filteredProducts = useMemo(() => {
     return category.products.filter((product) => {
+      if (localSearch) {
+        const query = localSearch.toLowerCase();
+        const searchableText = [
+          product.name,
+          product.subtitle,
+          (product as any).categoryLabel,
+          (product as any).subcategoryLabel
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!searchableText.includes(query)) {
+          return false;
+        }
+      }
+
       const priceNum = parsePrice(product.price);
       if (!isNaN(priceNum) && priceNum > priceLimit) {
         return false;
@@ -197,7 +215,7 @@ export function CategoryDetailClient({
 
       return true;
     });
-  }, [category.products, priceLimit, selectedCategories, selectedSizes, selectedSubcategories]);
+  }, [category.products, priceLimit, selectedCategories, selectedSizes, selectedSubcategories, localSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const paginatedProducts = useMemo(() => {
@@ -306,6 +324,22 @@ export function CategoryDetailClient({
         <h1 className="mt-3 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
           {activeHeaderTitle}
         </h1>
+
+        <div className="mt-6 flex max-w-xl items-center gap-3 rounded-full border border-[#ece6df] bg-white px-4 py-3 shadow-[0_4px_20px_rgba(58,45,35,0.04)]">
+          <span className="material-symbols-outlined text-[#8c8f9e]">search</span>
+          <input
+            type="text"
+            placeholder="Search products, categories..."
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#8c8f9e]"
+          />
+          {localSearch && (
+            <button type="button" onClick={() => setLocalSearch("")} className="flex text-[#8c8f9e] hover:text-[#111111]">
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mt-4 sm:mt-6 grid w-full max-w-full min-w-0 gap-6 lg:mt-8 lg:grid-cols-[250px_1fr]">
