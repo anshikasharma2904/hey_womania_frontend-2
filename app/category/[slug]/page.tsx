@@ -416,7 +416,7 @@ export default async function CategoryDetailPage({
     slug === "last-chance" ||
     liveCategories.some((c: any) => slugify(c.slug || c.name || "") === slug) ||
     categoryQuickLinks.some((l) => l.slug === slug) ||
-    NAVBAR_CATEGORY_MENUS.some((m) => slugify(m.title) === slug || m.href.endsWith(`/${slug}`));
+    NAVBAR_CATEGORY_MENUS.some((m) => slugify(m.label) === slug || m.href.endsWith(`/${slug}`));
 
   if (!isValidCategory) {
     notFound();
