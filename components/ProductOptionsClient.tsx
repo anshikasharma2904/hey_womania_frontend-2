@@ -44,14 +44,21 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
     return ai - bi;
   });
 
-  // Extract dynamic unique colors from product variants
-  const dynamicColors = Array.from(
-    new Set(
-      variants
-        .map((v) => (v.color || "").trim())
-        .filter((c) => c && !["DEFAULT", "QTY", "BOX", "PCS"].includes(c.toUpperCase()))
-    )
-  );
+  const uniqueColorsMap = new Map<string, string>();
+  variants.forEach((v) => {
+    const c = (v.color || "").trim();
+    if (
+      c &&
+      !["DEFAULT", "QTY", "BOX", "PCS"].includes(c.toUpperCase()) &&
+      !SIZE_ORDER.includes(c.toUpperCase())
+    ) {
+      const lowerKey = c.toLowerCase();
+      if (!uniqueColorsMap.has(lowerKey)) {
+        uniqueColorsMap.set(lowerKey, c.charAt(0).toUpperCase() + c.slice(1).toLowerCase());
+      }
+    }
+  });
+  const dynamicColors = Array.from(uniqueColorsMap.values());
 
   const colorMap: Record<string, string> = {
     Blue: "#2563eb",

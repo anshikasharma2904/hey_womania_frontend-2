@@ -79,7 +79,7 @@ export function CategoryDetailClient({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [priceLimit, setPriceLimit] = useState<number>(3000);
+  const [priceLimit, setPriceLimit] = useState<number>(15000);
   const [localSearch, setLocalSearch] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const ITEMS_PER_PAGE = 12;
@@ -239,7 +239,7 @@ export function CategoryDetailClient({
     setSelectedCategories([]);
     setSelectedSubcategories([]);
     setSelectedSizes([]);
-    setPriceLimit(3000);
+    setPriceLimit(15000);
     setCurrentPage(1);
   };
 
@@ -305,7 +305,7 @@ export function CategoryDetailClient({
     selectedCategories.length > 0 ||
     selectedSubcategories.length > 0 ||
     selectedSizes.length > 0 ||
-    priceLimit < 3000;
+    priceLimit < 15000;
 
   return (
     <>
@@ -421,7 +421,7 @@ export function CategoryDetailClient({
           <input
             type="range"
             min="100"
-            max="3000"
+            max="15000"
             step="50"
             value={priceLimit}
             onChange={(e) => setPriceLimit(Number(e.target.value))}
@@ -429,7 +429,7 @@ export function CategoryDetailClient({
           />
           <div className="mt-2 flex items-center justify-between text-xs text-[#8b837b]">
             <span>₹100</span>
-            <span>₹3000</span>
+            <span>₹15000</span>
           </div>
         </div>
 
@@ -552,7 +552,7 @@ export function CategoryDetailClient({
             <input
               type="range"
               min="100"
-              max="3000"
+              max="15000"
               step="50"
               value={priceLimit}
               onChange={(e) => setPriceLimit(Number(e.target.value))}
@@ -560,7 +560,7 @@ export function CategoryDetailClient({
             />
             <div className="mt-2 flex items-center justify-between text-xs text-[#8b837b]">
               <span>₹100</span>
-              <span>₹3000</span>
+              <span>₹15000</span>
             </div>
           </div>
 

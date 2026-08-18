@@ -277,10 +277,10 @@ export default async function Home() {
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
       <HeroVideoSlider />
 
-      <section className="relative overflow-hidden bg-[#fcf9f4] py-4 md:py-4 pt-10">
+      <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-4 md:pt-10">
 
         <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
-          <h2 className="mt-8 text-3xl md:text-3xl lg:text-[4.0rem] leading-[0.9] tracking-[-0.02em] text-[#111111] text-center">
+          <h2 className="mt-2 md:mt-8 text-3xl md:text-3xl lg:text-[4.0rem] leading-[0.9] tracking-[-0.02em] text-[#111111] text-center">
             <span className="normal-case font-normal pr-2" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle' }}>Every Day</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9c4049] to-[#5f5d3e] pr-2 normal-case font-normal" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle', paddingLeft: '0.2em' }}>A Fashion Day</span>
           </h2>

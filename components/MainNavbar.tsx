@@ -269,36 +269,30 @@ export function MainNavbar() {
           </div>
 
           {/* Center: Logo */}
-          <div className="flex shrink-0 justify-center">
+          <div className="flex justify-center">
             <Link
               href="/"
               className="flex items-center"
             >
-              <img src="/logo.png" alt="HeyWomaniyaa" className="h-16 w-auto object-contain md:h-18" />
+              <img src="/logo.png" alt="HeyWomaniyaa" className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]" />
             </Link>
           </div>
 
-          {/* Right Side: CONTACT US, Icons */}
-          <div className="flex flex-1 shrink-0 items-center justify-end gap-2 lg:gap-5">
-            <Link
-              href="/contact"
-              className="hidden text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#343434] transition-colors hover:text-[#9c4049] lg:block"
-            >
-              Contact Us
-            </Link>
+          {/* Right Side: Icons */}
+          <div className="flex flex-1 items-center justify-end gap-3 sm:gap-5 lg:gap-6">
 
             <div
               ref={profileRef}
               onMouseEnter={() => setProfileOpen(true)}
               onMouseLeave={() => setProfileOpen(false)}
-              className="relative hidden shrink-0 md:block"
+              className="relative shrink-0"
             >
               <button
                 type="button"
                 onClick={() => setProfileOpen((open) => !open)}
                 aria-expanded={profileOpen}
                 aria-haspopup="menu"
-                className="flex min-w-[58px] flex-col items-center justify-center text-[#22253a]"
+                className="flex flex-col items-center justify-center text-[#22253a]"
               >
                 <FaUserAlt className="text-[1.15rem] text-[#c53b45]" />
               </button>
@@ -389,14 +383,14 @@ export function MainNavbar() {
 
             <Link
               href="/wishbag"
-              className="hidden min-w-[58px] shrink-0 flex-col items-center justify-center text-[#22253a] md:flex"
+              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
             >
               <IoMdHeart className="text-[1.35rem] text-[#c53b45]" />
             </Link>
 
             <Link
               href="/cart"
-              className="hidden min-w-[58px] shrink-0 flex-col items-center justify-center text-[#22253a] md:flex"
+              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
             >
               <HiMiniShoppingBag className="text-[1.3rem] text-[#c53b45]" />
             </Link>
@@ -405,13 +399,13 @@ export function MainNavbar() {
 
 
       </header>
-
+{/* 
       <div
         className={`fixed inset-0 z-[60] bg-[#2d251f]/40 transition-opacity duration-300 ${
           mobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setMobileMenuOpen(false)}
-      />
+      /> */}
 
       <aside
         className={`fixed left-0 top-0 z-[70] flex h-full w-[88vw] max-w-[360px] flex-col bg-[linear-gradient(180deg,#fffdfb_0%,#f8f0e8_100%)] shadow-[0_24px_60px_rgba(58,45,35,0.18)] transition-transform duration-300 ${

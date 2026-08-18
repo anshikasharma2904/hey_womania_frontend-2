@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { CategoryDetailClient } from "@/components/CategoryDetailClient";
 import { StoreFooter } from "@/components/StoreFooter";
 import {
-  categoryQuickLinks
+  categoryQuickLinks,
+  NAVBAR_CATEGORY_MENUS
 } from "../category-data";
 
 export const dynamic = "force-dynamic";
@@ -176,7 +177,7 @@ export function generateStaticParams() {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const slugify = (value: string) =>
-  value
+  String(value || "")
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
@@ -184,6 +185,7 @@ const slugify = (value: string) =>
 
 const formatCategoryLabel = (value: string) =>
   value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
@@ -246,17 +248,25 @@ export default async function CategoryDetailPage({
     console.error("Failed to fetch category data:", error);
   }
 
-  const mappedLive = liveProducts
+  let mappedLive = liveProducts
     .filter((p: any) => {
       const categoryPath = String(p.category || "");
       const categoryParts = categoryPath
         .split("/")
         .map((part) => part.trim())
         .filter(Boolean);
-      const fullSlug = slugify(categoryPath);
-      const mainSlug = slugify(categoryParts[0] || "");
+      const checkSlugMatch = (target: string) => {
+        const t = slugify(target);
+        if (t === slug) return true;
+        
+        const cleanT = t.replace(/[-s]/g, "");
+        const cleanSlug = slug.replace(/[-s]/g, "");
+        return cleanT === cleanSlug;
+      };
 
-      return slug === "all" || fullSlug === slug || mainSlug === slug;
+      if (slug === "most-loved" || slug === "just-dropped" || slug === "last-chance") return true;
+
+      return slug === "all" || checkSlugMatch(categoryPath) || categoryParts.some(checkSlugMatch);
     })
     .map((p: any) => {
       const categoryPath = String(p.category || "");
@@ -309,6 +319,17 @@ export default async function CategoryDetailPage({
 
       return searchableText.includes(normalizedSearchQuery);
     });
+
+  if (slug === "just-dropped") {
+    mappedLive = mappedLive.reverse().slice(0, 12);
+  } else if (slug === "most-loved") {
+    mappedLive = mappedLive.sort(() => Math.random() - 0.5).slice(0, 12);
+  } else if (slug === "last-chance") {
+    mappedLive = mappedLive.filter((p: any) => {
+      const totalStock = (p.variants || []).reduce((acc: number, v: any) => acc + (Number(v.availableStock) || 0), 0);
+      return totalStock > 0 && totalStock <= 2;
+    }).slice(0, 10);
+  }
 
   const matchedCategory =
     slug === "all"
@@ -388,7 +409,16 @@ export default async function CategoryDetailPage({
       }));
   })();
 
-  if (mappedLive.length === 0 && slug !== "all") {
+  const isValidCategory =
+    slug === "all" ||
+    slug === "most-loved" ||
+    slug === "just-dropped" ||
+    slug === "last-chance" ||
+    liveCategories.some((c: any) => slugify(c.slug || c.name || "") === slug) ||
+    categoryQuickLinks.some((l) => l.slug === slug) ||
+    NAVBAR_CATEGORY_MENUS.some((m) => slugify(m.title) === slug || m.href.endsWith(`/${slug}`));
+
+  if (!isValidCategory) {
     notFound();
   }
 

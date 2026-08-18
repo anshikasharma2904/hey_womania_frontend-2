@@ -86,23 +86,22 @@ export function ProductDetailInteractive({ product }: ProductDetailInteractivePr
         </div>
 
         <div className="mt-5 flex flex-wrap items-end gap-3">
-          <span className="text-3xl font-bold text-[#111111] md:text-4xl">
-            {product.price}
-          </span>
           {product.originalPrice ? (
             <>
-              <span className="text-lg text-[#a7a09a] line-through">
+              <span className="text-2xl text-[#a7a09a] line-through font-medium">
                 {product.originalPrice}
               </span>
-              <span className="text-sm font-semibold text-[#ef6f63]">
+              <span className="text-3xl font-bold text-[#111111] md:text-4xl">
+                {product.price}
+              </span>
+              <span className="text-sm font-bold uppercase tracking-[0.1em] text-[#ef6f63]">
                 {product.discountPercent}
               </span>
             </>
           ) : (
-            <>
-              <span className="text-lg text-[#a7a09a] line-through">₹300</span>
-              <span className="text-sm font-semibold text-[#ef6f63]">40% OFF</span>
-            </>
+            <span className="text-3xl font-bold text-[#111111] md:text-4xl">
+              {product.price}
+            </span>
           )}
         </div>
 

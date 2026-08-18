@@ -52,7 +52,7 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
               Shop by Category
             </p>
             <h3 className="mt-2 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl ">
-              New Arrivals
+              Just dropped
             </h3>
           </div>
           <Link

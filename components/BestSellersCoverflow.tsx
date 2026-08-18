@@ -130,7 +130,7 @@ const coverflowState = (relativeIndex: number) => {
 
 export function BestSellersCoverflow({
   items: incomingItems,
-  title = "Best Sellers",
+  title = "Most loved",
   viewAllHref = "/best-sellers"
 }: BestSellersCoverflowProps) {
   const items = incomingItems && incomingItems.length > 0 ? incomingItems : fallbackItems;

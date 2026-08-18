@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 
 const categories = [
-  { title: "MOST LOVED", items: "Trending Now", image: "/models/model-couture.png", href: "/category/most-loved" },
-  { title: "JUST DROPPED", items: "New Arrivals", image: "/models/model-editorial.png", href: "/category/just-dropped" },
+  { title: "MOST LOVED", items: "Trending Now", image: "", video: "/video/hey%20womaniya%20111.mp4", href: "/category/most-loved" },
+  { title: "JUST DROPPED", items: "New Arrivals", image: "", video: "/video/video%202.mp4", href: "/category/just-dropped" },
   { title: "LAST CHANCE", items: "Clearance", image: "/models/model-traditional.png", href: "/category/last-chance" },
   { title: "EVERYDAY", items: "Daily Wear", image: "/models/model-minimal.png", href: "/category/everyday" },
   { title: "CO-ORDS", items: "Matching Sets", image: "/models/model-western.png", href: "/category/co-ords" },
@@ -19,10 +19,10 @@ const categories = [
 
 export function ShopByCategory() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8">
+    <section className="mx-auto max-w-7xl px-4 pb-8">
       <div className="rounded-3xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#111111] font-sans">
+        <div className="mb-4 md:mb-6 flex items-center justify-between">
+          <h2 className="text-xl md:text-4xl font-bold tracking-tight text-[#111111] font-sans">
             Shop by Category
           </h2>
         </div>
@@ -35,12 +35,23 @@ export function ShopByCategory() {
               className="group flex flex-col items-center text-center"
             >
               <div className="relative h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 overflow-hidden rounded-full border border-[#ece6df] bg-[#f8f0e8] transition-transform duration-300 group-hover:scale-105">
-                <Image
-                  src={category.image}
-                  alt={category.title}
-                  fill
-                  className="object-cover object-top"
-                />
+                {category.video ? (
+                  <video
+                    src={category.video}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover object-center"
+                  />
+                ) : (
+                  <Image
+                    src={category.image}
+                    alt={category.title}
+                    fill
+                    className="object-cover object-top"
+                  />
+                )}
               </div>
               <h3 className="mt-4 text-sm font-semibold text-[#111111]">
                 {category.title}

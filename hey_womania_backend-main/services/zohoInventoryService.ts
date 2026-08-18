@@ -609,6 +609,24 @@ function getZohoItemRate(item: any) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function getZohoItemMRP(item: any) {
+  if (item.mrp && Number(item.mrp)) return Number(item.mrp);
+  if (item.compare_at_price && Number(item.compare_at_price)) return Number(item.compare_at_price);
+  
+  if (Array.isArray(item.custom_fields)) {
+    const mrpField = item.custom_fields.find((f: any) => 
+      f.label?.toLowerCase() === "mrp" || 
+      f.label?.toLowerCase() === "original price" ||
+      f.label?.toLowerCase() === "compare at price"
+    );
+    if (mrpField && mrpField.value) {
+       const mrpVal = Number(mrpField.value);
+       if (!isNaN(mrpVal) && mrpVal > 0) return mrpVal;
+    }
+  }
+  return 0;
+}
+
 function getZohoItemCategoryInfo(item: any) {
   const categoryName =
     item?.category_name ||
@@ -723,7 +741,10 @@ export async function syncSingleZohoItemToProduct(
   }
 
   const title = parsedTitle || rawItemName;
-  const price = getZohoItemRate(item);
+  const ratePrice = getZohoItemRate(item);
+  const mrpVal = getZohoItemMRP(item) || getZohoItemMRP(detailedItem || {});
+  const price = mrpVal > ratePrice ? mrpVal : ratePrice;
+  const salePrice = ratePrice;
   const sku = item.sku || itemId;
   const stock = getZohoItemStock(item);
   const baseSlug = slugify(title || itemId) || itemId;
@@ -835,7 +856,7 @@ export async function syncSingleZohoItemToProduct(
       slug,
       description: finalItem.description || item.description || title,
       price,
-      salePrice: price,
+      salePrice,
       images: finalVariantImages,
       cloudflareImageIds: finalVariantCfIds,
       category: categoryName,
@@ -843,7 +864,7 @@ export async function syncSingleZohoItemToProduct(
       isReturnable: true,
       isCodAllowed: true,
       isSellPointEligible: true,
-      sellPoints: Number((price / 5).toFixed(2)),
+      sellPoints: Number((salePrice / 5).toFixed(2)),
       isActive: item.status ? item.status === "active" : true,
       zohoItemId: itemId,
       zohoGroupId: groupId || undefined,
@@ -904,8 +925,8 @@ export async function syncSingleZohoItemToProduct(
     if (newDescription) existingProduct.description = newDescription;
     if (price && price > 0) {
       existingProduct.price = price;
-      existingProduct.salePrice = price;
-      existingProduct.sellPoints = Number((price / 5).toFixed(2));
+      existingProduct.salePrice = salePrice;
+      existingProduct.sellPoints = Number((salePrice / 5).toFixed(2));
     }
     if (categoryName) existingProduct.category = categoryName;
     if (subcategoryName) existingProduct.subcategory = subcategoryName;

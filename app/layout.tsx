@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${libreCaslon.variable} ${manrope.variable} ${cedarville.variable}`}>
+    <html lang="en" className={`${libreCaslon.variable} ${manrope.variable} ${cedarville.variable} overflow-x-hidden`}>
       <head>
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -55,7 +55,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
       </head>
-      <body className="bg-canvas text-mocha antialiased">
+      <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
         <ExtensionErrorFilter />
         <SmoothScrollProvider>
           <MainNavbar />

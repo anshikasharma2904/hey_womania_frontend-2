@@ -96,7 +96,7 @@ export function StoreFooter() {
               <p><Link href="/category/clothes" className="transition-colors hover:text-[#111111]">Clothes</Link></p>
               <p><Link href="/category/jewellery" className="transition-colors hover:text-[#111111]">Jewellery</Link></p>
               <p><Link href="/category/bags" className="transition-colors hover:text-[#111111]">Bags</Link></p>
-              <p><Link href="/best-sellers" className="transition-colors hover:text-[#111111]">Best Sellers</Link></p>
+              <p><Link href="/best-sellers" className="transition-colors hover:text-[#111111]">Most loved</Link></p>
             </div>
           </div>
 
