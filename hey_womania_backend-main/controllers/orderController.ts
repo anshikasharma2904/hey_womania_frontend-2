@@ -345,14 +345,14 @@ export const cancelOrder = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    if (order.status === "Cancelled" || order.status === "Shipped" || order.status === "Delivered" || order.status === "Completed") {
+    if (order.status === "Cancelled" || order.status === "Shipped" || order.status === "Delivered") {
       return res.status(400).json({ error: "Order cannot be cancelled in its current status." });
     }
 
     // Attempt to cancel in Shiprocket if it has a shipping ID
     if (order.shippingStatus === "NEW" || order.shippingStatus === "Processing") {
       try {
-        await cancelShiprocketOrders([order.orderNumber || order.orderId]);
+        await cancelShiprocketOrders([order.orderNumber || order.id]);
       } catch (err) {
         console.warn("Failed to cancel in Shiprocket, proceeding with local cancellation:", err);
       }
