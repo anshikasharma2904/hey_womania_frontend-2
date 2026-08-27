@@ -12,6 +12,15 @@ import {
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { getPartnerDashboardData, getPartnerReferralsList } from "@/lib/server/partner-dashboard";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
+
+type ReferralTreeCard = {
+  id: string;
+  name: string;
+  amount: string;
+  avatar: string;
+  members: string;
+  crown: boolean;
+};
 import CopyInviteButton from "@/components/CopyInviteButton";
 
 function buildSummaryCards(totalTeam: number, teamSellPoints: number, score: string, status: string) {
@@ -315,7 +324,7 @@ export default async function ReferralsPage() {
       : "Not ready";
   const summaryCards = buildSummaryCards(totalTeam, dashboard?.sellPointsTotal ?? 0, score, status);
 
-  const level1 = dbL1.slice(0, 3).map((r: any, idx: number) => ({
+  const level1: ReferralTreeCard[] = dbL1.slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
     amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
@@ -327,7 +336,7 @@ export default async function ReferralsPage() {
     level1.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false });
   }
 
-  const level2 = [...dbL2].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+  const level2: ReferralTreeCard[] = [...dbL2].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
     amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
@@ -339,7 +348,7 @@ export default async function ReferralsPage() {
     level2.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.minimal, members: "No referrals", crown: false });
   }
 
-  const level3 = [...dbL3].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+  const level3: ReferralTreeCard[] = [...dbL3].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
     amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,

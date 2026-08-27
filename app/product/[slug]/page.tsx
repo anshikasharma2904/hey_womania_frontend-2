@@ -5,7 +5,6 @@ import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductOptionsClient } from "@/components/ProductOptionsClient";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
-import ProductCard from "@/components/ProductCard";
 import { formatCoOrd } from "@/lib/format-utils";
 import {
   catalogProducts,

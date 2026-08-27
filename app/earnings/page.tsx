@@ -40,6 +40,7 @@ type PartnerDashboardResponse = {
     rank?: string;
     sellPointsTotal?: number;
     activeDirects?: number;
+    currentMonthSelfSales?: number;
     womaniyaaPointsStreak?: number;
     superWomaniyaaPointsStreak?: number;
     activeWomaniyaaPoints?: number;

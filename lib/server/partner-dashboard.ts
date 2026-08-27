@@ -10,15 +10,25 @@ export type PartnerDashboardResponse = {
     rank?: string;
     teamIds?: string[];
     referralCode?: string;
+    partnerReferralCode?: string;
+    partnerProfile?: {
+      womaniyaaPoints?: unknown[];
+    };
   };
   dashboard?: {
     totalOrders?: number;
     totalReferrals?: number;
     walletBalance?: number;
+    networkWalletBalance?: number;
     rank?: string;
     sellPriceTotal?: number;
     sellPointsTotal?: number;
     activeDirects?: number;
+    currentMonthSelfSales?: number;
+    womaniyaaPointsStreak?: number;
+    superWomaniyaaPointsStreak?: number;
+    activeWomaniyaaPoints?: number;
+    activeSuperWomaniyaaPoints?: number;
     selfSellIncome?: number;
     fastTrackIncome?: number;
     scoreIncome?: number;
@@ -175,4 +185,3 @@ export async function getPartnerOrders(): Promise<any[] | null> {
     return null;
   }
 }
-
