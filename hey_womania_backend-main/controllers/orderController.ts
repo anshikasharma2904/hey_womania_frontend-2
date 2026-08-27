@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import { Order } from "../models/Order";
 import { Product } from "../models/Product";
+import { User } from "../models/User";
 
 export const getUserOrders = async (req: Request, res: Response) => {
   try {
@@ -73,7 +74,7 @@ export const getUserOrders = async (req: Request, res: Response) => {
             city: "Gurgaon, Haryana 122018",
             phone: "+91 98765 43210"
           },
-          items: [{ name: "Clean Line Co-ord", qty: 2, price: "₹2,150", img: "/products/product-western-1.png" }],
+          items: [{ name: "Clean Line Co-Ord", qty: 2, price: "₹2,150", img: "/products/product-western-1.png" }],
           createdAt: now
         },
         {
@@ -131,14 +132,19 @@ export const getOrderById = async (req: Request, res: Response) => {
   }
 };
 
+import mongoose from "mongoose";
 import { InventoryLedger } from "../models/InventoryLedger";
 import { createShiprocketShipmentForOrder } from "../services/shiprocketService";
 
 export const createOrder = async (req: Request, res: Response) => {
+  const session = await mongoose.startSession();
+  let newOrder: any = null;
+  const orderId = crypto.randomUUID();
+
   try {
     // @ts-ignore
     const userId = req.user?.id || "guest-user";
-    const { items, address, paymentMethod, total } = req.body;
+    const { items, address, paymentMethod, total, useWallet, useNetworkWallet } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Order items cannot be empty" });
@@ -146,91 +152,158 @@ export const createOrder = async (req: Request, res: Response) => {
 
     const now = new Date().toISOString();
     const orderNumber = Math.floor(100000 + Math.random() * 900000).toString(); // Random 6 digit
-    const orderId = crypto.randomUUID();
 
-    // 1. Atomic Stock Reservation Loop with Manual Rollback Capability
-    const successfullyReservedItems: any[] = [];
-    
-    for (const item of items) {
-      // Attempt atomic deduction
-      const updatedProduct = await Product.findOneAndUpdate(
-        { 
-          id: item.productId, 
-          "variants.sku": item.sku,
-          "variants.availableStock": { $gte: item.qty } // Atomic safety check
-        },
-        { 
-          $inc: { 
-            "variants.$.availableStock": -item.qty, 
-            "variants.$.reservedStock": item.qty 
-          } 
-        },
-        { new: true }
-      );
+    await session.withTransaction(async () => {
+      let walletDiscount = 0;
+      let networkWalletDiscount = 0;
+      
+      const parseAmount = (val: string | number) => {
+        if (typeof val === "number") return val;
+        const parsed = parseFloat(String(val).replace(/[^0-9.]/g, ""));
+        return isNaN(parsed) ? 0 : parsed;
+      };
+      
+      const subtotal = items.reduce((sum: number, item: any) => sum + (parseAmount(item.price) * (item.qty || item.quantity || 1)), 0);
+      const deliveryFee = subtotal >= 999 ? 0 : 99; // Fallback calculation
 
-      if (!updatedProduct) {
-        // ATOMIC FAILURE: Out of stock or invalid SKU during exact ms of transaction
-        // ROLLBACK all previously reserved items in this loop
-        for (const rollbackItem of successfullyReservedItems) {
-          await Product.findOneAndUpdate(
-            { id: rollbackItem.productId, "variants.sku": rollbackItem.sku },
-            { $inc: { "variants.$.availableStock": rollbackItem.qty, "variants.$.reservedStock": -rollbackItem.qty } }
-          );
+      if (userId !== "guest-user") {
+        const user = await User.findOne({ id: userId }).session(session);
+        if (user && user.partnerProfile) {
+          
+          if (useWallet && user.partnerProfile.walletBalance > 0) {
+            const walletBalance = user.partnerProfile.walletBalance;
+            const maxDiscount = subtotal * 0.05;
+            walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
+
+            if (walletDiscount > 0) {
+              user.partnerProfile.walletBalance = 0; // Drain entire shopping wallet
+              user.markModified("partnerProfile");
+            }
+          }
+          
+          if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
+            const networkWalletBalance = user.partnerProfile.networkWalletBalance;
+            // Network wallet discounts can be applied to the remaining total
+            const remainingTotalBeforeNetwork = subtotal + deliveryFee - walletDiscount;
+            
+            networkWalletDiscount = Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork));
+            
+            if (networkWalletDiscount > 0) {
+              user.partnerProfile.networkWalletBalance -= networkWalletDiscount;
+              user.markModified("partnerProfile");
+            }
+          }
+          
+          if (walletDiscount > 0 || networkWalletDiscount > 0) {
+            await user.save({ session });
+          }
+          
+          // --- First Purchase 5% Commission Logic ---
+          if (user.uplineId && user.joinedViaRefType === "customer") {
+            const previousOrders = await Order.countDocuments({ userId }).session(session);
+            if (previousOrders === 0) {
+              const uplineUser = await User.findOne({ id: user.uplineId }).session(session);
+              if (uplineUser && uplineUser.partnerProfile) {
+                const commission = Math.floor(subtotal * 0.05);
+                if (commission > 0) {
+                  uplineUser.partnerProfile.networkWalletBalance = (uplineUser.partnerProfile.networkWalletBalance || 0) + commission;
+                  uplineUser.markModified("partnerProfile");
+                  await uplineUser.save({ session });
+                  
+                  // Create Transaction Log
+                  const { WalletTransaction } = await import("../models/WalletTransaction");
+                  await WalletTransaction.create([{
+                    id: crypto.randomUUID(),
+                    userId: uplineUser.id,
+                    amount: commission,
+                    type: "CREDIT",
+                    source: "Affiliate Link",
+                    description: `5% First Order Commission from ${user.name || user.firstName || 'Customer'}`,
+                    createdAt: now,
+                    updatedAt: now
+                  }], { session });
+                }
+              }
+            }
+          }
         }
-        
-        return res.status(400).json({ 
-          error: `Order failed. Item out of stock or unavailable: ${item.sku}` 
-        });
       }
 
-      successfullyReservedItems.push(item);
-      
-      // Log to Inventory Ledger
-      const ledgerEntry = new InventoryLedger({
-        id: crypto.randomUUID(),
-        productId: item.productId,
-        sku: item.sku,
-        orderId: orderId,
-        type: "Reservation",
-        qtyChanged: -item.qty,
-        remarks: `Reserved for Order ${orderNumber}`,
+      // 1. Atomic Stock Reservation Loop with ACID Transaction
+      for (const item of items) {
+        const updatedProduct = await Product.findOneAndUpdate(
+          { 
+            id: item.productId, 
+            "variants.sku": item.sku,
+            "variants.availableStock": { $gte: item.qty } // Atomic safety check
+          },
+          { 
+            $inc: { 
+              "variants.$.availableStock": -item.qty, 
+              "variants.$.reservedStock": item.qty 
+            } 
+          },
+          { new: true, session }
+        );
+
+        if (!updatedProduct) {
+          // Throwing an error aborts the entire transaction automatically
+          throw new Error(`Order failed. Item out of stock or unavailable: ${item.sku}`);
+        }
+        
+        // Log to Inventory Ledger
+        const ledgerEntry = new InventoryLedger({
+          id: crypto.randomUUID(),
+          productId: item.productId,
+          sku: item.sku,
+          orderId: orderId,
+          type: "Reservation",
+          qtyChanged: -item.qty,
+          remarks: `Reserved for Order ${orderNumber}`,
+          createdAt: now
+        });
+        await ledgerEntry.save({ session });
+      }
+
+      // 2. All items reserved successfully. Create the Order.
+      newOrder = new Order({
+        id: orderId,
+        userId,
+        orderNumber,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        total,
+        walletDiscount,
+        networkWalletDiscount,
+        sellPoints: req.body.sellPoints || 0,
+        status: "Pending",
+        statusText: "We are processing your order",
+        activeStep: 1,
+        paymentMethod,
+        paymentStatus: req.body.paymentStatus || (paymentMethod === "cod" ? "COD" : "Pending"),
+        razorpayOrderId: req.body.razorpayOrderId,
+        razorpayPaymentId: req.body.razorpayPaymentId,
+        address,
+        items: (items || []).map((item: any) => ({
+          productId: item.productId,
+          sku: item.sku,
+          name: item.name,
+          qty: item.qty || item.quantity || 1,
+          price: typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : String(item.price),
+          img: item.img || item.image || "",
+          sellPoints: item.sellPoints || 0
+        })),
         createdAt: now
       });
-      await ledgerEntry.save();
-    }
 
-    // 2. All items reserved successfully. Create the Order.
-    const newOrder = new Order({
-      id: orderId,
-      userId,
-      orderNumber,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      total,
-      sellPoints: req.body.sellPoints || 0,
-      status: "Pending",
-      statusText: "We are processing your order",
-      activeStep: 1,
-      paymentMethod,
-      paymentStatus: req.body.paymentStatus || (paymentMethod === "cod" ? "COD" : "Pending"),
-      razorpayOrderId: req.body.razorpayOrderId,
-      razorpayPaymentId: req.body.razorpayPaymentId,
-      address,
-      items: (items || []).map((item: any) => ({
-        productId: item.productId,
-        sku: item.sku,
-        name: item.name,
-        qty: item.qty || item.quantity || 1,
-        price: typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : String(item.price),
-        img: item.img || item.image || "",
-        sellPoints: item.sellPoints || 0
-      })),
-      createdAt: now
+      await newOrder.save({ session });
     });
 
-    await newOrder.save();
-
+    // 3. Post-transaction external APIs (Shiprocket)
+    // This executes only if the transaction committed successfully
     try {
-      await createShiprocketShipmentForOrder(newOrder);
+      if (newOrder) {
+        await createShiprocketShipmentForOrder(newOrder);
+      }
     } catch (shipmentError) {
       const message = shipmentError instanceof Error ? shipmentError.message : "Shiprocket shipment creation failed";
       console.error("Shiprocket shipment creation failed:", message);
@@ -245,8 +318,68 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     res.status(201).json({ success: true, order: newOrder });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating order:", error);
+    if (error.message && error.message.includes("out of stock")) {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    session.endSession();
+  }
+};
+
+import { cancelShiprocketOrders } from "../services/shiprocketService";
+
+export const cancelOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // @ts-ignore
+    const userId = req.user?.id || "guest-user";
+
+    const order = await Order.findOne({ 
+      $or: [{ id: id }, { orderNumber: id }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (order.status === "Cancelled" || order.status === "Shipped" || order.status === "Delivered" || order.status === "Completed") {
+      return res.status(400).json({ error: "Order cannot be cancelled in its current status." });
+    }
+
+    // Attempt to cancel in Shiprocket if it has a shipping ID
+    if (order.shippingStatus === "NEW" || order.shippingStatus === "Processing") {
+      try {
+        await cancelShiprocketOrders([order.orderNumber || order.orderId]);
+      } catch (err) {
+        console.warn("Failed to cancel in Shiprocket, proceeding with local cancellation:", err);
+      }
+    }
+
+    // Restore stock
+    for (const item of order.items) {
+      if (item.sku) {
+        const product = await Product.findOne({ "variants.sku": item.sku });
+        if (product) {
+          const variant = product.variants.find((v: any) => v.sku === item.sku);
+          if (variant && variant.availableStock !== undefined) {
+            variant.availableStock += item.qty || 1;
+            await product.save();
+          }
+        }
+      }
+    }
+
+    order.status = "Cancelled";
+    order.statusText = "Cancelled by user";
+    order.shippingStatus = "Cancelled";
+    await order.save();
+
+    res.json({ success: true, message: "Order cancelled successfully." });
+  } catch (error) {
+    console.error("Error cancelling order:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

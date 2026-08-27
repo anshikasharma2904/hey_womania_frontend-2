@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { ProductOptionsClient } from "./ProductOptionsClient";
+import { formatCoOrd } from "@/lib/format-utils";
 
 interface Variant {
   sku?: string;
@@ -67,10 +68,10 @@ export function ProductDetailInteractive({ product }: ProductDetailInteractivePr
       {/* Product Right Options Section */}
       <section className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-8">
         <p className="text-[0.7rem] uppercase tracking-[0.18em] text-[#8f8279]">
-          {product.categoryTitle}
+          {formatCoOrd(product.categoryTitle)}
         </p>
         <h1 className="mt-3 text-3xl font-black uppercase leading-[0.96] tracking-[-0.05em] text-[#111111] md:text-5xl">
-          {product.name}
+          {formatCoOrd(product.name)}
         </h1>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">

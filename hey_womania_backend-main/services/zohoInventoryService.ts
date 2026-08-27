@@ -14,6 +14,14 @@ import {
   deleteImageFromCloudflare
 } from "./cloudflareImageService";
 
+// Normalizes variations of "Co-ord", "Coord", "Co ord set", etc. to "Co-Ords" or "Co-Ord"
+function normalizeCoOrdSpelling(text: string): string {
+  if (!text) return text;
+  return text.replace(/\bco[\s-]?ords?\b/gi, (match) => {
+    return match.toLowerCase().endsWith('s') ? 'Co-Ords' : 'Co-Ord';
+  });
+}
+
 type ZohoConfig = {
   clientId: string;
   clientSecret: string;
@@ -612,6 +620,7 @@ function getZohoItemRate(item: any) {
 function getZohoItemMRP(item: any) {
   if (item.mrp && Number(item.mrp)) return Number(item.mrp);
   if (item.compare_at_price && Number(item.compare_at_price)) return Number(item.compare_at_price);
+  if (item.label_rate && Number(item.label_rate)) return Number(item.label_rate);
   
   if (Array.isArray(item.custom_fields)) {
     const mrpField = item.custom_fields.find((f: any) => 
@@ -737,18 +746,21 @@ export async function syncSingleZohoItemToProduct(
       return !isSizeToken && !isColorToken && t.toLowerCase() !== "pcs" && t.toLowerCase() !== "default";
     });
 
-    parsedTitle = titleTokens.join(" ").trim();
+        parsedTitle = titleTokens.join(" ").trim();
   }
 
-  const title = parsedTitle || rawItemName;
-  const ratePrice = getZohoItemRate(item);
-  const mrpVal = getZohoItemMRP(item) || getZohoItemMRP(detailedItem || {});
+  const title = normalizeCoOrdSpelling(parsedTitle || rawItemName);
+  const ratePrice = Math.round(getZohoItemRate(item));
+  const mrpVal = Math.round(getZohoItemMRP(item) || getZohoItemMRP(detailedItem || {}));
   const price = mrpVal > ratePrice ? mrpVal : ratePrice;
   const salePrice = ratePrice;
   const sku = item.sku || itemId;
   const stock = getZohoItemStock(item);
   const baseSlug = slugify(title || itemId) || itemId;
-  const { categoryName, subcategoryName } = getZohoItemCategoryInfo(finalItem);
+  
+  let { categoryName, subcategoryName } = getZohoItemCategoryInfo(finalItem);
+  categoryName = normalizeCoOrdSpelling(categoryName);
+  subcategoryName = normalizeCoOrdSpelling(subcategoryName);
   const categorySlug = slugify(categoryName);
 
   await Category.findOneAndUpdate(

@@ -15,20 +15,44 @@ interface CartItem {
   color: string;
   salePrice: number;
   quantity: number;
+  maxStock?: number;
 }
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
+  const [loadingStock, setLoadingStock] = useState(true);
 
   // Load cart items from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedCart = localStorage.getItem("hey_womania_cart");
+      let items: CartItem[] = [];
       if (storedCart) {
-        setCartItems(JSON.parse(storedCart));
+        items = JSON.parse(storedCart);
+        setCartItems(items);
       }
       setLoading(false);
+
+      if (items.length > 0) {
+        const skus = items.map(item => item.sku);
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/products/check-stock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ skus })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setStockMap(data.stockMap || {});
+          }
+        })
+        .catch(err => console.error("Failed to check stock", err))
+        .finally(() => setLoadingStock(false));
+      } else {
+        setLoadingStock(false);
+      }
     }
   }, []);
 
@@ -40,9 +64,16 @@ export default function CartPage() {
   };
 
   const handleIncrement = (sku: string) => {
-    const updated = cartItems.map((item) =>
-      item.sku === sku ? { ...item, quantity: item.quantity + 1 } : item
-    );
+    const stock = stockMap[sku];
+    if (stock === undefined || stock <= 0) return; // out of stock or not loaded
+
+    const updated = cartItems.map((item) => {
+      if (item.sku === sku) {
+        const stockLimit = stockMap[sku] !== undefined ? stockMap[sku] : (item.maxStock ?? 999);
+        return item.quantity < stockLimit ? { ...item, quantity: item.quantity + 1 } : item;
+      }
+      return item;
+    });
     updateCartItems(updated);
   };
 
@@ -58,11 +89,14 @@ export default function CartPage() {
     updateCartItems(updated);
   };
 
-  // Calculations
-  const subtotal = cartItems.reduce((acc, item) => acc + item.salePrice * item.quantity, 0);
-  const deliveryFee = subtotal > 0 ? 15 : 0;
-  const discount = Math.round(subtotal * 0.2); // 20% discount
-  const grandTotal = subtotal - discount + deliveryFee;
+  // Derived state
+  const subtotal = Math.round(cartItems.reduce(
+    (acc, item) => acc + item.salePrice * item.quantity,
+    0
+  ));
+  
+  // Calculate final grand total
+  const grandTotal = subtotal;
 
   if (loading) {
     return (
@@ -132,13 +166,28 @@ export default function CartPage() {
                       <h2 className="text-sm font-semibold leading-5 text-[#111111] md:text-base">
                         {item.title}
                       </h2>
-                      <p className="mt-1 text-xs text-[#6d655d]">
-                        Size: {item.size} | Color: {item.color}
-                      </p>
+                      {Boolean(item.size || item.color) && (
+                        <p className="mt-1 text-xs text-[#6d655d]">
+                          {[
+                            item.size ? `Size: ${item.size}` : null,
+                            item.color ? `Color: ${item.color}` : null
+                          ].filter(Boolean).join(" | ")}
+                        </p>
+                      )}
                       <div className="mt-2 flex items-center gap-3">
-                        <span className="text-base font-bold text-[#111111] md:text-lg">
-                          ₹{item.salePrice}
+                        <span className="text-sm font-bold text-[#1c1c19]">
+                          ₹{Math.round(item.salePrice)}
                         </span>
+                        {!loadingStock && stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0 && (
+                          <span className="text-[10px] uppercase font-bold text-[#ef6f63] tracking-widest px-2 py-0.5 bg-[#ef6f63]/10 rounded-full">
+                            Out of Stock
+                          </span>
+                        )}
+                        {!loadingStock && ((stockMap[item.sku] !== undefined && stockMap[item.sku] > 0 && item.quantity >= stockMap[item.sku]) || (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)) && (
+                          <span className="text-[9px] uppercase font-bold text-[#f59e0b] tracking-wider px-2 py-0.5 bg-[#f59e0b]/10 rounded-full ml-1">
+                            Max Reached
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -146,7 +195,8 @@ export default function CartPage() {
                     <div className="flex items-center gap-2 mt-2 md:mt-0">
                       <button
                         onClick={() => handleDecrement(item.sku)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8"
+                        disabled={loadingStock || (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <FaMinus className="text-[10px]" />
                       </button>
@@ -155,7 +205,13 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => handleIncrement(item.sku)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8"
+                        disabled={
+                          loadingStock || 
+                          (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) || 
+                          (stockMap[item.sku] !== undefined && item.quantity >= stockMap[item.sku]) ||
+                          (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)
+                        }
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <FaPlus className="text-[10px]" />
                       </button>
@@ -176,31 +232,7 @@ export default function CartPage() {
 
             {/* Checkout panel */}
             <aside className="rounded-[1.6rem] border border-[#ece6df] bg-white/92 p-5 shadow-[0_10px_28px_rgba(95,93,62,0.05)] text-[#111111] h-fit">
-              <h2 className="text-xl font-semibold text-[#111111]">Order Summary</h2>
-
-              <div className="mt-6 space-y-4 text-sm text-[#6d655d]">
-                <div className="flex items-center justify-between">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Discount (-20%)</span>
-                  <span className="text-[#ef6f63]">-₹{discount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Delivery Fee</span>
-                  <span>₹{deliveryFee}</span>
-                </div>
-              </div>
-
-              <div className="mt-6 border-t border-[#ece6df] pt-6">
-                <div className="flex items-center justify-between text-lg font-semibold text-[#111111]">
-                  <span>Total</span>
-                  <span>₹{grandTotal}</span>
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-3">
+              <div className="mt-2 flex gap-3">
                 <input
                   type="text"
                   placeholder="Add promo code"
@@ -211,12 +243,21 @@ export default function CartPage() {
                 </button>
               </div>
 
-              <Link
-                href="/checkout"
-                className="mt-6 block w-full rounded-full bg-[#111111] px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white hover:opacity-90 transition-opacity"
-              >
-                Go to Checkout →
-              </Link>
+              {cartItems.some(item => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) ? (
+                <button
+                  disabled
+                  className="mt-6 block w-full rounded-full bg-[#111111]/50 px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white cursor-not-allowed"
+                >
+                  Remove out of stock items
+                </button>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="mt-6 block w-full rounded-full bg-[#111111] px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white hover:opacity-90 transition-opacity"
+                >
+                  Go to Checkout →
+                </Link>
+              )}
             </aside>
           </div>
         )}

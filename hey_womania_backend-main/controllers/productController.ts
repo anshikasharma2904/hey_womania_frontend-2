@@ -322,3 +322,31 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const checkStock = async (req: Request, res: Response) => {
+  try {
+    const { skus } = req.body;
+    if (!skus || !Array.isArray(skus) || skus.length === 0) {
+      return res.json({ success: true, stockMap: {} });
+    }
+
+    const products = await Product.find({ "variants.sku": { $in: skus } });
+    
+    const stockMap: Record<string, number> = {};
+    
+    for (const product of products) {
+      if (product.variants && Array.isArray(product.variants)) {
+        for (const variant of product.variants) {
+          if (skus.includes(variant.sku)) {
+            stockMap[variant.sku] = variant.availableStock || 0;
+          }
+        }
+      }
+    }
+    
+    res.json({ success: true, stockMap });
+  } catch (error) {
+    console.error("Error checking stock:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

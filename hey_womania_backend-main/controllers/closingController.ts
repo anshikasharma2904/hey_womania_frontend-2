@@ -21,163 +21,260 @@ async function getDownlineIds(userId: string): Promise<string[]> {
   return list;
 }
 
-function getPrevMonth(monthStr: string): string {
-  const [year, month] = monthStr.split("-").map(Number);
-  let prevYear = year;
-  let prevMonth = month - 1;
-  if (prevMonth === 0) {
-    prevMonth = 12;
-    prevYear -= 1;
+export function getPrevMonth(monthStr: string, subtractMonths = 1): string {
+  let [year, month] = monthStr.split("-").map(Number);
+  month -= subtractMonths;
+  while (month <= 0) {
+    month += 12;
+    year -= 1;
   }
-  return `${prevYear}-${prevMonth.toString().padStart(2, '0')}`;
+  return `${year}-${month.toString().padStart(2, '0')}`;
 }
 
-async function checkTeamSpForMonth(partnerId: string, monthStr: string): Promise<number> {
-  const ledgers = await SellPointLedger.find({
-    status: "approved",
-    createdAt: { $regex: `^${monthStr}` }
-  });
-  const downlineIds = await getDownlineIds(partnerId);
-  const teamUserIds = [partnerId, ...downlineIds];
-  const teamLedgers = ledgers.filter(l => teamUserIds.includes(l.userId));
-  return teamLedgers.reduce((acc, curr) => {
-    return curr.type === "Credit" ? acc + curr.sellPoints : acc - curr.sellPoints;
-  }, 0);
+export async function checkTeamSalesForMonth(partnerId: string, monthStr: string): Promise<{ teamSales: number, selfSales: number }> {
+  const teamUsers = await User.find({ $or: [{ id: partnerId }, { ancestors: partnerId }] }, { id: 1 }).lean();
+  const teamUserIds = teamUsers.map(u => u.id);
+
+  const result = await SellPointLedger.aggregate([
+    {
+      $match: {
+        status: "approved",
+        createdAt: { $regex: `^${monthStr}` },
+        userId: { $in: teamUserIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$userId",
+        totalSales: {
+          $sum: {
+            $cond: [{ $eq: ["$type", "Credit"] }, "$sellPrice", { $multiply: ["$sellPrice", -1] }]
+          }
+        }
+      }
+    }
+  ]);
+
+  let teamSales = 0;
+  let selfSales = 0;
+
+  for (const r of result) {
+    teamSales += r.totalSales;
+    if (r._id === partnerId) {
+      selfSales = r.totalSales;
+    }
+  }
+
+  return { teamSales, selfSales };
 }
 
 export const getClosingPreview = async (req: Request, res: Response) => {
   try {
     const { month } = req.query; // e.g. "2026-05"
     if (!month) return res.status(400).json({ error: "Month parameter is required (YYYY-MM)" });
+    const currentMonthStr = month.toString();
 
-    const ledgers = await SellPointLedger.find({ 
-      status: "approved", 
-      createdAt: { $regex: `^${month}` } 
-    });
+    const monthsToCheck = [currentMonthStr];
+    for (let i = 1; i <= 5; i++) {
+      monthsToCheck.push(getPrevMonth(currentMonthStr, i));
+    }
+    
+    // Aggregate sales for ALL 6 months directly in DB
+    const historicalAgg = await SellPointLedger.aggregate([
+      {
+        $match: {
+          status: "approved",
+          createdAt: { $regex: new RegExp(`^(${monthsToCheck.join("|")})`) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            userId: "$userId",
+            month: { $substr: ["$createdAt", 0, 7] }
+          },
+          totalSales: {
+            $sum: {
+              $cond: [{ $eq: ["$type", "Credit"] }, "$sellPrice", { $multiply: ["$sellPrice", -1] }]
+            }
+          }
+        }
+      }
+    ]);
 
-    const totalCompanySp = ledgers.reduce((acc, curr) => {
-      return curr.type === "Credit" ? acc + curr.sellPoints : acc - curr.sellPoints;
-    }, 0);
+    // Build historical sales maps
+    const historicalSelfSales = new Map(); // month -> userId -> sales
+    const historicalTeamSales = new Map(); // month -> userId -> sales
 
-    const partners = await User.find({ role: "partner" });
+    for (const m of monthsToCheck) {
+      historicalSelfSales.set(m, new Map());
+      historicalTeamSales.set(m, new Map());
+    }
 
-    // Step 1: Calculate raw metrics and score targets for all partners
-    const rawData = await Promise.all(partners.map(async (partner) => {
-      const downlineIds = await getDownlineIds(partner.id);
-      const teamUserIds = [partner.id, ...downlineIds];
+    let totalCompanySales = 0;
+    for (const r of historicalAgg) {
+      const monthMap = historicalSelfSales.get(r._id.month);
+      if (monthMap) {
+        monthMap.set(r._id.userId, r.totalSales);
+        if (r._id.month === currentMonthStr) {
+          totalCompanySales += r.totalSales;
+        }
+      }
+    }
+
+    // Now compute team sales for all 6 months and Level Income for current month
+    const l1SalesMap = new Map();
+    const l2SalesMap = new Map();
+    const l3SalesMap = new Map();
+    const userMap = new Map();
+    
+    const usersCursor = User.find({}, { id: 1, name: 1, firstName: 1, lastName: 1, ancestors: 1, partnerProfile: 1, role: 1 }).cursor();
+    for await (const u of usersCursor) {
+      userMap.set(u.id, u);
+
+      for (const m of monthsToCheck) {
+        const selfSales = historicalSelfSales.get(m)?.get(u.id) || 0;
+        if (selfSales === 0) continue;
+        
+        const mTeamMap = historicalTeamSales.get(m);
+        mTeamMap.set(u.id, (mTeamMap.get(u.id) || 0) + selfSales);
+        
+        for (const anc of (u.ancestors || [])) {
+          mTeamMap.set(anc, (mTeamMap.get(anc) || 0) + selfSales);
+        }
+      }
+
+      // Compute L1/L2/L3 bases for current month
+      const currentSelfSales = historicalSelfSales.get(currentMonthStr)?.get(u.id) || 0;
+      if (currentSelfSales > 0 && u.ancestors && u.ancestors.length > 0) {
+        const len = u.ancestors.length;
+        const l1 = len >= 1 ? u.ancestors[len - 1] : null;
+        const l2 = len >= 2 ? u.ancestors[len - 2] : null;
+        const l3 = len >= 3 ? u.ancestors[len - 3] : null;
+
+        if (l1) l1SalesMap.set(l1, (l1SalesMap.get(l1) || 0) + currentSelfSales);
+        if (l2) l2SalesMap.set(l2, (l2SalesMap.get(l2) || 0) + currentSelfSales);
+        if (l3) l3SalesMap.set(l3, (l3SalesMap.get(l3) || 0) + currentSelfSales);
+      }
+    }
+
+    // Step 2: Calculate metrics for all partners
+    const rawData = [];
+    
+    for (const [userId, partner] of userMap.entries()) {
+      if (partner.role !== "partner") continue;
+
+      const selfSales = historicalSelfSales.get(currentMonthStr)?.get(userId) || 0;
+      const teamSales = historicalTeamSales.get(currentMonthStr)?.get(userId) || 0;
       
-      // Personal SP
-      const partnerLedgers = ledgers.filter(l => l.userId === partner.id);
-      const personalSp = partnerLedgers.reduce((acc, curr) => {
-        return curr.type === "Credit" ? acc + curr.sellPoints : acc - curr.sellPoints;
-      }, 0);
+      const l1Sales = l1SalesMap.get(userId) || 0;
+      const l2Sales = l2SalesMap.get(userId) || 0;
+      const l3Sales = l3SalesMap.get(userId) || 0;
 
-      // Team SP
-      const teamLedgers = ledgers.filter(l => teamUserIds.includes(l.userId));
-      const teamSp = teamLedgers.reduce((acc, curr) => {
-        return curr.type === "Credit" ? acc + curr.sellPoints : acc - curr.sellPoints;
-      }, 0);
+      // Womaniyaa Point checks
+      let meetsWPCurrent = teamSales >= 500000 && selfSales >= 10000;
+      let newlyQualifiedWP = 0;
+      if (meetsWPCurrent) {
+        const m1Team = historicalTeamSales.get(monthsToCheck[1])?.get(userId) || 0;
+        const m1Self = historicalSelfSales.get(monthsToCheck[1])?.get(userId) || 0;
+        const m2Team = historicalTeamSales.get(monthsToCheck[2])?.get(userId) || 0;
+        const m2Self = historicalSelfSales.get(monthsToCheck[2])?.get(userId) || 0;
+        
+        if (m1Team >= 500000 && m1Self >= 10000 && m2Team >= 500000 && m2Self >= 10000) {
+          newlyQualifiedWP = 1;
+        }
+      }
 
-      // Independent quotient calculations
-      const glamScores = Math.floor(teamSp / 2500);
-      const styleScores = Math.floor(teamSp / 25000);
-      const gorgeousScores = Math.floor(teamSp / 100000);
-      const superWomaniaScores = Math.floor(teamSp / 200000);
+      // Super Womaniyaa Point checks
+      let meetsSWPCurrent = teamSales >= 25000000 && selfSales >= 25000;
+      let newlyQualifiedSWP = 0;
+      if (meetsSWPCurrent) {
+        let swpValid = true;
+        for (let i = 1; i <= 5; i++) {
+          const mt = historicalTeamSales.get(monthsToCheck[i])?.get(userId) || 0;
+          const ms = historicalSelfSales.get(monthsToCheck[i])?.get(userId) || 0;
+          if (mt < 25000000 || ms < 25000) {
+            swpValid = false;
+            break;
+          }
+        }
+        if (swpValid) newlyQualifiedSWP = 1;
+      }
 
-      // 3 consecutive months lookback checks
-      const prevMonth1 = getPrevMonth(month.toString());
-      const prevMonth2 = getPrevMonth(prevMonth1);
-      const prevMonth3 = getPrevMonth(prevMonth2);
+      const activeWPCount = (partner.partnerProfile?.womaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length;
+      const activeSWPCount = (partner.partnerProfile?.superWomaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length;
 
-      const hitCarCurrent = teamSp >= 100000;
-      const hitCarMonth1 = await checkTeamSpForMonth(partner.id, prevMonth1) >= 100000;
-      const hitCarMonth2 = await checkTeamSpForMonth(partner.id, prevMonth2) >= 100000;
-      const hitCarMonth3 = await checkTeamSpForMonth(partner.id, prevMonth3) >= 100000;
+      const totalWP = activeWPCount + newlyQualifiedWP;
+      const totalSWP = activeSWPCount + newlyQualifiedSWP;
 
-      // Qualified if currently hitting, and hit either (last 2 months) OR (month-2 and month-3 with a 1-month buffer)
-      const qualifiesDreamCar = (hitCarCurrent && hitCarMonth1 && hitCarMonth2) || 
-                                 (hitCarCurrent && hitCarMonth2 && hitCarMonth3);
-
-      const hitHouseCurrent = teamSp >= 200000;
-      const hitHouseMonth1 = await checkTeamSpForMonth(partner.id, prevMonth1) >= 200000;
-      const hitHouseMonth2 = await checkTeamSpForMonth(partner.id, prevMonth2) >= 200000;
-      const hitHouseMonth3 = await checkTeamSpForMonth(partner.id, prevMonth3) >= 200000;
-
-      const qualifiesDreamHouse = (hitHouseCurrent && hitHouseMonth1 && hitHouseMonth2) || 
-                                   (hitHouseCurrent && hitHouseMonth2 && hitHouseMonth3);
-
-      return {
+      rawData.push({
         partner,
-        personalSp,
-        teamSp,
-        glamScores,
-        styleScores,
-        gorgeousScores,
-        superWomaniaScores,
-        qualifiesDreamCar,
-        qualifiesDreamHouse
-      };
-    }));
+        selfSales,
+        teamSales,
+        l1Sales,
+        l2Sales,
+        l3Sales,
+        newlyQualifiedWP,
+        newlyQualifiedSWP,
+        totalWP,
+        totalSWP
+      });
+    }
 
-    // Step 2: Sum up all qualified scores in the company to compute pool shares
-    const totalGlamScores = rawData.reduce((acc, curr) => acc + curr.glamScores, 0);
-    const totalStyleScores = rawData.reduce((acc, curr) => acc + curr.styleScores, 0);
-    const totalGorgeousScores = rawData.reduce((acc, curr) => acc + curr.gorgeousScores, 0);
-    const totalSuperWomaniaScores = rawData.reduce((acc, curr) => acc + curr.superWomaniaScores, 0);
-    const totalDreamCarFundScores = rawData.reduce((acc, curr) => acc + (curr.qualifiesDreamCar ? 1 : 0), 0);
-    const totalDreamHouseFundScores = rawData.reduce((acc, curr) => acc + (curr.qualifiesDreamHouse ? 1 : 0), 0);
+    // Step 3: Sum up all qualified points in the company to compute pool shares
+    const totalWomaniyaaPointsCompany = rawData.reduce((acc, curr) => acc + curr.totalWP, 0);
+    const totalSuperWomaniyaaPointsCompany = rawData.reduce((acc, curr) => acc + curr.totalSWP, 0);
 
-    // Pool Volumes (Turnover SP * pool percentage)
-    const glamPool = totalCompanySp * 0.15;
-    const stylePool = totalCompanySp * 0.12;
-    const gorgeousPool = totalCompanySp * 0.10;
-    const superWomaniaPool = totalCompanySp * 0.10;
-    const dreamCarPool = totalCompanySp * 0.05;
-    const dreamHousePool = totalCompanySp * 0.05;
+    const totalPartnerTurnover = rawData.reduce((acc, curr) => acc + curr.selfSales, 0);
 
-    // Value Per Score (Pool divided by total company scores)
-    const glamVal = totalGlamScores > 0 ? glamPool / totalGlamScores : 0;
-    const styleVal = totalStyleScores > 0 ? stylePool / totalStyleScores : 0;
-    const gorgeousVal = totalGorgeousScores > 0 ? gorgeousPool / totalGorgeousScores : 0;
-    const superWomaniaVal = totalSuperWomaniaScores > 0 ? superWomaniaPool / totalSuperWomaniaScores : 0;
-    const dreamCarVal = totalDreamCarFundScores > 0 ? dreamCarPool / totalDreamCarFundScores : 0;
-    const dreamHouseVal = totalDreamHouseFundScores > 0 ? dreamHousePool / totalDreamHouseFundScores : 0;
+    const womaniyaaPool = totalPartnerTurnover * 0.01;
+    const superWomaniyaaPool = totalPartnerTurnover * 0.01;
 
-    // Step 3: Compute final payouts for each partner
+    const womaniyaaVal = totalWomaniyaaPointsCompany > 0 ? womaniyaaPool / totalWomaniyaaPointsCompany : 0;
+    const superWomaniyaaVal = totalSuperWomaniyaaPointsCompany > 0 ? superWomaniyaaPool / totalSuperWomaniyaaPointsCompany : 0;
+
+    // Step 4: Compute final payouts for each partner
     const partnerPreviews = rawData.map((data) => {
-      const glamIncome = data.glamScores * glamVal;
-      const styleIncome = data.styleScores * styleVal;
-      const gorgeousIncome = data.gorgeousScores * gorgeousVal;
-      const superWomaniaIncome = data.superWomaniaScores * superWomaniaVal;
-      const dreamCarIncome = data.qualifiesDreamCar ? dreamCarVal : 0;
-      const dreamHouseIncome = data.qualifiesDreamHouse ? dreamHouseVal : 0;
+      const selfLevelIncome = data.selfSales * 0.05;
+      const l1Income = data.l1Sales * 0.02;
+      const l2Income = data.l2Sales * 0.01;
+      const l3Income = data.l3Sales * 0.005;
+      const levelIncome = selfLevelIncome + l1Income + l2Income + l3Income;
 
-      const totalEstimatedIncome = glamIncome + styleIncome + gorgeousIncome + superWomaniaIncome + dreamCarIncome + dreamHouseIncome;
+      let monthlyBonus = 0;
+      if (data.selfSales >= 100000) {
+        monthlyBonus = data.selfSales * 0.02;
+      } else if (data.selfSales >= 50000) {
+        monthlyBonus = data.selfSales * 0.01;
+      } else if (data.selfSales >= 25000) {
+        monthlyBonus = data.selfSales * 0.005;
+      }
+
+      const womaniyaaIncome = data.totalWP * womaniyaaVal;
+      const superWomaniyaaIncome = data.totalSWP * superWomaniyaaVal;
+
+      const totalEstimatedIncome = levelIncome + monthlyBonus + womaniyaaIncome + superWomaniyaaIncome;
 
       return {
         userId: data.partner.id,
         userName: data.partner.name || `${data.partner.firstName || ''} ${data.partner.lastName || ''}`.trim(),
-        personalSp: data.personalSp,
-        teamSp: data.teamSp,
-        glamScores: data.glamScores,
-        styleScores: data.styleScores,
-        gorgeousScores: data.gorgeousScores,
-        superWomaniaScores: data.superWomaniaScores,
-        qualifiesDreamCar: data.qualifiesDreamCar,
-        qualifiesDreamHouse: data.qualifiesDreamHouse,
-        glamIncome,
-        styleIncome,
-        gorgeousIncome,
-        superWomaniaIncome,
-        dreamCarIncome,
-        dreamHouseIncome,
+        selfSales: data.selfSales,
+        teamSales: data.teamSales,
+        totalWP: data.totalWP,
+        totalSWP: data.totalSWP,
+        newlyQualifiedWP: data.newlyQualifiedWP,
+        newlyQualifiedSWP: data.newlyQualifiedSWP,
+        levelIncome,
+        monthlyBonus,
+        womaniyaaIncome,
+        superWomaniyaaIncome,
         totalEstimatedIncome
       };
     });
 
     res.json({
       month,
-      totalCompanySp,
+      totalCompanySales,
       totalPayoutsGenerated: partnerPreviews.reduce((acc, curr) => acc + curr.totalEstimatedIncome, 0),
       partnerPreviews: partnerPreviews.filter(p => p.totalEstimatedIncome > 0)
     });
@@ -187,12 +284,23 @@ export const getClosingPreview = async (req: Request, res: Response) => {
   }
 };
 
+function getExpiryMonth(monthStr: string, addMonths: number): string {
+  let [year, month] = monthStr.split("-").map(Number);
+  month += addMonths;
+  while (month > 12) {
+    month -= 12;
+    year += 1;
+  }
+  return `${year}-${month.toString().padStart(2, '0')}`;
+}
+
 export const executeClosing = async (req: Request, res: Response) => {
   try {
     const { month, previews } = req.body;
     if (!month || !previews) return res.status(400).json({ error: "Invalid data" });
 
-    const existingLedgers = await IncomeLedger.findOne({ month, incomeType: { $ne: "Self Sell Income" } });
+    // Look for existing locked month
+    const existingLedgers = await IncomeLedger.findOne({ month, incomeType: "Level Income" });
     if (existingLedgers) {
       return res.status(400).json({ error: "Month already closed and locked." });
     }
@@ -200,103 +308,138 @@ export const executeClosing = async (req: Request, res: Response) => {
     const now = new Date().toISOString();
 
     for (const preview of previews) {
-      const closingIncomeAmount = (preview.glamIncome || 0) + 
-                            (preview.styleIncome || 0) + 
-                            (preview.gorgeousIncome || 0) + 
-                            (preview.superWomaniaIncome || 0) + 
-                            (preview.dreamCarIncome || 0) + 
-                            (preview.dreamHouseIncome || 0);
+      const closingIncomeAmount = (preview.levelIncome || 0) + 
+                            (preview.monthlyBonus || 0) + 
+                            (preview.womaniyaaIncome || 0) + 
+                            (preview.superWomaniyaaIncome || 0);
+
+      // We still want to update WP/SWP arrays even if closing income is 0, just in case they earned a point.
+      const user = await User.findOne({ id: preview.userId });
+      if (user) {
+        let profile = user.partnerProfile || {};
+        profile.womaniyaaPoints = profile.womaniyaaPoints || [];
+        profile.superWomaniyaaPoints = profile.superWomaniyaaPoints || [];
+
+        if (preview.newlyQualifiedWP > 0) {
+          for (let i = 0; i < preview.newlyQualifiedWP; i++) {
+            profile.womaniyaaPoints.push({ awardedMonth: month, expiryMonth: getExpiryMonth(month, 11) });
+          }
+        }
+
+        if (preview.newlyQualifiedSWP > 0) {
+          for (let i = 0; i < preview.newlyQualifiedSWP; i++) {
+            profile.superWomaniyaaPoints.push({ awardedMonth: month, expiryMonth: getExpiryMonth(month, 35) });
+          }
+        }
+        
+        let updateQuery: any = { partnerProfile: profile };
+        if (closingIncomeAmount > 0) {
+          const currentBalance = profile.networkWalletBalance || 0;
+          profile.networkWalletBalance = currentBalance + closingIncomeAmount;
+          updateQuery = { partnerProfile: profile };
+        }
+        
+        await User.findOneAndUpdate({ id: preview.userId }, updateQuery);
+      }
 
       if (closingIncomeAmount <= 0) continue;
 
       // Log specific income types in ledgers
-      if (preview.glamIncome > 0) {
+      // Log to WalletTransaction as well
+      const { WalletTransaction } = await import("../models/WalletTransaction");
+      
+      if (preview.levelIncome > 0) {
         await new IncomeLedger({
           id: crypto.randomUUID(),
           userId: preview.userId,
           month,
-          incomeType: "Glam Score",
-          amount: preview.glamIncome,
-          sellPointsBasis: preview.teamSp,
+          incomeType: "Level Income",
+          amount: preview.levelIncome,
+          sellPointsBasis: preview.selfSales,
+          status: "approved",
+          createdAt: now,
+          updatedAt: now
+        }).save();
+        
+        await WalletTransaction.create({
+          id: crypto.randomUUID(),
+          userId: preview.userId,
+          amount: preview.levelIncome,
+          type: "CREDIT",
+          source: "Network Income",
+          description: `Network Level Income for ${month}`,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+
+      if (preview.monthlyBonus > 0) {
+        await new IncomeLedger({
+          id: crypto.randomUUID(),
+          userId: preview.userId,
+          month,
+          incomeType: "Monthly Bonus",
+          amount: preview.monthlyBonus,
+          sellPointsBasis: preview.selfSales,
           status: "approved",
           createdAt: now,
           updatedAt: now
         }).save();
       }
 
-      if (preview.styleIncome > 0) {
+      if (preview.womaniyaaIncome > 0) {
         await new IncomeLedger({
           id: crypto.randomUUID(),
           userId: preview.userId,
           month,
-          incomeType: "Style Score",
-          amount: preview.styleIncome,
-          sellPointsBasis: preview.teamSp,
+          incomeType: "Womaniyaa Point Income",
+          amount: preview.womaniyaaIncome,
+          sellPointsBasis: preview.teamSales,
           status: "approved",
           createdAt: now,
           updatedAt: now
         }).save();
+        
+        await WalletTransaction.create({
+          id: crypto.randomUUID(),
+          userId: preview.userId,
+          amount: preview.womaniyaaIncome,
+          type: "CREDIT",
+          source: "Womaniyaa Point",
+          description: `Womaniyaa Point Pool Share for ${month}`,
+          createdAt: now,
+          updatedAt: now
+        });
       }
 
-      if (preview.gorgeousIncome > 0) {
+      if (preview.superWomaniyaaIncome > 0) {
         await new IncomeLedger({
           id: crypto.randomUUID(),
           userId: preview.userId,
           month,
-          incomeType: "Gorgeous Score",
-          amount: preview.gorgeousIncome,
-          sellPointsBasis: preview.teamSp,
+          incomeType: "Super Womaniyaa Point Income",
+          amount: preview.superWomaniyaaIncome,
+          sellPointsBasis: preview.teamSales,
           status: "approved",
           createdAt: now,
           updatedAt: now
         }).save();
-      }
-
-      if (preview.superWomaniaIncome > 0) {
-        await new IncomeLedger({
+        
+        await WalletTransaction.create({
           id: crypto.randomUUID(),
           userId: preview.userId,
-          month,
-          incomeType: "Super Womania Score",
-          amount: preview.superWomaniaIncome,
-          sellPointsBasis: preview.teamSp,
-          status: "approved",
+          amount: preview.superWomaniyaaIncome,
+          type: "CREDIT",
+          source: "Super Womaniyaa Point",
+          description: `Super Womaniyaa Point Pool Share for ${month}`,
           createdAt: now,
           updatedAt: now
-        }).save();
-      }
-
-      if (preview.dreamCarIncome > 0) {
-        await new IncomeLedger({
-          id: crypto.randomUUID(),
-          userId: preview.userId,
-          month,
-          incomeType: "Dream Car Fund",
-          amount: preview.dreamCarIncome,
-          sellPointsBasis: preview.teamSp,
-          status: "approved",
-          createdAt: now,
-          updatedAt: now
-        }).save();
-      }
-
-      if (preview.dreamHouseIncome > 0) {
-        await new IncomeLedger({
-          id: crypto.randomUUID(),
-          userId: preview.userId,
-          month,
-          incomeType: "Dream House Fund",
-          amount: preview.dreamHouseIncome,
-          sellPointsBasis: preview.teamSp,
-          status: "approved",
-          createdAt: now,
-          updatedAt: now
-        }).save();
+        });
       }
 
       // Generate Withdrawal record for payout tracking
-      const user = await User.findOne({ id: preview.userId });
-      const kycVerified = user?.partnerProfile?.kycStatus === "Approved";
+      const payoutUser = await User.findOne({ id: preview.userId });
+      const kycVerified = payoutUser?.partnerProfile?.kycStatus === "Approved";
       const activeDirects = 2; // Mock
 
       await new Payout({
@@ -304,7 +447,7 @@ export const executeClosing = async (req: Request, res: Response) => {
         userId: preview.userId,
         month,
         amount: closingIncomeAmount,
-        sellPointsBasis: preview.personalSp,
+        sellPointsBasis: preview.selfSales,
         activeDirectsBasis: activeDirects,
         kycVerified,
         status: "Pending",
@@ -312,19 +455,58 @@ export const executeClosing = async (req: Request, res: Response) => {
         updatedAt: now
       }).save();
 
-      // Update user wallet balance with closing incomes
-      if (user) {
-        const currentBalance = user.partnerProfile?.walletBalance || 0;
-        await User.findOneAndUpdate(
-          { id: preview.userId },
-          { "partnerProfile.walletBalance": currentBalance + closingIncomeAmount }
-        );
-      }
+      // Wallet balance is updated along with WP/SWP arrays above.
     }
 
     res.json({ success: true, message: `Successfully locked month ${month} and generated ledgers.` });
   } catch (error) {
     console.error("Error executing closing:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const runAutomatedMonthlyClosing = async () => {
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth(); 
+  if (month === 0) {
+    month = 12;
+    year -= 1;
+  }
+  const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
+
+  try {
+    console.log(`[Auto Closing] Starting automated closing for month: ${monthStr}`);
+
+    const req = { query: { month: monthStr } } as any;
+    let previews: any = null;
+    const res = {
+      json: (data: any) => { 
+        if (data && data.partnerPreviews) {
+          previews = data.partnerPreviews; 
+        }
+      },
+      status: () => res
+    } as any;
+
+    await getClosingPreview(req, res);
+
+    if (!previews) {
+      console.log(`[Auto Closing] Failed to generate previews for ${monthStr}`);
+      return;
+    }
+
+    const execReq = { body: { month: monthStr, previews } } as any;
+    let execResult = null;
+    const execRes = {
+      json: (data: any) => { execResult = data; },
+      status: () => execRes
+    } as any;
+
+    await executeClosing(execReq, execRes);
+    console.log(`[Auto Closing] Finished:`, execResult);
+
+  } catch (error) {
+    console.error(`[Auto Closing] Error running automated closing for ${monthStr}:`, error);
   }
 };

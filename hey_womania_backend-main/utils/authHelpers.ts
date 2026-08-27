@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 60;
 
 function getAuthSecret() {
   return process.env.AUTH_SECRET || "dev-only-change-this-auth-secret";

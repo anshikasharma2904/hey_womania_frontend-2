@@ -5,6 +5,8 @@ import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductOptionsClient } from "@/components/ProductOptionsClient";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
+import ProductCard from "@/components/ProductCard";
+import { formatCoOrd } from "@/lib/format-utils";
 import {
   catalogProducts,
   slugifyProductName
@@ -206,9 +208,9 @@ export default async function ProductDetailPage({
           <span>&gt;</span>
           <Link href="/category">Category</Link>
           <span>&gt;</span>
-          <Link href={`/category/${product.categorySlug}`}>{product.categoryTitle}</Link>
+          <Link href={`/category/${product.categorySlug}`}>{formatCoOrd(product.categoryTitle)}</Link>
           <span>&gt;</span>
-          <span className="text-[#1c1c19]">{product.name}</span>
+          <span className="text-[#1c1c19]">{formatCoOrd(product.name)}</span>
         </div>
 
         <ProductDetailInteractive product={product as any} />

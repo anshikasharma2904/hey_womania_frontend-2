@@ -32,7 +32,7 @@ const summaryCards = [
 ];
 
 const sections = [
-  { id: "about", title: "1. About HeyWomaniyaa" },
+  { id: "about", title: "1. About Hey Womaniyaa" },
   { id: "account", title: "2. Account Registration" },
   { id: "products", title: "3. Products & Pricing" },
   { id: "orders", title: "4. Orders & Payments" },
@@ -108,46 +108,46 @@ export default function TermsAndConditions() {
             <div className="text-[#4a4a4a] text-base leading-relaxed">
               
               <div id="about" className="scroll-mt-32 mb-10">
-                <h2 className="text-2xl font-bold text-[#111111] mb-4">1. About HeyWomaniyaa</h2>
-                <p className="mb-4">HeyWomaniyaa is an e-commerce platform that offers women&apos;s fashion, lifestyle products, jewellery, accessories, beauty products, and related items.</p>
-                <p className="mb-4">HeyWomaniyaa may also provide a partner or reward program where eligible users can earn rewards or payouts based on valid product sales and delivered orders. HeyWomaniyaa does not guarantee any fixed income, salary, investment return, or assured earning.</p>
+                <h2 className="text-2xl font-bold text-[#111111] mb-4">1. About Hey Womaniyaa</h2>
+                <p className="mb-4">Hey Womaniyaa is an e-commerce platform that offers women&apos;s fashion, lifestyle products, jewellery, accessories, beauty products, and related items.</p>
+                <p className="mb-4">Hey Womaniyaa may also provide a partner or reward program where eligible users can earn rewards or payouts based on valid product sales and delivered orders. Hey Womaniyaa does not guarantee any fixed income, salary, investment return, or assured earning.</p>
               </div>
 
               <div id="account" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">2. Account Registration</h2>
                 <p className="mb-4">To use certain features of our website, users may need to create an account by providing their name, mobile number, email address, shipping address, and other required details.</p>
-                <p className="mb-4">You are responsible for providing accurate information and keeping your account secure. HeyWomaniyaa reserves the right to suspend or terminate any account involved in fraud, fake orders, misuse, or policy violations.</p>
+                <p className="mb-4">You are responsible for providing accurate information and keeping your account secure. Hey Womaniyaa reserves the right to suspend or terminate any account involved in fraud, fake orders, misuse, or policy violations.</p>
               </div>
 
               <div id="products" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">3. Products and Pricing</h2>
                 <p className="mb-4">We try to display accurate product details, images, prices, descriptions, sizes, and availability. However, product color, design, or appearance may slightly vary due to screen display, lighting, photography, or stock variation.</p>
-                <p className="mb-4">HeyWomaniyaa may update product prices, offers, discounts, availability, or product details at any time without prior notice.</p>
+                <p className="mb-4">Hey Womaniyaa may update product prices, offers, discounts, availability, or product details at any time without prior notice.</p>
               </div>
 
               <div id="orders" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">4. Orders and Payments</h2>
                 <p className="mb-4">Orders can be placed through available payment methods such as UPI, cards, wallets, net banking, Cash on Delivery, or any other payment method enabled on the website.</p>
                 <p className="mb-4">An order is confirmed only after successful payment confirmation or COD verification, as applicable.</p>
-                <p className="mb-4">HeyWomaniyaa may cancel or hold any order due to payment failure, stock issues, incorrect address, customer unavailability, COD verification failure, fraud suspicion, or policy violation.</p>
+                <p className="mb-4">Hey Womaniyaa may cancel or hold any order due to payment failure, stock issues, incorrect address, customer unavailability, COD verification failure, fraud suspicion, or policy violation.</p>
               </div>
 
               <div id="shipping" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">5. Shipping and Delivery</h2>
-                <p className="mb-4">HeyWomaniyaa delivers products through third-party courier and logistics partners. Delivery time may vary depending on product availability, delivery location, courier serviceability, weather, holidays, and operational conditions.</p>
+                <p className="mb-4">Hey Womaniyaa delivers products through third-party courier and logistics partners. Delivery time may vary depending on product availability, delivery location, courier serviceability, weather, holidays, and operational conditions.</p>
                 <ul className="list-disc pl-5 mb-4 space-y-2">
                   <li>Metro cities: 3–7 business days</li>
                   <li>Other locations: 5–10 business days</li>
                   <li>Remote areas: 7–14 business days</li>
                 </ul>
-                <p className="mb-4">HeyWomaniyaa is not responsible for delays caused by courier partners, incorrect address, customer unavailability, natural events, or circumstances beyond our control.</p>
+                <p className="mb-4">Hey Womaniyaa is not responsible for delays caused by courier partners, incorrect address, customer unavailability, natural events, or circumstances beyond our control.</p>
               </div>
 
               <div id="cancellation" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">6. Cancellation Policy</h2>
                 <p className="mb-4">Customers may cancel an order before it is packed, dispatched, or handed over to the courier partner.</p>
                 <p className="mb-4">Once the order is shipped, cancellation may not be possible. In such cases, the customer may raise a return request if the product is eligible for return.</p>
-                <p className="mb-4">HeyWomaniyaa may cancel an order due to product unavailability, payment failure, incorrect address, COD verification failure, customer unavailability, fraud suspicion, or policy violation.</p>
+                <p className="mb-4">Hey Womaniyaa may cancel an order due to product unavailability, payment failure, incorrect address, COD verification failure, customer unavailability, fraud suspicion, or policy violation.</p>
               </div>
 
               <div id="returns" className="scroll-mt-32 mb-10">
@@ -184,20 +184,20 @@ export default function TermsAndConditions() {
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">9. Refund Policy</h2>
                 <p className="mb-4">Refund may be approved for eligible cancelled, returned, damaged, defective, wrong, unavailable, or failed payment orders.</p>
                 <p className="mb-4">Refund will be processed only after verification and quality check. Approved refunds will usually be processed within 7–10 business days to the original payment method.</p>
-                <p className="mb-4">Shipping charges, COD charges, convenience fees, or handling charges may be non-refundable unless the issue is from HeyWomaniyaa&apos;s side.</p>
+                <p className="mb-4">Shipping charges, COD charges, convenience fees, or handling charges may be non-refundable unless the issue is from Hey Womaniyaa&apos;s side.</p>
               </div>
 
               <div id="rewards" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">10. Rewards and Payouts</h2>
-                <p className="mb-4">HeyWomaniyaa may provide rewards or payouts to eligible users or partners based on valid delivered orders.</p>
+                <p className="mb-4">Hey Womaniyaa may provide rewards or payouts to eligible users or partners based on valid delivered orders.</p>
                 <p className="mb-4">Rewards are calculated only on eligible delivered orders. Cancelled, returned, refunded, rejected, fake, or unpaid orders will not be counted for final rewards, income, or payout.</p>
-                <p className="mb-4">HeyWomaniyaa may update reward rules, payout eligibility, payout cycle, and qualification conditions at any time.</p>
+                <p className="mb-4">Hey Womaniyaa may update reward rules, payout eligibility, payout cycle, and qualification conditions at any time.</p>
               </div>
 
               <div id="kyc" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">11. KYC and Withdrawals</h2>
-                <p className="mb-4">Withdrawals, rewards, or payouts may require successful KYC verification. Users may be required to provide PAN, Aadhaar, bank account, UPI, or other verification details as required by HeyWomaniyaa.</p>
-                <p className="mb-4">HeyWomaniyaa reserves the right to hold, reject, reverse, or cancel any payout if KYC fails, bank details are incorrect, fraud is detected, or policy violation is found.</p>
+                <p className="mb-4">Withdrawals, rewards, or payouts may require successful KYC verification. Users may be required to provide PAN, Aadhaar, bank account, UPI, or other verification details as required by Hey Womaniyaa.</p>
+                <p className="mb-4">Hey Womaniyaa reserves the right to hold, reject, reverse, or cancel any payout if KYC fails, bank details are incorrect, fraud is detected, or policy violation is found.</p>
               </div>
 
               <div className="mt-16 rounded-xl border border-[#ece6df] bg-[#fcf9f4] p-6 text-sm">

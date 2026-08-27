@@ -72,78 +72,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
       await ledgerEntry.save();
 
-      // Instant Self Sell Income Credit for Partners
-      const user = await User.findOne({ id: order.userId });
-      if (user && user.role === "partner") {
-        const selfSellIncome = totalPoints * 0.1; // 10% of SP
-        const currentMonth = now.substring(0, 7); // Format: YYYY-MM
-        
-        // Log in Income Ledger
-        await new IncomeLedger({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          month: currentMonth,
-          incomeType: "Self Sell Income",
-          amount: selfSellIncome,
-          sellPointsBasis: totalPoints,
-          status: "approved",
-          remarks: `Instant Self Sell Income for Order ${order.orderNumber} Delivered`,
-          createdAt: now,
-          updatedAt: now
-        }).save();
-
-        // Update user wallet balance immediately
-        const currentBalance = user.partnerProfile?.walletBalance || 0;
-        await User.findOneAndUpdate(
-          { id: user.id },
-          { "partnerProfile.walletBalance": currentBalance + selfSellIncome }
-        );
-        console.log(`[MLM ENGINE] Credited ₹${selfSellIncome.toFixed(2)} Self Sell Income instantly to partner ${user.id}`);
-      }
-
-      // Upline Level Commissions (Level 1: 5%, Level 2: 3%, Level 3: 2%)
-      const commissionLevels = [
-        { percentage: 0.05, label: "Level 1" },
-        { percentage: 0.03, label: "Level 2" },
-        { percentage: 0.02, label: "Level 3" }
-      ];
-
-      let currentUplineId = user?.uplineId;
-      const orderPlacerName = user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()) : "a customer";
-
-      for (let i = 0; i < commissionLevels.length; i++) {
-        if (!currentUplineId) break;
-
-        const upline = await User.findOne({ id: currentUplineId });
-        if (!upline) break;
-
-        if (upline.role === "partner") {
-          const levelInfo = commissionLevels[i];
-          const commissionAmount = totalPoints * levelInfo.percentage;
-
-          await new IncomeLedger({
-            id: crypto.randomUUID(),
-            userId: upline.id,
-            month: now.substring(0, 7),
-            incomeType: "Fast Track Income",
-            amount: commissionAmount,
-            sellPointsBasis: totalPoints,
-            status: "approved",
-            remarks: `${levelInfo.label} Referral Income (${(levelInfo.percentage * 100)}%) from ${orderPlacerName} (Order ${order.orderNumber})`,
-            createdAt: now,
-            updatedAt: now
-          }).save();
-
-          const uplineBalance = upline.partnerProfile?.walletBalance || 0;
-          await User.findOneAndUpdate(
-            { id: upline.id },
-            { "partnerProfile.walletBalance": uplineBalance + commissionAmount }
-          );
-          console.log(`[MLM ENGINE] Credited ₹${commissionAmount.toFixed(2)} (${levelInfo.label}) to upline partner ${upline.id}`);
-        }
-
-        currentUplineId = upline.uplineId;
-      }
+      // Instant incomes are removed. They are now calculated during monthly closing.
     }
 
     // Enterprise Inventory Lifecycle: Status-Driven Stock Movements

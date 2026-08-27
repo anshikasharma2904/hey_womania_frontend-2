@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
 import { slugifyProductName } from "@/app/category/category-data";
@@ -120,13 +120,60 @@ const coverflowState = (relativeIndex: number) => {
   const distance = Math.abs(clamped) as 0 | 1 | 2 | 3;
   const direction = clamped < 0 ? -1 : 1;
   const base = DEPTH_STATES[distance];
-
-  return {
-    ...base,
-    x: distance === 0 ? 0 : base.x * direction,
-    rotateY: distance === 0 ? 0 : base.rotateY * direction
-  };
+  return { ...base, x: distance === 0 ? 0 : base.x * direction, rotateY: distance === 0 ? 0 : base.rotateY * direction };
 };
+
+/* ── Mobile: single-card auto-swap carousel ── */
+function MobileCarousel({ items }: { items: BestSellerItem[] }) {
+  const [current, setCurrent] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrent((prev) => (prev + 1) % items.length), 3000);
+    return () => clearInterval(timer);
+  }, [items.length]);
+
+  const goTo = (idx: number) => setCurrent((idx + items.length) % items.length);
+
+  return (
+    <div className="relative w-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-6 pt-8 shadow-[0_24px_70px_rgba(20,18,16,0.28)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
+      <Link
+        href={items[current].href}
+        className="relative mx-auto block w-[170px]"
+        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return;
+          const diff = touchStartX.current - e.changedTouches[0].clientX;
+          if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+          touchStartX.current = null;
+        }}
+      >
+        <div className="relative h-[260px] w-[170px] rounded-[1.7rem] bg-[linear-gradient(180deg,#8d6d60_0%,#5f4b40_28%,#241d1a_72%,#161311_100%)] shadow-[0_46px_90px_rgba(0,0,0,0.32)]">
+          <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_22%,rgba(0,0,0,0.16))]" />
+          <div className="pointer-events-none absolute left-1/2 top-0 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-white/75" />
+          <div className="pointer-events-none absolute bottom-0 left-1/2 h-7 w-7 -translate-x-1/2 translate-y-1/2 rounded-full border border-[#f0d0b4]/40 bg-[#b76a3c]" />
+          <div className="absolute inset-[0.45rem] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#2b221e]">
+            <img src={items[current].image} alt={items[current].title} className="h-full w-full object-cover object-top transition-all duration-500" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent_0%,rgba(15,12,11,0.46)_100%)]" />
+          </div>
+        </div>
+      </Link>
+      <div className="mt-6 text-center">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#ef8b76]">#{items[current].id}</p>
+        <h3 className="mt-2 font-sans text-lg font-black uppercase tracking-[-0.05em] text-[#111111]">{items[current].title}</h3>
+        <p className="mt-1 text-sm text-white/60">{items[current].subtitle}</p>
+      </div>
+      <div className="mt-5 flex justify-center gap-1.5">
+        {items.map((_, i) => (
+          <button key={i} type="button" onClick={() => goTo(i)} aria-label={`Go to slide ${i + 1}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-[#ef8b76]" : "w-1.5 bg-white/30"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function BestSellersCoverflow({
   items: incomingItems,
@@ -204,6 +251,13 @@ export function BestSellersCoverflow({
         </Link>
       </div>
 
+      {/* Mobile: auto-swap single card */}
+      <div className="md:hidden">
+        <MobileCarousel items={items} />
+      </div>
+
+      {/* Desktop: 3D coverflow */}
+      <div className="hidden md:block">
       <div className="relative mx-auto max-w-[1280px] overflow-hidden rounded-[2.4rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-10 pt-10 shadow-[0_24px_70px_rgba(20,18,16,0.28)] md:px-10 md:pb-16 md:pt-14">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
 
@@ -237,7 +291,7 @@ export function BestSellersCoverflow({
           </div>
         </div>
 
-        <div className="relative mt-4 h-[88px] md:h-[96px]">
+        <div className="relative mt-6 h-[110px] md:mt-4 md:h-[96px]">
           {items.map((item, index) => (
             <div
               key={`${item.id}-detail`}
@@ -249,7 +303,7 @@ export function BestSellersCoverflow({
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#ef8b76]">
                 #{item.id}
               </p>
-              <h3 className="mt-2 font-sans text-4xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-4xl font-weight-700">
+              <h3 className="mt-2 font-sans text-lg font-black uppercase tracking-[-0.05em] text-[#111111] sm:text-2xl md:text-4xl font-weight-700">
                 {item.title}
               </h3>
               <p className="mt-2 text-sm text-white/58 md:text-[0.95rem]">
@@ -258,6 +312,7 @@ export function BestSellersCoverflow({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );

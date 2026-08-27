@@ -5,6 +5,7 @@ import { LatestOffersWidget } from "@/components/LatestOffersWidget";
 import { MainNavbar } from "@/components/MainNavbar";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
+import { WishbagProvider } from "@/contexts/WishbagContext";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -25,7 +26,7 @@ const cedarville = Cedarville_Cursive({
 });
 
 export const metadata: Metadata = {
-  title: "HeyWomaniyaa",
+  title: "Hey Womaniyaa",
   description:
     "Editorial women’s fashion landing page with cinematic runway styling.",
   icons: {
@@ -57,14 +58,16 @@ export default function RootLayout({
       </head>
       <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
         <ExtensionErrorFilter />
-        <SmoothScrollProvider>
-          <MainNavbar />
-          {children}
-          <footer className="w-full bg-[#fcf9f4] py-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
-            <p>© 2026 HeyWomaniyaa. All Rights Reserved.</p>
-          </footer>
-          <LatestOffersWidget />
-        </SmoothScrollProvider>
+        <WishbagProvider>
+          <SmoothScrollProvider>
+            <MainNavbar />
+            {children}
+            <footer className="w-full bg-[#fcf9f4] py-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
+              <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
+            </footer>
+            <LatestOffersWidget />
+          </SmoothScrollProvider>
+        </WishbagProvider>
       </body>
     </html>
   );

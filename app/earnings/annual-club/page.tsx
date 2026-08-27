@@ -65,23 +65,62 @@ export default async function PartnerProgramPage() {
 
         <div className="mt-4 rounded-[1.35rem] border border-[#ead9d1] bg-[#fcf9f4] p-4 text-sm leading-7 text-[#625852]">
           <p>
-            Our new Partner Program replaces the old SP system with direct commissions and powerful company turnover shares. Build your team, hit the milestones, and earn long-term rewards like Womaniyaa Points!
+            Our Partner Program empowers you with direct commissions and powerful company turnover shares. Build your team, hit the milestones, and earn long-term rewards like Womaniyaa Points!
           </p>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {partnerPrograms.map((program) => {
             const Icon = program.icon;
+            
+            let streakInfo = null;
+            let activePoints = null;
+
+            if (program.title === "Womaniyaa Point") {
+              const streak = dashboard?.womaniyaaPointsStreak || 0;
+              const points = dashboard?.activeWomaniyaaPoints || 0;
+              streakInfo = `${streak}/3 Months Streak`;
+              activePoints = `${points} Active Point${points !== 1 ? 's' : ''}`;
+            } else if (program.title === "Super Womaniyaa Point") {
+              const streak = dashboard?.superWomaniyaaPointsStreak || 0;
+              const points = dashboard?.activeSuperWomaniyaaPoints || 0;
+              streakInfo = `${streak}/6 Months Streak`;
+              activePoints = `${points} Active Point${points !== 1 ? 's' : ''}`;
+            }
+
             return (
               <article
                 key={program.title}
-                className={`rounded-[1.5rem] border border-[#ead9d1] bg-gradient-to-br ${program.tone} p-5 flex flex-col h-full`}
+                className={`rounded-[1.5rem] border border-[#ead9d1] bg-gradient-to-br ${program.tone} p-5 flex flex-col h-full relative`}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#5f5d3e] shadow-sm">
-                  <Icon />
+                <div className="flex justify-between items-start">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#5f5d3e] shadow-sm">
+                    <Icon />
+                  </div>
+                  {activePoints && (
+                    <div className="bg-white/80 px-2 py-1 rounded text-xs font-bold text-[#5f5d3e] shadow-sm">
+                      {activePoints}
+                    </div>
+                  )}
                 </div>
                 <h2 className="mt-4 text-xl font-bold text-[#1c1c19]">{program.title}</h2>
                 <p className="mt-3 text-sm leading-6 text-[#625852] flex-grow">{program.target}</p>
+                
+                {streakInfo && (
+                  <div className="mt-4 mb-2">
+                    <div className="flex justify-between text-xs font-semibold text-[#625852] mb-1">
+                      <span>Progress</span>
+                      <span>{streakInfo}</span>
+                    </div>
+                    <div className="w-full bg-white rounded-full h-2">
+                      <div 
+                        className="bg-[#5f5d3e] h-2 rounded-full" 
+                        style={{ width: `${(program.title === "Womaniyaa Point" ? Math.min(dashboard?.womaniyaaPointsStreak || 0, 3) / 3 : Math.min(dashboard?.superWomaniyaaPointsStreak || 0, 6) / 6) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
                 <p className="mt-4 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-[#5f5d3e] text-center">
                   {program.pool}
                 </p>

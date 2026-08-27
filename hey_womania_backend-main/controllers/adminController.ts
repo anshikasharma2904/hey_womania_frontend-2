@@ -52,3 +52,51 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error fetching stats" });
   }
 };
+
+export const getCentralWalletStats = async (req: Request, res: Response) => {
+  try {
+    // 1. Total Platform Sales
+    const orders = await Order.find({ status: { $ne: "Cancelled" } });
+    const totalPlatformSales = orders.reduce((sum, order) => {
+      if (order.total) {
+        const num = parseFloat(order.total.replace(/[^0-9.]/g, ""));
+        return sum + (isNaN(num) ? 0 : num);
+      }
+      return sum;
+    }, 0);
+
+    // 2. Active Partners and Wallets
+    const partners = await User.find({ role: "partner" }, { 
+      id: 1, name: 1, email: 1, phone: 1, partnerProfile: 1, teamIds: 1 
+    });
+    
+    let totalNetworkBalances = 0;
+    
+    const partnerStats = partners.map(p => {
+      const nwBalance = p.partnerProfile?.networkWalletBalance || 0;
+      totalNetworkBalances += nwBalance;
+      return {
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        networkWalletBalance: nwBalance,
+        shoppingWalletBalance: p.partnerProfile?.walletBalance || 0,
+        teamSize: p.teamIds?.length || 0
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalPlatformSales,
+        totalNetworkBalances,
+        activePartnersCount: partners.length,
+        partners: partnerStats.sort((a, b) => b.networkWalletBalance - a.networkWalletBalance)
+      }
+    });
+
+  } catch (error) {
+    console.error("Central Wallet Stats Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

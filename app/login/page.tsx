@@ -44,15 +44,9 @@ export default function LoginPage() {
       }
 
       window.scrollTo(0, 0);
-      window.location.href = "/account";
-      // // Redirect based on user role
-      // if (payload.user?.role === "partner") {
-      //   window.location.href = "/earnings"; // Redirect partners to the earnings page
-      // } else {
-      //   // Redirect shoppers to the top of the account dashboard
-      //   window.scrollTo(0, 0);
-      //   window.location.href = "/account";    
-      // }
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get("redirect") || "/account";
+      window.location.href = redirectUrl;
     } catch {
       setStatus("Unable to sign in right now. Please try again.");
     } finally {
@@ -136,7 +130,7 @@ export default function LoginPage() {
 
           <div className="mt-5 border-t border-[#e8e2d9] pt-5">
             <p className="mb-3 text-center text-sm text-[#48473d]">
-              New to HeyWomaniyaa?
+              New to Hey Womaniyaa?
             </p>
 
             <div className="flex flex-col gap-3">

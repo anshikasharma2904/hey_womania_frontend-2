@@ -147,7 +147,7 @@ export function ElaraHeroSection() {
                 color: `rgba(99, 68, 56, ${0.08 + scrollProgress * 0.56})`
               }}
             >
-              HeyWomaniyaa
+              Hey Womaniyaa
             </h1>
           </div>
         </div>

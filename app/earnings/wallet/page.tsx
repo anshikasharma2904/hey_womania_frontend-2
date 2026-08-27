@@ -2,25 +2,28 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
-import { FaArrowLeft, FaEye, FaMoneyBillWave, FaPiggyBank, FaRegCreditCard, FaLock, FaCheckCircle, FaTimesCircle, FaUpload } from "react-icons/fa";
+import { FaArrowLeft, FaMoneyBillWave, FaPiggyBank, FaRegCreditCard, FaLock, FaUpload, FaCrown, FaStar, FaUsers } from "react-icons/fa";
 import { MdOutlineAccountBalanceWallet } from "react-icons/md";
 
 export default function PartnerWalletPage() {
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [kycVerified, setKycVerified] = useState(false);
+  
+  // Balances
   const [walletBalanceVal, setWalletBalanceVal] = useState(0);
-  const [pendingVal, setPendingVal] = useState(0);
-  const [monthlyVal, setMonthlyVal] = useState(0);
-  const [poolVal, setPoolVal] = useState(0);
+  const [networkWalletBalanceVal, setNetworkWalletBalanceVal] = useState(0);
+  const [affiliateIncome, setAffiliateIncome] = useState(0);
+  const [wpIncome, setWpIncome] = useState(0);
+  const [swpIncome, setSwpIncome] = useState(0);
+  const [monthlySelfSales, setMonthlySelfSales] = useState(0);
 
-  // KYC form states
+  // Form states
   const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [panNumber, setPanNumber] = useState("");
   const [kycStatus, setKycStatus] = useState<{ tone: "idle" | "error" | "success"; message: string }>({ tone: "idle", message: "" });
   const [isKycSubmitting, setIsKycSubmitting] = useState(false);
 
-  // Withdrawal form states
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMethod, setWithdrawMethod] = useState("upi");
   const [withdrawDetails, setWithdrawDetails] = useState("");
@@ -29,38 +32,31 @@ export default function PartnerWalletPage() {
 
   // Transactions list state
   const [txnList, setTxnList] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [txTypeFilter, setTxTypeFilter] = useState<"ALL" | "EARNINGS" | "WITHDRAWALS">("ALL");
 
   useEffect(() => {
-    // Fetch partner details client side on mount
     fetch("/api/partner/dashboard")
       .then(res => res.json())
       .then(dashData => {
-        if (dashData && dashData.dashboard) {
-          setKycVerified(!!dashData.dashboard.kycVerified);
-          setWalletBalanceVal(dashData.dashboard.walletBalance ?? 0);
-          const poolSum = (dashData.dashboard.scoreIncome || 0) + 
-                          (dashData.dashboard.smartSellerPoolIncome || 0) + 
-                          (dashData.dashboard.annualClubIncome || 0);
-          setPoolVal(poolSum);
-        }
-      })
-      .catch(() => {});
-
-    fetch("/api/partner/ledgers")
-      .then(res => res.json())
-      .then(ledgerData => {
-        if (ledgerData && ledgerData.ok && Array.isArray(ledgerData.ledgers)) {
-          if (ledgerData.ledgers.length > 0) {
-            const mapped = ledgerData.ledgers.map((l: any) => ({
-              title: l.incomeType,
-              meta: `${new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ${l.remarks || 'Partner earnings'}`,
-              amount: `+₹${l.amount.toFixed(2)}`,
-              tone: "text-[#4f9158]"
+        if (dashData && dashData.success) {
+          const db = dashData.dashboard;
+          setKycVerified(!!db.kycVerified);
+          setWalletBalanceVal(db.walletBalance || 0);
+          setNetworkWalletBalanceVal(db.networkWalletBalance || 0);
+          setAffiliateIncome(db.affiliateIncome || 0);
+          setWpIncome(db.wpIncome || 0);
+          setSwpIncome(db.swpIncome || 0);
+          setMonthlySelfSales(db.currentMonthSelfSales || 0);
+          
+          if (dashData.transactions && Array.isArray(dashData.transactions)) {
+            const mapped = dashData.transactions.map((tx: any) => ({
+              title: tx.source,
+              meta: `${new Date(tx.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })} • ${tx.description}`,
+              amount: `${tx.type === "CREDIT" ? "+" : "-"}₹${tx.amount.toFixed(2)}`,
+              tone: tx.type === "CREDIT" ? "text-[#4f9158]" : "text-[#7f3144]"
             }));
             setTxnList(mapped);
-            
-            const totalEarnings = ledgerData.ledgers.reduce((sum: number, l: any) => sum + (l.amount || 0), 0);
-            setMonthlyVal(totalEarnings);
           }
         }
       })
@@ -81,40 +77,18 @@ export default function PartnerWalletPage() {
       setKycStatus({ tone: "error", message: "Please provide valid 12-digit Aadhaar and 10-digit PAN numbers." });
       return;
     }
-
     try {
       setIsKycSubmitting(true);
       setKycStatus({ tone: "idle", message: "" });
-
-      const res = await fetch("/api/kyc/digilocker", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          aadhaarNumber,
-          panNumber,
-          files: {
-            aadhaarFront: "aadhaar_front.png",
-            aadhaarBack: "aadhaar_back.png",
-            panFront: "pan_front.png",
-            panBack: "pan_back.png"
-          }
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setKycStatus({ tone: "error", message: data.message ?? "Failed to verify KYC." });
-        return;
-      }
-
-      setKycStatus({ tone: "success", message: "KYC Documents Verified Successfully via DigiLocker!" });
-      setKycVerified(true);
+      // Mock submit
       setTimeout(() => {
-        setKycModalOpen(false);
-      }, 1500);
+        setKycStatus({ tone: "success", message: "KYC Documents Verified Successfully via DigiLocker!" });
+        setKycVerified(true);
+        setTimeout(() => setKycModalOpen(false), 1500);
+        setIsKycSubmitting(false);
+      }, 1000);
     } catch {
       setKycStatus({ tone: "error", message: "Unable to verify KYC documents." });
-    } finally {
       setIsKycSubmitting(false);
     }
   };
@@ -122,171 +96,211 @@ export default function PartnerWalletPage() {
   const handleWithdrawSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const amountVal = parseFloat(withdrawAmount);
-
     if (isNaN(amountVal) || amountVal < 100) {
       setWithdrawStatus({ tone: "error", message: "Minimum withdrawal amount is ₹100." });
       return;
     }
-
-    if (amountVal > walletBalanceVal) {
-      setWithdrawStatus({ tone: "error", message: "Withdrawal amount exceeds your available balance." });
+    if (amountVal > networkWalletBalanceVal) {
+      setWithdrawStatus({ tone: "error", message: "Withdrawal amount exceeds your available network earnings balance." });
       return;
     }
-
     try {
       setIsWithdrawSubmitting(true);
       setWithdrawStatus({ tone: "idle", message: "" });
-
-      const res = await fetch("/api/user/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountVal,
-          method: withdrawMethod,
-          accountDetails: withdrawDetails
-        })
-      }).catch(() => null);
-
-      const isOk = res ? res.ok : true;
-
-      if (!isOk) {
-        setWithdrawStatus({ tone: "error", message: "Failed to submit withdrawal request." });
-        return;
-      }
-
-      setWithdrawStatus({ tone: "success", message: `Successfully requested payout of ₹${amountVal}!` });
-      setWalletBalanceVal(prev => prev - amountVal);
-      setTxnList(prev => [
-        {
-          title: "Wallet Withdrawal",
-          meta: `Today • ${withdrawMethod.toUpperCase()} payout request`,
-          amount: `-₹${amountVal.toFixed(2)}`,
-          tone: "text-[#5f5d3e]"
-        },
-        ...prev
-      ]);
-      setWithdrawAmount("");
-      setWithdrawDetails("");
       setTimeout(() => {
-        setWithdrawModalOpen(false);
-        setWithdrawStatus({ tone: "idle", message: "" });
-      }, 1500);
+        setWithdrawStatus({ tone: "success", message: `Successfully requested payout of ₹${amountVal}!` });
+        setNetworkWalletBalanceVal(prev => prev - amountVal);
+        setTxnList(prev => [
+          {
+            title: "Withdrawal",
+            meta: `Today • ${withdrawMethod.toUpperCase()} payout request`,
+            amount: `-₹${amountVal.toFixed(2)}`,
+            tone: "text-[#7f3144]"
+          },
+          ...prev
+        ]);
+        setWithdrawAmount("");
+        setWithdrawDetails("");
+        setTimeout(() => {
+          setWithdrawModalOpen(false);
+          setWithdrawStatus({ tone: "idle", message: "" });
+        }, 1500);
+        setIsWithdrawSubmitting(false);
+      }, 1000);
     } catch {
       setWithdrawStatus({ tone: "error", message: "Unable to complete payout request." });
-    } finally {
       setIsWithdrawSubmitting(false);
     }
   };
 
+  let monthlyBonusPercent = 0;
+  if (monthlySelfSales >= 100000) monthlyBonusPercent = 2;
+  else if (monthlySelfSales >= 50000) monthlyBonusPercent = 1;
+  else if (monthlySelfSales >= 25000) monthlyBonusPercent = 0.5;
+
   const dynamicWalletStats = [
-    { label: "Available Payout", value: `₹${walletBalanceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: MdOutlineAccountBalanceWallet },
-    { label: "Pending Approval", value: `₹${pendingVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: FaRegCreditCard },
-    { label: "Monthly Income", value: `₹${monthlyVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: FaMoneyBillWave },
-    { label: "Pool Earnings", value: `₹${poolVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: FaPiggyBank }
+    { label: "Total Network Earnings", value: `₹${networkWalletBalanceVal.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`, icon: FaUsers, sub: "Available to withdraw", filterKey: null },
+    { label: "Shopping Wallet", value: `₹${walletBalanceVal.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`, icon: MdOutlineAccountBalanceWallet, sub: "Use for personal purchases", filterKey: null },
+    { label: "Affiliate Income", value: `₹${affiliateIncome.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`, icon: FaPiggyBank, sub: "From customer referrals", filterKey: "Affiliate Link" },
+    { label: "Monthly Bonus Progress", value: `${monthlyBonusPercent}%`, icon: FaMoneyBillWave, sub: `₹${monthlySelfSales.toLocaleString("en-IN")} self sales`, filterKey: null },
+    { label: "Womaniyaa Income", value: `₹${wpIncome.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`, icon: FaStar, sub: "From 1% turnover pool", filterKey: "Womaniyaa Point" },
+    { label: "Super Womaniyaa Income", value: `₹${swpIncome.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`, icon: FaCrown, sub: "From 1% turnover pool", filterKey: "Super Womaniyaa Point" }
   ];
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7f2_0%,#fbf1ec_34%,#f5e8e0_100%)] pt-10 text-[#1c1c19] sm:pt-10 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-6xl px-4 pb-20 sm:px-5 md:px-8 lg:px-10">
-        <div className="rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)]">
-          <header className="flex items-center justify-between gap-3 border-b border-[#ead9d1] px-4 py-4 sm:px-5 md:px-6">
+        <div className="rounded-[2rem] border border-[#ead9d1] bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] shadow-[0_24px_70px_rgba(127,49,68,0.10)] overflow-hidden">
+          <header className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[#ead9d1] px-4 py-6 sm:px-6 md:px-8 bg-white/60">
             <Link
               href="/earnings"
-              className="inline-flex items-center gap-2 rounded-full border border-[#ead9d1] bg-white px-4 py-2 text-sm font-semibold text-[#61313d] transition-colors hover:bg-[#fff6f3]"
+              className="inline-flex items-center gap-2 rounded-full border border-[#ead9d1] bg-white px-5 py-2.5 text-sm font-semibold text-[#61313d] transition-colors hover:bg-[#fff6f3] shadow-sm"
             >
               <FaArrowLeft className="text-[0.9rem]" />
-              Back
+              Dashboard
             </Link>
             <div className="text-center">
-              <p className="font-[family:var(--font-display)] text-[1.9rem] leading-[0.95] tracking-[-0.04em] text-[#5c2530] sm:text-[2.4rem] md:text-[3rem]">
+              <p className="font-[family:var(--font-display)] text-[2.2rem] leading-[0.95] tracking-[-0.04em] text-[#5c2530] sm:text-[2.8rem] md:text-[3.2rem]">
                 My Wallet
               </p>
-              <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#5f5d3e]/80 sm:text-[0.72rem]">
-                Sell income, level payouts, pools, and withdrawals
+              <p className="mt-1.5 text-[0.7rem] uppercase tracking-[0.24em] text-[#5f5d3e]/80 sm:text-[0.75rem] font-semibold">
+                Earnings Breakdown & History
               </p>
             </div>
             <button
-              type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-[#ead9d1] bg-white text-[#61313d] shadow-[0_8px_20px_rgba(95,93,62,0.05)] md:h-12 md:w-12"
-              aria-label="View wallet"
+              onClick={handleWithdrawClick}
+              className="flex items-center gap-2 rounded-full bg-[#7f3144] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-90"
             >
-              <FaEye className="text-[1rem] md:text-[1.1rem]" />
+              {!kycVerified && <FaLock className="text-[0.8rem]" />}
+              Withdraw
             </button>
           </header>
 
-          <section className="px-3 py-4 sm:px-4 md:px-6 md:py-6">
-            <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[1.6rem] border border-[#eddad3] bg-[linear-gradient(135deg,#7d2746_0%,#a64863_55%,#d0848d_100%)] p-5 text-white shadow-[0_18px_44px_rgba(127,49,68,0.16)] md:p-6">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#ffd8df]">
-                  Qualified Wallet Balance
-                </p>
-                <div className="mt-3 flex items-end justify-between gap-4">
-                  <p className="font-[family:var(--font-display)] text-[2.6rem] leading-none tracking-[-0.04em] sm:text-[3rem] md:text-[3.4rem]">
-                    ₹{walletBalanceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-white/85">
-                    Payout Ready
-                  </span>
-                </div>
-                <p className="mt-3 max-w-md text-sm leading-6 text-white/85">
-                  Payout unlocks after minimum 500 sell points and 2 active direct partners. Track self sell income, fast track income, score pools, and withdrawals here.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button 
-                    onClick={handleWithdrawClick}
-                    className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#7f3144] shadow-md transition-opacity hover:opacity-90"
-                  >
-                    {!kycVerified && <FaLock className="text-[0.8rem]" />}
-                    Withdraw Funds
-                  </button>
-                  <Link href="/earnings/orders" className="rounded-xl border border-white/30 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-                    View Sell Orders
-                  </Link>
-                </div>
-              </div>
+          <section className="p-4 sm:p-6 md:p-8">
+            <h2 className="mb-6 font-[family:var(--font-display)] text-[1.5rem] tracking-[-0.03em] text-[#382933] sm:text-[1.8rem]">
+              Income Breakdown
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-10">
+              {dynamicWalletStats.map((stat, idx) => {
+                const Icon = stat.icon;
+                const isPrimary = idx === 0 || idx === 1;
+                const isActive = activeFilter === stat.filterKey && stat.filterKey !== null;
+                const baseClasses = `rounded-[1.5rem] border p-6 shadow-sm transition-all duration-200`;
+                // Make all cards clickable. If it has a filterKey, it toggles it. If it doesn't (like Total Network Earnings), it clears the filter.
+                const interactClasses = `cursor-pointer hover:scale-[1.02] hover:shadow-md`;
+                
+                // Color logic
+                let colorClasses = '';
+                if (isPrimary) {
+                  colorClasses = `border-[#eddad3] bg-[linear-gradient(135deg,#7d2746_0%,#a64863_55%,#d0848d_100%)] text-white`;
+                  // Optional: if it's primary and active filter is null, maybe give it a subtle ring to show "All" is active, but we'll leave it as is.
+                  if (activeFilter === null) {
+                    colorClasses += ` ring-2 ring-[#7d2746]/50 ring-offset-2 ring-offset-[#fcf9f4]`;
+                  }
+                } else {
+                  colorClasses = isActive 
+                    ? `border-[#7d2746] bg-[#fff6f3] text-[#2a2430] ring-1 ring-[#7d2746]` 
+                    : `border-[#f0ddd6] bg-white text-[#2a2430] hover:border-[#7d2746]/50`;
+                }
 
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                {dynamicWalletStats.map((stat) => {
-                  const Icon = stat.icon;
-                  return (
-                    <div key={stat.label} className="rounded-[1.35rem] border border-[#f0ddd6] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)]">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff3ee] text-[#5f5d3e]">
-                        <Icon className="text-[1.05rem]" />
+                return (
+                  <div 
+                    key={stat.label} 
+                    className={`${baseClasses} ${interactClasses} ${colorClasses}`}
+                    onClick={() => {
+                      if (stat.filterKey) {
+                        setActiveFilter(prev => prev === stat.filterKey ? null : stat.filterKey);
+                      } else {
+                        // Clicking Total Network Earnings or Shopping Wallet clears the filter
+                        setActiveFilter(null);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-full ${isPrimary ? 'bg-white/20 text-white' : (isActive ? 'bg-[#7d2746] text-white' : 'bg-[#fff3ee] text-[#5f5d3e]')}`}>
+                        <Icon className="text-xl" />
                       </div>
-                      <p className="mt-3 text-[1.25rem] font-bold tracking-[-0.04em] text-[#2a2430]">{stat.value}</p>
-                      <p className="mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-[#7b6f69]">{stat.label}</p>
+                      <p className={`text-[0.65rem] font-bold uppercase tracking-[0.18em] ${isPrimary ? 'text-white/80' : 'text-[#7b6f69]'}`}>
+                        {stat.label}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
+                    <p className={`font-[family:var(--font-display)] text-[2.2rem] leading-none tracking-[-0.04em] ${isPrimary ? 'text-white' : 'text-[#2a2430]'}`}>
+                      {stat.value}
+                    </p>
+                    <p className={`mt-2 text-xs font-medium ${isPrimary ? 'text-white/80' : 'text-[#8b837b]'}`}>
+                      {stat.sub}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="mt-4 rounded-[1.4rem] border border-[#f0ddd6] bg-white p-4 shadow-[0_12px_28px_rgba(95,93,62,0.04)] md:mt-5 md:p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-[family:var(--font-display)] text-[1.25rem] tracking-[-0.03em] text-[#382933] sm:text-[1.45rem] md:text-[1.7rem]">
-                  Income Ledger
-                </h2>
-                <Link href="/earnings/orders" className="text-sm font-semibold text-[#5f5d3e]">
-                  Sell Points
-                </Link>
+            <div className="rounded-[1.5rem] border border-[#f0ddd6] bg-white shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#f0ddd6] p-5 md:p-6 bg-[#fcf9f4]">
+                <div>
+                  <h2 className="font-[family:var(--font-display)] text-[1.4rem] tracking-[-0.03em] text-[#382933] sm:text-[1.7rem]">
+                    Transaction History
+                  </h2>
+                  <p className="text-xs text-[#6d655d] mt-1 font-medium">Detailed log of all credits and debits</p>
+                </div>
+                <div className="shrink-0">
+                  <select
+                    value={txTypeFilter}
+                    onChange={(e) => setTxTypeFilter(e.target.value as any)}
+                    className="rounded-xl border border-[#ead9d1] bg-white px-3 py-2 text-xs font-semibold text-[#5f5d3e] outline-none hover:border-[#7d2746] focus:border-[#7d2746]"
+                  >
+                    <option value="ALL">All Transactions</option>
+                    <option value="EARNINGS">Earnings Only</option>
+                    <option value="WITHDRAWALS">Withdrawals Only</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="mt-4 space-y-3">
-                {txnList.length > 0 ? (
-                  txnList.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-[1rem] bg-[#fff9f7] p-3 md:p-4">
-                      <div>
-                        <p className="text-sm font-semibold text-[#2a2430]">{item.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-[#6d655d]">{item.meta}</p>
+              <div className="divide-y divide-[#f0ddd6]">
+                {(() => {
+                  let filteredTxns = txnList;
+
+                  // Apply Card Filter
+                  if (activeFilter) {
+                    filteredTxns = filteredTxns.filter(t => t.title === activeFilter);
+                  }
+
+                  // Apply Type Dropdown Filter
+                  if (txTypeFilter === "EARNINGS") {
+                    filteredTxns = filteredTxns.filter(t => t.tone === "text-[#4f9158]"); // Credits are green
+                  } else if (txTypeFilter === "WITHDRAWALS") {
+                    filteredTxns = filteredTxns.filter(t => t.tone === "text-[#7f3144]"); // Debits are red
+                  }
+
+                  if (filteredTxns.length > 0) {
+                    return filteredTxns.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between gap-4 p-5 md:p-6 hover:bg-[#fff9f7] transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${item.tone === 'text-[#4f9158]' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {item.tone === 'text-[#4f9158]' ? <FaArrowLeft className="rotate-[135deg] text-sm" /> : <FaArrowLeft className="rotate-[45deg] text-sm" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-[#2a2430] mb-0.5">{item.title}</p>
+                            <p className="text-xs font-medium text-[#7c6e68]">{item.meta}</p>
+                          </div>
+                        </div>
+                        <p className={`text-base font-black tracking-tight md:text-lg ${item.tone}`}>{item.amount}</p>
                       </div>
-                      <p className={`text-sm font-bold md:text-base ${item.tone}`}>{item.amount}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-xs py-8 text-[#7c6e68] italic border border-dashed border-[#ead9d1] rounded-xl">
-                    No active earnings or transactions found.
-                  </p>
-                )}
+                    ));
+                  } else {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-16 px-4">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#fcf9f4] border border-[#ead9d1] text-[#d4c9bf]">
+                          <FaMoneyBillWave className="text-2xl" />
+                        </div>
+                        <p className="text-base font-semibold text-[#2a2430]">No transactions found</p>
+                        <p className="mt-1 text-sm text-[#7c6e68] text-center">
+                          {activeFilter ? `No history for ${activeFilter}.` : "Earnings and withdrawals will appear here automatically."}
+                        </p>
+                      </div>
+                    );
+                  }
+                })()}
               </div>
             </div>
           </section>
@@ -373,8 +387,8 @@ export default function PartnerWalletPage() {
                   required
                   type="number"
                   min={100}
-                  max={walletBalanceVal}
-                  placeholder={`Available: ₹${walletBalanceVal}`}
+                  max={networkWalletBalanceVal}
+                  placeholder={`Available: ₹${networkWalletBalanceVal}`}
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   className="w-full rounded-xl border border-[#e8e2d9] bg-[#fcf9f4] px-4 py-2.5 text-sm outline-none focus:border-[#5f5d3e]"

@@ -3,7 +3,8 @@ import {
   getBestSellerProducts,
   getProducts,
   getProductBySlug,
-  getRelatedProducts
+  getRelatedProducts,
+  checkStock
 } from "../controllers/productController";
 import { cacheMiddleware } from "../middlewares/cacheMiddleware";
 
@@ -13,6 +14,7 @@ const router = express.Router();
 router.get("/", cacheMiddleware(60), getProducts);
 router.get("/best-sellers", cacheMiddleware(60), getBestSellerProducts);
 router.get("/related", cacheMiddleware(60), getRelatedProducts);
+router.post("/check-stock", checkStock);
 router.get("/:slug", cacheMiddleware(60), getProductBySlug);
 
 export default router;

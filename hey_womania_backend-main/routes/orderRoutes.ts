@@ -1,13 +1,12 @@
 import express from "express";
-import { getUserOrders, getOrderById, createOrder } from "../controllers/orderController";
-import { requireAuth } from "../middlewares/authMiddleware";
+import { getUserOrders, getOrderById, createOrder, cancelOrder } from "../controllers/orderController";
+import { requireAuth, optionalAuth } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.use(requireAuth);
-
-router.get("/", getUserOrders);
-router.post("/", createOrder);
-router.get("/:id", getOrderById);
+router.get("/", requireAuth, getUserOrders);
+router.post("/", optionalAuth, createOrder);
+router.post("/:id/cancel", optionalAuth, cancelOrder);
+router.get("/:id", requireAuth, getOrderById);
 
 export default router;

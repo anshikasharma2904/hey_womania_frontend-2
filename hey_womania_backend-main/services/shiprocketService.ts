@@ -66,8 +66,11 @@ export async function loginToShiprocket() {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || !data.token) {
+    console.log("SHIPROCKET AUTH FAILED", data);
     throw new Error(getShiprocketError(data, "Unable to authenticate with Shiprocket"));
   }
+
+  console.log("SHIPROCKET AUTH SUCCESS:", !!data.token);
 
   const expiresAt = new Date(Date.now() + 9 * 24 * 60 * 60 * 1000);
   await ShiprocketToken.findOneAndUpdate(
@@ -143,9 +146,13 @@ function normalizeAddress(source: any) {
   const pincode = address.pincode || address.pinCode || address.postcode || process.env.SHIPROCKET_FALLBACK_PINCODE || "";
   const phone = String(address.phone || source?.customer?.phone || "").replace(/\D/g, "").slice(-10);
   const email = address.email || source?.customer?.email || process.env.SHIPROCKET_DEFAULT_CUSTOMER_EMAIL || "customer@heywomania.com";
+  const nameParts = name.trim().split(" ");
+  const firstName = nameParts[0] || "Customer";
+  const lastName = nameParts.slice(1).join(" ") || "Name";
 
   return {
-    name,
+    firstName,
+    lastName,
     street,
     line2,
     city,
@@ -171,13 +178,12 @@ function buildShiprocketPayload(order: any) {
   const subTotal = parseAmount(order.total) || items.reduce((sum, item) => sum + item.selling_price * item.units, 0);
   const paymentMethod = String(order.paymentMethod || "").toLowerCase().includes("cod") ? "COD" : "Prepaid";
 
-  return {
+  const payload: any = {
     order_id: order.orderNumber || order.orderId,
     order_date: new Date().toISOString().slice(0, 10),
     pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || "Primary",
-    channel_id: process.env.SHIPROCKET_CHANNEL_ID,
-    billing_customer_name: address.name,
-    billing_last_name: "",
+    billing_customer_name: address.firstName,
+    billing_last_name: address.lastName,
     billing_address: address.street,
     billing_address_2: address.line2,
     billing_city: address.city,
@@ -187,6 +193,16 @@ function buildShiprocketPayload(order: any) {
     billing_email: address.email,
     billing_phone: address.phone,
     shipping_is_billing: true,
+    shipping_customer_name: address.firstName,
+    shipping_last_name: address.lastName,
+    shipping_address: address.street,
+    shipping_address_2: address.line2,
+    shipping_city: address.city,
+    shipping_pincode: address.pincode,
+    shipping_state: address.state,
+    shipping_country: "India",
+    shipping_email: address.email,
+    shipping_phone: address.phone,
     order_items: items,
     payment_method: paymentMethod,
     sub_total: subTotal,
@@ -195,6 +211,12 @@ function buildShiprocketPayload(order: any) {
     height: Number(order.height || process.env.SHIPROCKET_PARCEL_HEIGHT_CM || 5),
     weight: Number(order.weight || process.env.SHIPROCKET_PARCEL_WEIGHT_KG || 0.5)
   };
+  
+  if (process.env.SHIPROCKET_CHANNEL_ID) {
+    payload.channel_id = Number(process.env.SHIPROCKET_CHANNEL_ID);
+  }
+  
+  return payload;
 }
 
 function getTrackingUrl(awb?: string) {
@@ -227,7 +249,7 @@ async function upsertShipmentFromOrder(order: any, data: any) {
       trackingUrl: getTrackingUrl(awb),
       shipmentStatus: "Pending Pickup",
       deliveryAddress: {
-        name: address.name,
+        name: `${address.firstName} ${address.lastName}`.trim(),
         street: [address.street, address.line2].filter(Boolean).join(", "),
         city: address.city,
         state: address.state,
@@ -284,10 +306,28 @@ export async function checkCourierServiceability(params: any) {
 
 export async function createShiprocketOrder(input: any): Promise<any> {
   const payload = input.order_items ? input : buildShiprocketPayload(input);
-  const data = await shiprocketRequest("/orders/create/adhoc", {
-    method: "POST",
-    body: payload
-  });
+  
+  console.log("🚀 CALLING SHIPROCKET CREATE ORDER", input.orderNumber || input.orderId || payload.order_id);
+  console.log("SHIPROCKET PAYLOAD:", JSON.stringify(payload, null, 2));
+
+  let data;
+  try {
+    data = await shiprocketRequest("/orders/create/adhoc", {
+      method: "POST",
+      body: payload
+    });
+
+    console.log("=================================");
+    console.log("SHIPROCKET ORDER SUCCESS");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("=================================");
+  } catch (error: any) {
+    console.log("=================================");
+    console.log("SHIPROCKET ORDER FAILED");
+    console.log(error.message || error);
+    console.log("=================================");
+    throw error;
+  }
 
   const orderId = input.id || input.orderId;
   if (orderId) {

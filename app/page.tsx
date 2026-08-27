@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BestSellersCoverflow } from "@/components/BestSellersCoverflow";
 import { ShopByCategory } from "@/components/ShopByCategory";
 import { HeroVideoSlider } from "@/components/HeroVideoSlider";
-import { LuxuryCategoryNavigation } from "@/components/LuxuryCategoryNavigation";
+
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
 import { StoreFooter } from "@/components/StoreFooter";
 import { slugifyProductName } from "@/app/category/category-data";
@@ -93,11 +93,17 @@ function slugify(value: string) {
 }
 
 function formatCategoryLabel(value: string) {
-  return value
+  const label = value
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+    
+  if (label.toLowerCase() === "co ords") {
+    return "Co-Ords";
+  }
+  
+  return label;
 }
 
 function getCategoryPathParts(value: string) {
@@ -148,26 +154,39 @@ function mapProductsToArrivals(products: Product[]) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   return products.slice(0, 10).map((product, index) => {
     const price = product.salePrice || product.price || 0;
-    const compareAt = product.price > product.salePrice ? product.price : price * 1.2;
-    const totalStock = product.variants?.reduce((sum, v) => sum + (v.availableStock || 0), 0) || 0;
+      const hasDiscount = product.price > product.salePrice;
+      const compareAt = hasDiscount ? product.price : price * 1.2;
+      
+      let discountPercentage = 0;
+      if (hasDiscount) {
+        discountPercentage = Math.round(((product.price - product.salePrice) / product.price) * 100);
+      } else {
+        // Category-based discount: jewellery = 20%, clothes = 15%
+        const catLower = String(product.category || "").toLowerCase();
+        const isJewellery = catLower.includes("jewel") || catLower.includes("earring") || catLower.includes("necklace") || catLower.includes("ring") || catLower.includes("bracelet");
+        discountPercentage = isJewellery ? 20 : 15;
+      }
+      
+      const totalStock = product.variants?.reduce((sum, v) => sum + (v.availableStock || 0), 0) || 0;
 
-    let imageUrl = arrivalImages[index % arrivalImages.length];
-    if (product.images && product.images.length > 0) {
-        imageUrl = product.images[0].startsWith('http') ? product.images[0] : `${apiUrl}${product.images[0]}`;
-    }
+      let imageUrl = arrivalImages[index % arrivalImages.length];
+      if (product.images && product.images.length > 0) {
+          imageUrl = product.images[0].startsWith('http') ? product.images[0] : `${apiUrl}${product.images[0]}`;
+      }
 
-    return {
-      title: product.title,
-      subtitle: product.category,
-      price: formatPrice(price),
-      compareAt: formatPrice(compareAt),
-      reviews: `${totalStock} in stock`,
-      image: imageUrl,
-      imageClass: "h-[112%] right-[-4%] bottom-[-10%]",
-      href: `/product/${product.slug}`
-    };
-  });
-}
+      return {
+        title: product.title,
+        subtitle: product.category,
+        price: formatPrice(price),
+        compareAt: formatPrice(compareAt),
+        discountPercentage: discountPercentage,
+        reviews: `${totalStock} in stock`,
+        image: imageUrl,
+        imageClass: "h-[112%] right-[-4%] bottom-[-10%]",
+        href: `/product/${product.slug}`
+      };
+    });
+  }
 
 function mapProductsToCategories(products: Product[]) {
   const seen = new Set<string>();
@@ -277,21 +296,23 @@ export default async function Home() {
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
       <HeroVideoSlider />
 
-      <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-4 md:pt-10">
-
+      <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-10">
         <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
-          <h2 className="mt-2 md:mt-8 text-3xl md:text-3xl lg:text-[4.0rem] leading-[0.9] tracking-[-0.02em] text-[#111111] text-center">
+          <h2 className="mt-2 md:mt-0 text-3xl lg:text-[4.0rem] leading-[0.9] tracking-[-0.02em] text-[#111111] text-center">
             <span className="normal-case font-normal pr-2" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle' }}>Every Day</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9c4049] to-[#5f5d3e] pr-2 normal-case font-normal" style={{ fontFamily: 'var(--font-cursive), cursive', fontSize: '0.8em', verticalAlign: 'middle', paddingLeft: '0.2em' }}>A Fashion Day</span>
           </h2>
         </div>
       </section>
 
-      <ShopByCategory />
+      <ShopByCategory 
+        mostLovedImages={bestSellerProducts.filter(p => p.images && p.images.length > 0).map(p => p.images![0].startsWith('http') ? p.images![0] : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${p.images![0]}`)}
+        justDroppedImages={products.filter(p => p.images && p.images.length > 0).map(p => p.images![0].startsWith('http') ? p.images![0] : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${p.images![0]}`)}
+      />
 
       <NewArrivalsCarousel cards={arrivalCards} />
 
-      <LuxuryCategoryNavigation categories={categories} />
+
 
       <BestSellersCoverflow items={bestSellerItems} viewAllHref="/category/all" />
 

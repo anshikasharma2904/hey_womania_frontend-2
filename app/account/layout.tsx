@@ -106,8 +106,11 @@ export default async function AccountLayout({ children }: { children: ReactNode 
                 Enter Earning Panel
               </Link>
             )}
-            <div className="hidden h-16 w-16 items-center justify-center rounded-full bg-[#fcf9f4] text-[#5f5d3e] shadow-inner sm:flex md:h-20 md:w-20">
-              <FaStar className="text-[1.5rem] md:text-[2rem]" />
+            <div className="hidden h-16 min-w-16 px-4 flex-col items-center justify-center rounded-full bg-[#fcf9f4] text-[#5f5d3e] shadow-inner sm:flex md:h-20 md:min-w-20">
+              <span className="text-[0.65rem] font-bold uppercase tracking-wider text-[#9b948d]">Wallet</span>
+              <span className="font-[family:var(--font-display)] text-lg leading-none md:text-xl text-[#3a2630]">
+                ₹{user?.partnerProfile?.walletBalance || 0}
+              </span>
             </div>
           </div>
         </div>

@@ -38,13 +38,13 @@ export default function AboutPage() {
         {/* Hero Section */}
         <section className="mx-auto max-w-5xl mb-12 text-center md:px-8">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/80">
-            About HeyWomaniyaa
+            About Hey Womaniyaa
           </p>
           <h1 className="mt-3 font-[family:var(--font-display)] text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl text-[#111111]">
             A women&apos;s fashion store built for modern style.
           </h1>
           <p className="mt-4 mx-auto max-w-3xl text-[0.9rem] leading-relaxed text-[#6d655d] md:text-base">
-            HeyWomaniyaa brings stylish, comfortable, and affordable fashion together in one smooth shopping experience. From western wear and traditional looks to jewellery, bags, accessories, beauty, and lifestyle products, we help women shop confidently for everyday and occasion wear.
+            Hey Womaniyaa brings stylish, comfortable, and affordable fashion together in one smooth shopping experience. From western wear and traditional looks to jewellery, bags, accessories, beauty, and lifestyle products, we help women shop confidently for everyday and occasion wear.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link

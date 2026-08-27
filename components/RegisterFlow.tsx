@@ -37,15 +37,31 @@ export function RegisterFlow() {
     phoneVerified: false,
     password: "",
     isPartner: false,
-    referralCode: ""
+    referralCode: "",
+    refType: ""
   });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get("ref");
-      if (ref) {
-        setForm((current) => ({ ...current, referralCode: ref }));
+      const role = params.get("role");
+      const type = params.get("type"); // "customer" or "partner"
+      
+      if (ref || role || type) {
+        let isPartnerValue = form.isPartner;
+        if (type === "partner" || role === "partner") {
+          isPartnerValue = true;
+        } else if (type === "customer") {
+          isPartnerValue = false;
+        }
+
+        setForm((current) => ({
+          ...current,
+          referralCode: ref || current.referralCode,
+          isPartner: isPartnerValue,
+          refType: type || ""
+        }));
       }
     }
   }, []);
@@ -87,7 +103,8 @@ export function RegisterFlow() {
           email: form.email,
           phone: form.phone,
           password: form.password,
-          ref: form.referralCode
+          ref: form.referralCode,
+          refType: form.refType
         })
       });
 
@@ -109,7 +126,14 @@ export function RegisterFlow() {
         message: "Account created successfully.",
       });
 
-      window.location.href = form.isPartner ? "/partner/dashboard" : "/account";
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get("redirect");
+      
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        window.location.href = form.isPartner ? "/partner/dashboard" : "/account";
+      }
     } catch {
       setSubmitStatus({
         tone: "error",
@@ -221,17 +245,34 @@ export function RegisterFlow() {
           </label>
         </div>
         
-        <div className="flex items-center gap-3 border-t border-[#eadbcf] pt-5 md:pt-6">
-          <input
-            type="checkbox"
-            id="isPartner"
-            checked={form.isPartner}
-            onChange={(event) => updateField("isPartner", event.target.checked)}
-            className="h-4 w-4 rounded border-[#e8e2d9] text-[#9c4049] focus:ring-[#9c4049]"
-          />
-          <label htmlFor="isPartner" className="text-sm text-[#48473d] cursor-pointer">
-            Yes, I also want to become a partner and earn rewards
-          </label>
+        <div className="flex flex-col gap-3 border-t border-[#eadbcf] pt-5 md:pt-6">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#9c4049]">
+            Account Type
+          </p>
+          <div className="flex flex-col gap-3 md:flex-row md:gap-8">
+            <label className={`flex items-center gap-2 ${form.refType === "partner" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+              <input
+                type="radio"
+                name="accountType"
+                checked={!form.isPartner}
+                onChange={() => updateField("isPartner", false)}
+                disabled={form.refType === "partner"}
+                className="h-4 w-4 border-[#e8e2d9] text-[#9c4049] focus:ring-[#9c4049]"
+              />
+              <span className="text-sm text-[#48473d]">Sign up as Normal User</span>
+            </label>
+            <label className={`flex items-center gap-2 ${form.refType === "customer" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+              <input
+                type="radio"
+                name="accountType"
+                checked={form.isPartner}
+                onChange={() => updateField("isPartner", true)}
+                disabled={form.refType === "customer"}
+                className="h-4 w-4 border-[#e8e2d9] text-[#9c4049] focus:ring-[#9c4049]"
+              />
+              <span className="text-sm text-[#48473d]">Sign up as Partner</span>
+            </label>
+          </div>
         </div>
 
         <div className="flex flex-col items-start gap-4 border-t border-[#eadbcf] pt-5 md:flex-row md:items-center md:gap-6 md:pt-6">

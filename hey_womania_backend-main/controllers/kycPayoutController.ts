@@ -100,3 +100,55 @@ export const updatePayoutStatus = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// User: Get my KYC
+export const getMyKyc = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const kyc = await Kyc.findOne({ userId }).sort({ createdAt: -1 });
+    res.json({ kyc: kyc || null });
+  } catch (error) {
+    console.error("Error fetching user KYC:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// User: Submit / Update KYC
+export const submitKyc = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { panNumber, aadhaarNumber, bankAccount, ifscCode, upiId } = req.body;
+
+    const existing = await Kyc.findOne({ userId });
+    if (existing) {
+      existing.panNumber = panNumber;
+      existing.aadhaarNumber = aadhaarNumber;
+      existing.bankAccount = bankAccount;
+      existing.ifscCode = ifscCode;
+      existing.upiId = upiId;
+      (existing as any).status = "Pending";
+      existing.updatedAt = new Date().toISOString();
+      await existing.save();
+      return res.json({ success: true, kyc: existing });
+    }
+
+    const kyc = new Kyc({
+      id: `kyc_${Date.now()}`,
+      userId,
+      panNumber,
+      aadhaarNumber,
+      bankAccount,
+      ifscCode,
+      upiId,
+      status: "Pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    await kyc.save();
+    await User.findOneAndUpdate({ id: userId }, { "partnerProfile.kycStatus": "Pending" });
+    res.json({ success: true, kyc });
+  } catch (error) {
+    console.error("Error submitting KYC:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

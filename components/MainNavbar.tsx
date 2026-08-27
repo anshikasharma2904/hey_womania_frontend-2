@@ -274,7 +274,7 @@ export function MainNavbar() {
               href="/"
               className="flex items-center"
             >
-              <img src="/logo.png" alt="HeyWomaniyaa" className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]" />
+              <img src="/logo.png" alt="Hey Womaniyaa" className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]" />
             </Link>
           </div>
 
@@ -415,7 +415,7 @@ export function MainNavbar() {
         <div className="flex items-center justify-between border-b border-[#ece6df] px-5 py-4">
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-[#a98071]">
-              HeyWomaniyaa
+              Hey Womaniyaa
             </p>
             <p className="mt-1 text-sm text-[#5d6177]">Shop fashion across every edit</p>
           </div>

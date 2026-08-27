@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { formatCoOrd } from "@/lib/format-utils";
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -529,7 +530,7 @@ export function CinematicFashionHero() {
                         </div>
                         <div className="px-1 pb-1 pt-3">
                           <p className="text-[0.48rem] uppercase tracking-[0.2em] text-mocha/50 md:text-[0.5rem]">
-                            {product.name}
+                            {formatCoOrd(product.name)}
                           </p>
                           <p className="mt-1 text-[0.58rem] tracking-[0.14em] text-mocha/46 md:text-[0.62rem]">
                             {product.price}

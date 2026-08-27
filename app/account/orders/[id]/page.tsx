@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { FaCheckCircle, FaShippingFast, FaBoxOpen, FaFileInvoiceDollar, FaMapMarkerAlt } from "react-icons/fa";
+import { FaCheckCircle, FaShippingFast, FaBoxOpen, FaFileInvoiceDollar, FaMapMarkerAlt, FaTimesCircle } from "react-icons/fa";
 import { slugifyProductName } from "@/app/category/category-data";
+import { CancelOrderButton } from "@/components/CancelOrderButton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -75,6 +76,10 @@ export default async function OrderDetailsPage(props: PageProps) {
     { title: "Delivered", date: order.status === "Delivered" ? order.statusText.replace("Delivered on ", "") : "Pending", icon: FaCheckCircle }
   ];
 
+  if (order.status === "Cancelled") {
+    steps.push({ title: "Cancelled", date: order.statusText, icon: FaTimesCircle });
+  }
+
   return (
     <section className="flex flex-col gap-6">
       <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)] md:p-8">
@@ -106,12 +111,16 @@ export default async function OrderDetailsPage(props: PageProps) {
         <div className="mb-10 rounded-[1.5rem] border border-[#e8e2d9] bg-[#fcf9f4] p-6 md:p-8">
           <div className="mb-8 flex items-center justify-between">
             <h3 className="font-bold text-[#1c1c19]">Tracking Status</h3>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${
-              order.status === "Delivered" ? "bg-[#edf7ef] text-[#367743]" : 
-              order.status === "Ongoing" ? "bg-[#eff6ff] text-[#3b82f6]" : "bg-[#fffbeb] text-[#d97706]"
-            }`}>
-              {order.status}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${
+                order.status === "Delivered" ? "bg-[#edf7ef] text-[#367743]" : 
+                order.status === "Cancelled" ? "bg-[#fde8e8] text-[#ef6f63]" :
+                order.status === "Ongoing" ? "bg-[#eff6ff] text-[#3b82f6]" : "bg-[#fffbeb] text-[#d97706]"
+              }`}>
+                {order.status}
+              </span>
+              <CancelOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} />
+            </div>
           </div>
           <p className="mb-8 text-center font-[family:var(--font-display)] text-xl text-[#1c1c19]">
             {order.statusText}

@@ -4,31 +4,26 @@ import { PartnerDashboard } from "../models/PartnerDashboard";
 import { Order } from "../models/Order";
 import { User } from "../models/User";
 import { IncomeLedger } from "../models/IncomeLedger";
+import { checkTeamSalesForMonth, getPrevMonth } from "./closingController";
 
-const SELL_POINTS_RULES = {
-  formula: "Selling price ÷ 5 = Sell Points",
-  minimumPayoutSellPoints: 500,
-  minimumActiveDirects: 2,
-  selfSellIncome: "10%",
-  fastTrackIncome: ["5%", "3%", "2%"],
-  scoreIncome: {
-    glam: "2,500 sell points -> 1 Glam Score -> 15% pool",
-    style: "25,000 sell points -> 1 Style Score -> 12% pool",
-    gorgeous: "100,000 sell points -> 1 Gorgeous Score -> 10% pool",
-    superWomenia: "2 Gorgeous Scores in one month -> 1 Super Womenia Score -> 10% pool"
+const PARTNER_PROGRAM_RULES = {
+  calculation: "Commissions are based on final INR order value.",
+  eligibility: "Active partner status with KYC documentation.",
+  levelIncome: {
+    self: "5%",
+    level1: "2%",
+    level2: "1%",
+    level3: "0.5%"
   },
-  dreamFunds: {
-    dreamCar: "3 continuous months of 1 Gorgeous Score -> Dream Car Fund",
-    dreamHouse: "3 continuous months of 200,000 sell points + 1 Super Womenia Score -> Dream House Fund"
+  monthlyBonus: {
+    target25k: "0.5%",
+    target50k: "1%",
+    target100k: "2%"
   },
-  partnershipBonus: "Unlocks after Style Score; 5-level bonus",
-  smartSellerPool: "3 continuous months of 10,000 sell points -> 12-month pool share",
-  annualClubs: {
-    superClub: "50 lakh yearly sell points -> 1% pool",
-    megaClub: "2 crore yearly sell points -> 1.5% pool",
-    luxuryLifeClub: "5 crore yearly sell points -> 2.5% pool"
-  },
-  timelyRewards: "Weekly, monthly, and festival bonanzas"
+  globalPools: {
+    womaniyaaPoint: "3 continuous months of 5L team sales (incl 10k self) -> 1 Point -> 1% Global Partner Turnover Pool (12 mos)",
+    superWomaniyaaPoint: "6 continuous months of 2.5Cr team sales (incl 25k self) -> 1 Super Point -> 1% Global Partner Turnover Pool (36 mos)"
+  }
 } as const;
 
 async function ensureDashboard(userId: string) {
@@ -87,17 +82,84 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     const dashboard = await ensureDashboard(userId);
     const recentOrder = await Order.findOne({ userId }).sort({ createdAt: -1 });
 
+    const activeDirectsCount = await User.countDocuments({ uplineId: userId, role: "partner" });
+
+    const currentMonthStr = new Date().toISOString().substring(0, 7); // YYYY-MM
+    let wpStreak = 0;
+    let swpStreak = 0;
+    let currentMonthSelfSales = 0;
+
+    // Check up to 5 previous months plus current month
+    for (let i = 0; i <= 5; i++) {
+      const checkMonth = i === 0 ? currentMonthStr : getPrevMonth(currentMonthStr, i);
+      const m = await checkTeamSalesForMonth(userId, checkMonth);
+      if (i === 0) currentMonthSelfSales = m.selfSales;
+      
+      if (m.teamSales >= 25000000 && m.selfSales >= 25000) {
+        swpStreak++;
+        wpStreak++;
+      } else if (m.teamSales >= 500000 && m.selfSales >= 10000) {
+        wpStreak++;
+        if (swpStreak === i) swpStreak = 0; // Broke the SWP streak
+      } else {
+        if (wpStreak === i) wpStreak = 0;
+        if (swpStreak === i) swpStreak = 0;
+      }
+    }
+
+    const dashboardData = {
+      ...dashboard.toObject(),
+      totalOrders: totalOrders,
+      totalReferrals: user.teamIds?.length || 0,
+      walletBalance: user.partnerProfile?.walletBalance || 0,
+      networkWalletBalance: user.partnerProfile?.networkWalletBalance || 0,
+      activeDirects: activeDirectsCount,
+      rank: user.rank || "Starter",
+      womaniyaaPointsStreak: wpStreak,
+      superWomaniyaaPointsStreak: swpStreak,
+      activeWomaniyaaPoints: (user.partnerProfile?.womaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length,
+      activeSuperWomaniyaaPoints: (user.partnerProfile?.superWomaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length,
+      currentMonthSelfSales
+    };
+
+    // Aggregating Transaction History
+    const { WalletTransaction } = await import("../models/WalletTransaction");
+    const transactions = await WalletTransaction.find({ userId }).sort({ createdAt: -1 });
+
+    let affiliateIncome = 0;
+    let wpIncome = 0;
+    let swpIncome = 0;
+
+    transactions.forEach((tx: any) => {
+      if (tx.type === "CREDIT") {
+        if (tx.source === "Affiliate Link") affiliateIncome += tx.amount;
+        if (tx.source === "Womaniyaa Point") wpIncome += tx.amount;
+        if (tx.source === "Super Womaniyaa Point") swpIncome += tx.amount;
+      }
+    });
+
     res.json({
-      user,
-      dashboard: {
-        ...dashboard.toObject(),
-        totalOrders: dashboard.totalOrders ?? totalOrders ?? 0,
-        totalReferrals: dashboard.totalReferrals ?? user.teamIds?.length ?? 0,
-        walletBalance: dashboard.walletBalance ?? 0,
-        rank: dashboard.rank || user.rank || "Starter"
+      success: true,
+      user: {
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        rank: user.rank,
+        teamIds: user.teamIds,
+        referralCode: user.referralCode,
+        partnerReferralCode: user.partnerReferralCode
       },
+      dashboard: {
+        ...dashboardData,
+        affiliateIncome,
+        wpIncome,
+        swpIncome
+      },
+      transactions,
       recentOrder,
-      businessPlan: SELL_POINTS_RULES
+      businessPlan: PARTNER_PROGRAM_RULES
     });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });

@@ -15,12 +15,18 @@ type LuxuryCategoryNavigationProps = {
   categories?: CategoryLink[];
 };
 
-const formatCategoryLabel = (value: string) =>
-  value
+const formatCategoryLabel = (value: string) => {
+  const lower = value.toLowerCase().replace(/[-_\s]+/g, "");
+  if (lower === "co-ords" || lower === "coords" || lower === "co ords") return "CO-ORDS";
+
+  // Split on camelCase boundaries first, then on dashes/underscores/spaces
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+};
 
 const getCategoryPathParts = (value: string) =>
   value
@@ -68,7 +74,7 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
             <span className="hidden text-2xl text-[#c6b7ab] md:block">›</span>
           </div>
 
-          <div className="flex justify-center gap-5 overflow-x-auto pb-2 no-scrollbar md:gap-5 md:overflow-x-auto lg:flex-nowrap">
+          <div className="flex gap-6 overflow-x-auto pb-3 no-scrollbar md:justify-center md:gap-5 lg:flex-nowrap">
             {categories.map((category) => (
               <motion.div
                 key={category.slug}
@@ -81,18 +87,18 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
               >
                 <Link
                   href={category.href}
-                  className="group flex w-[120px] flex-col items-center text-center md:w-[128px] lg:w-[132px]"
+                  className="group flex w-[80px] flex-col items-center text-center md:w-[128px] lg:w-[132px]"
                 >
-                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(180deg,#fffefb_0%,#f7ebe1_100%)] shadow-[0_16px_34px_rgba(97,74,58,0.08)] transition-all duration-500 group-hover:shadow-[0_24px_48px_rgba(97,74,58,0.14)] md:h-24 md:w-24">
-                    <div className="absolute inset-[7px] rounded-full border border-[#f1c1b6]/90" />
-                    <div className="absolute inset-[19px] rounded-full bg-[linear-gradient(180deg,#fff6f1_0%,#fde9e2_100%)] shadow-inner" />
-                    <div className="absolute inset-[28px] rounded-full border border-white/70 md:inset-[32px]" />
-                    <span className="material-symbols-outlined relative z-10 text-[1.35rem] text-[#ef6f63] md:text-[1.55rem]">
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(180deg,#fffefb_0%,#f7ebe1_100%)] shadow-[0_16px_34px_rgba(97,74,58,0.08)] transition-all duration-500 group-hover:shadow-[0_24px_48px_rgba(97,74,58,0.14)] md:h-24 md:w-24">
+                    <div className="absolute inset-[5px] rounded-full border border-[#f1c1b6]/90 md:inset-[7px]" />
+                    <div className="absolute inset-[13px] rounded-full bg-[linear-gradient(180deg,#fff6f1_0%,#fde9e2_100%)] shadow-inner md:inset-[19px]" />
+                    <div className="absolute inset-[19px] rounded-full border border-white/70 md:inset-[28px]" />
+                    <span className="material-symbols-outlined relative z-10 text-[1rem] text-[#ef6f63] md:text-[1.55rem]">
                       {category.icon}
                     </span>
                   </div>
 
-                  <p className="mt-3 text-[0.72rem] font-medium uppercase tracking-[0.14em] text-[#6f5f56] transition-colors duration-300 group-hover:text-[#9c4049] md:text-[0.78rem]">
+                  <p className="mt-2 text-[0.6rem] font-medium uppercase tracking-[0.1em] text-[#6f5f56] transition-colors duration-300 group-hover:text-[#9c4049] leading-tight md:mt-3 md:text-[0.78rem] md:tracking-[0.14em]">
                     {getDisplayCategoryLabel(category.label)}
                   </p>
                 </Link>

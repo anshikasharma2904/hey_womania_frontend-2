@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import cron from "node-cron";
 import { connectDB } from "./config/db";
 
 // Routes
@@ -23,6 +24,7 @@ import {
   syncZohoCategoriesToDb,
   syncZohoItemsToProducts
 } from "./services/zohoInventoryService";
+import { runAutomatedMonthlyClosing } from "./controllers/closingController";
 
 dotenv.config(); // Load .env
 dotenv.config({ path: "env" }); // Load env (without dot fallback)
@@ -167,6 +169,12 @@ app.use(cookieParser());
 async function bootstrap() {
   await connectDB();
   startZohoAutoSync();
+
+  // Schedule automated closing on the 10th of every month at 12:00 AM
+  cron.schedule("0 0 10 * *", () => {
+    console.log("[CRON] Running automated monthly closing...");
+    runAutomatedMonthlyClosing();
+  });
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

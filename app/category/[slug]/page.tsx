@@ -49,7 +49,7 @@ const categoryFilterColumns: Record<
         { label: "Tops", href: "/category/shirts" },
         { label: "Tshirts & Shirts", href: "/category/shirts" },
         { label: "Jeans", href: "/category/jeans" },
-        { label: "Co-ords", href: "/category/western" },
+        { label: "Co-Ords", href: "/category/western" },
         { label: "Shorts", href: "/category/western" },
         { label: "Outer Layers", href: "/category/western" }
       ]
@@ -266,7 +266,17 @@ export default async function CategoryDetailPage({
 
       if (slug === "most-loved" || slug === "just-dropped" || slug === "last-chance") return true;
 
-      return slug === "all" || checkSlugMatch(categoryPath) || categoryParts.some(checkSlugMatch);
+      // Alias: 'shirts' slug should also show 'Shirt Stories' products, and vice versa
+      const extraAliases: Record<string, string[]> = {
+        "shirts": ["shirt-stories", "shirtstories", "shirt stories", "shirts-stories"],
+        "shirts-stories": ["shirt", "shirts", "shirtstory", "shirt-story"],
+      };
+      const aliases = extraAliases[slug] || [];
+      const matchesAlias = aliases.some((alias) =>
+        checkSlugMatch(alias) || categoryParts.some((part) => slugify(part) === alias || slugify(part).replace(/-/g, "") === alias.replace(/-/g, ""))
+      );
+
+      return slug === "all" || matchesAlias || checkSlugMatch(categoryPath) || categoryParts.some(checkSlugMatch);
     })
     .map((p: any) => {
       const categoryPath = String(p.category || "");
@@ -277,6 +287,16 @@ export default async function CategoryDetailPage({
       const hasDiscount = p.salePrice && p.salePrice < p.price;
       const finalPrice = hasDiscount ? p.salePrice : p.price;
       const originalPrice = p.price;
+      
+      let discountPercentage = 0;
+      if (hasDiscount) {
+        discountPercentage = Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
+      } else {
+        // Category-based discount: jewellery = 20%, clothes = 15%
+        const catLower = categoryPath.toLowerCase();
+        const isJewellery = catLower.includes("jewel") || catLower.includes("jewl") || catLower.includes("earring") || catLower.includes("necklace") || catLower.includes("ring") || catLower.includes("bracelet");
+        discountPercentage = isJewellery ? 20 : 15;
+      }
 
       const gallery = (p.images || []).map((img: string) => {
         if (img.startsWith("http")) return img;
@@ -288,6 +308,7 @@ export default async function CategoryDetailPage({
         name: p.title,
         price: `₹${finalPrice}`,
         originalPrice: hasDiscount ? `₹${originalPrice}` : undefined,
+        discountPercentage: discountPercentage,
         subtitle: p.description || "Newly added",
         categoryLabel: formatCategoryLabel(categoryParts[1] || categoryParts[0] || "Collection"),
         subcategoryLabel: categoryParts[2] ? formatCategoryLabel(categoryParts[2]) : undefined,

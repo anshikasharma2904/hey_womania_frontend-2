@@ -6,6 +6,8 @@ const orderSchema = new mongoose.Schema({
   orderNumber: String,
   date: String,
   total: String,
+  walletDiscount: { type: Number, default: 0 },
+  networkWalletDiscount: { type: Number, default: 0 },
   sellPoints: { type: Number, default: 0 },
   status: { 
     type: String, 

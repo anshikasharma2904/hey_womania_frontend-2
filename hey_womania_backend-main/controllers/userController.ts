@@ -147,3 +147,76 @@ export const removeUserPaymentMethod = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const upgradeToPartner = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.user.id;
+    const { sponsorCode } = req.body;
+
+    const user = await User.findOne({ id: userId });
+    if (!user) return res.status(404).json({ error: "Not found" });
+
+    if (user.role === "partner") {
+      return res.status(400).json({ error: "User is already a partner." });
+    }
+
+    if (sponsorCode && !user.uplineId) {
+      const sponsorRef = sponsorCode.toString().toUpperCase().trim();
+      const sponsor = await User.findOne({ 
+        $or: [{ referralCode: sponsorRef }, { partnerReferralCode: sponsorRef }] 
+      });
+      if (!sponsor) {
+        return res.status(400).json({ error: "Invalid sponsor code." });
+      }
+      if (sponsor.id === user.id) {
+        return res.status(400).json({ error: "You cannot sponsor yourself." });
+      }
+      
+      user.uplineId = sponsor.id;
+      user.ancestors = [...(sponsor.ancestors || []), sponsor.id];
+      
+      if (!sponsor.teamIds) {
+        sponsor.teamIds = [];
+      }
+      sponsor.teamIds.push(user.id);
+      await sponsor.save();
+    }
+
+    user.role = "partner";
+    user.rank = "Starter";
+    
+    if (!user.partnerReferralCode) {
+      const crypto = await import("crypto");
+      user.partnerReferralCode = `HW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+    }
+
+    if (!user.partnerProfile) {
+      user.partnerProfile = {
+        walletBalance: 100, // Matches initial bonus
+        networkWalletBalance: 0
+      };
+    }
+    
+    user.updatedAt = new Date().toISOString();
+    await user.save();
+    
+    // We update the session cookie because the role has changed.
+    const { createSessionToken } = await import("../utils/authHelpers");
+    const token = createSessionToken({ id: user.id, role: user.role as string });
+    
+    res.cookie("hey_womania_session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 60 * 1000,
+      path: "/",
+      sameSite: "lax"
+    });
+
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+    res.json({ success: true, user: userObj });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -11,7 +11,7 @@ export default function RegisterPage() {
               Account Registration
             </p>
             <h1 className="font-[family:var(--font-display)] text-[1.65rem] leading-none tracking-[-0.035em] text-[#1c1c19] md:text-[2.25rem]">
-              Create your HeyWomaniyaa profile.
+              Create your Hey Womaniyaa profile.
             </h1>
             <p className="mt-2 text-sm text-[#5e5a54] md:text-base">
               Join to shop, save looks, and track orders. You can also become a partner to start earning.

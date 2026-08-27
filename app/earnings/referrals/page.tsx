@@ -149,9 +149,11 @@ function AvatarNode({
   return (
     <div className="flex flex-col items-center">
       <div className="relative">
-        <div className={`relative overflow-hidden rounded-full border-[#edc7b9] bg-[#fff1eb] ${ring}`}>
+        <div className={`relative overflow-hidden rounded-full border-[#edc7b9] bg-[#fff1eb] flex items-center justify-center ${ring}`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.75),rgba(255,255,255,0)_58%)]" />
-          <Image src={avatar} alt={name} fill sizes="(max-width: 768px) 64px, 120px" className="object-cover object-center" />
+          <span className="text-[2rem] font-bold text-[#9c4049] uppercase">
+            {name.charAt(0)}
+          </span>
         </div>
 
         <div className="absolute -inset-3 -z-10 rounded-full bg-[radial-gradient(circle,rgba(215,162,77,0.30)_0%,rgba(215,162,77,0.12)_44%,rgba(215,162,77,0)_70%)] blur-md" />
@@ -186,8 +188,10 @@ function SmallNode({
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative h-12 w-12 overflow-hidden rounded-full border border-[#f0d9cf] bg-white shadow-[0_10px_22px_rgba(95,93,62,0.08)] md:h-14 md:w-14">
-        <Image src={avatar} alt={name} fill sizes="56px" className="object-cover object-center" />
+      <div className="relative h-12 w-12 overflow-hidden rounded-full border border-[#f0d9cf] bg-[#fff1eb] shadow-[0_10px_22px_rgba(95,93,62,0.08)] md:h-14 md:w-14 flex items-center justify-center">
+        <span className="text-xl font-bold text-[#9c4049] uppercase">
+          {name.charAt(0)}
+        </span>
       </div>
       <div className="text-center">
         <p className="text-[0.72rem] font-semibold text-[#2a2430]">{name}</p>
@@ -257,7 +261,9 @@ function TreeNode({
           {isOpenSlot ? (
             <div className="text-[#cbb3aa] font-medium text-lg">+</div>
           ) : (
-            <Image src={avatar} alt={name} fill className="object-cover" />
+            <span className="text-xl font-bold text-[#9c4049] uppercase">
+              {name.charAt(0)}
+            </span>
           )}
         </div>
         {crown && !isOpenSlot && (
@@ -288,6 +294,7 @@ export default async function ReferralsPage() {
   const dashboard = partnerData?.dashboard;
   const businessPlan = partnerData?.businessPlan;
   const referralCode = partnerData?.user?.referralCode || "";
+  const partnerReferralCode = partnerData?.user?.partnerReferralCode || referralCode;
 
   const referralsData = await getPartnerReferralsList();
   const dbL1 = referralsData?.level1 || [];
@@ -308,89 +315,41 @@ export default async function ReferralsPage() {
       : "Not ready";
   const summaryCards = buildSummaryCards(totalTeam, dashboard?.sellPointsTotal ?? 0, score, status);
 
-  const level1Nodes = [
-    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false },
-    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false },
-    { id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.couture, members: "No referrals", crown: false }
-  ];
+  const level1 = dbL1.slice(0, 3).map((r: any, idx: number) => ({
+    id: r.id,
+    name: r.name,
+    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    avatar: [MODEL_ASSETS.western, MODEL_ASSETS.traditional, MODEL_ASSETS.couture][idx % 3],
+    members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
+    crown: (r.ordersCount || 0) > 0
+  }));
+  while (level1.length < 3) {
+    level1.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false });
+  }
 
-  dbL1.forEach((r: any, idx: number) => {
-    if (idx < level1Nodes.length) {
-      level1Nodes[idx] = {
-        id: r.id,
-        name: r.name,
-        amount: `₹${r.totalSP.toLocaleString('en-IN')}`,
-        avatar: MODEL_ASSETS.western,
-        members: `${r.ordersCount} Order${r.ordersCount !== 1 ? 's' : ''}`,
-        crown: r.ordersCount > 0
-      };
-    }
-  });
+  const level2 = [...dbL2].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+    id: r.id,
+    name: r.name,
+    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    avatar: [MODEL_ASSETS.minimal, MODEL_ASSETS.formal, MODEL_ASSETS.editorial][idx % 3],
+    members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
+    crown: false
+  }));
+  while (level2.length < 3) {
+    level2.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.minimal, members: "No referrals", crown: false });
+  }
 
-  const level1 = level1Nodes;
-
-  const level2Clusters = [
-    { items: [] as any[], more: "Open Slot", members: "0 Members" },
-    { items: [] as any[], Mongolians: 1, more: "Open Slot", members: "0 Members" }, // placeholder index identifier helper
-    { items: [] as any[], more: "Open Slot", members: "0 Members" }
-  ];
-
-  level1Nodes.forEach((node, idx) => {
-    if (node.name !== "Open Slot") {
-      const children = dbL2.filter((u: any) => u.uplineId === node.id);
-      if (children.length > 0) {
-        level2Clusters[idx] = {
-          items: children.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            amount: `₹${c.totalSP.toLocaleString('en-IN')}`,
-            avatar: MODEL_ASSETS.couture
-          })),
-          more: "Active",
-          members: `${children.length} Member${children.length > 1 ? 's' : ''}`
-        };
-      }
-    }
-  });
-
-  // Ensure empty Level 2 clusters have an "Open Slot" item
-  level2Clusters.forEach((cluster) => {
-    if (cluster.items.length === 0) {
-      cluster.items.push({
-        name: "Open Slot",
-        amount: "₹0",
-        avatar: MODEL_ASSETS.western
-      });
-    }
-  });
-
-  const level3Clusters = [
-    [] as any[],
-    [] as any[],
-    [] as any[]
-  ];
-
-  level2Clusters.forEach((cluster, idx) => {
-    cluster.items.forEach((l2User: any) => {
-      if (l2User.name !== "Open Slot") {
-        const children = dbL3.filter((u: any) => u.uplineId === l2User.id);
-        if (children.length > 0) {
-          level3Clusters[idx].push(...children.map((c: any) => ({
-            name: c.name,
-            amount: `₹${c.totalSP.toLocaleString('en-IN')}`,
-            avatar: MODEL_ASSETS.traditional
-          })));
-        }
-      }
-    });
-    if (level3Clusters[idx].length === 0) {
-      level3Clusters[idx].push({
-        name: "Open Slot",
-        amount: "₹0",
-        avatar: MODEL_ASSETS.traditional
-      });
-    }
-  });
+  const level3 = [...dbL3].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+    id: r.id,
+    name: r.name,
+    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    avatar: [MODEL_ASSETS.traditional, MODEL_ASSETS.couture, MODEL_ASSETS.western][idx % 3],
+    members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
+    crown: false
+  }));
+  while (level3.length < 3) {
+    level3.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false });
+  }
 
   const teamSummary = [
     { label: "Level 1", members: `${dbL1.length} Member${dbL1.length !== 1 ? 's' : ''}`, amount: `₹${l1SP.toLocaleString('en-IN')}` },
@@ -410,6 +369,10 @@ export default async function ReferralsPage() {
     : [
         { name: "No active leaders", amount: "₹0", badge: "None" }
       ];
+
+  const getX = (index: number, total: number) => {
+    return (1200 / (total + 1)) * (index + 1);
+  };
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffaf7_0%,#fff2ec_100%)] px-4 pb-20 pt-10 text-[#1c1c19] sm:px-5 sm:pt-10 md:px-8 md:pt-10 lg:pt-10 lg:px-10">
@@ -462,156 +425,81 @@ export default async function ReferralsPage() {
                   <LevelBadge title="Level 3" members={`${dbL3.length} Node${dbL3.length !== 1 ? "s" : ""}`} />
                 </div>
 
-                <div className="mt-5 rounded-[1.8rem] border border-[#f2e2db] bg-[linear-gradient(180deg,#fffaf7_0%,#fff5ef_100%)] px-4 py-6 md:px-6 md:py-8">
-                  <div className="relative mx-auto flex max-w-5xl flex-col items-center">
-                    <svg
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
-                      viewBox="0 0 1200 980"
-                      preserveAspectRatio="none"
-                    >
-                      <defs>
-                        <linearGradient id="treeStrokeRoot" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#e7c5c0" stopOpacity="0.15" />
-                          <stop offset="50%" stopColor="#e7c5c0" stopOpacity="0.95" />
-                          <stop offset="100%" stopColor="#d8a18c" stopOpacity="0.18" />
-                        </linearGradient>
-                        <linearGradient id="treeStrokeMid" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#e9d0cb" stopOpacity="0.2" />
-                          <stop offset="50%" stopColor="#d28da3" stopOpacity="0.95" />
-                          <stop offset="100%" stopColor="#e9d0cb" stopOpacity="0.2" />
-                        </linearGradient>
-                        <linearGradient id="treeStrokeLow" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#edd8d3" stopOpacity="0.18" />
-                          <stop offset="50%" stopColor="#c8b7f0" stopOpacity="0.95" />
-                          <stop offset="100%" stopColor="#edd8d3" stopOpacity="0.18" />
-                        </linearGradient>
-                      </defs>
+                <div className="mt-5 rounded-[1.8rem] border border-[#f2e2db] bg-[linear-gradient(180deg,#fffaf7_0%,#fff5ef_100%)] px-4 py-6 md:px-6 md:py-8 overflow-x-auto">
+                  <div className="relative mx-auto flex min-w-[800px] max-w-5xl flex-col items-center">
+                    <div className="relative z-10 mx-auto flex w-full flex-col items-center">
+                      <div className="relative pb-4">
+                        <AvatarNode
+                          name="You"
+                          amount="Level 0"
+                          avatar={MODEL_ASSETS.traditional}
+                          crown
+                          size="root"
+                        />
+                      </div>
 
-                      <g fill="none" strokeLinecap="round">
-                        <path d="M600 130 C600 185, 470 220, 270 300" stroke="url(#treeStrokeRoot)" strokeWidth="5" />
-                        <path d="M600 130 C600 182, 600 212, 600 300" stroke="url(#treeStrokeRoot)" strokeWidth="5" />
-                        <path d="M600 130 C600 185, 730 220, 930 300" stroke="url(#treeStrokeRoot)" strokeWidth="5" />
+                      <div className="w-full flex justify-center h-20 w-full relative">
+                        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 100">
+                           <path d="M600 0 C600 50, 200 50, 200 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
+                           <path d="M600 0 C600 50, 600 50, 600 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
+                           <path d="M600 0 C600 50, 1000 50, 1000 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
+                        </svg>
+                      </div>
 
-                        <path d="M270 355 C270 410, 245 455, 270 525" stroke="url(#treeStrokeRoot)" strokeWidth="4" />
-                        <path d="M600 355 C600 405, 600 460, 600 525" stroke="url(#treeStrokeRoot)" strokeWidth="4" />
-                        <path d="M930 355 C930 410, 955 455, 930 525" stroke="url(#treeStrokeRoot)" strokeWidth="4" />
-
-                        <path d="M270 690 C270 745, 245 790, 270 860" stroke="url(#treeStrokeMid)" strokeWidth="4" />
-                        <path d="M600 690 C600 742, 600 795, 600 860" stroke="url(#treeStrokeMid)" strokeWidth="4" />
-                        <path d="M930 690 C930 745, 955 790, 930 860" stroke="url(#treeStrokeMid)" strokeWidth="4" />
-
-                        <circle cx="600" cy="130" r="6" fill="#d7a24d" opacity="0.9" />
-                        <circle cx="270" cy="300" r="5" fill="#d7a24d" opacity="0.85" />
-                        <circle cx="600" cy="300" r="5" fill="#d7a24d" opacity="0.85" />
-                        <circle cx="930" cy="300" r="5" fill="#d7a24d" opacity="0.85" />
-
-                        <circle cx="270" cy="525" r="4.5" fill="#d28da3" opacity="0.9" />
-                        <circle cx="600" cy="525" r="4.5" fill="#d28da3" opacity="0.9" />
-                        <circle cx="930" cy="525" r="4.5" fill="#d28da3" opacity="0.9" />
-
-                        <circle cx="270" cy="860" r="4.5" fill="#c8b7f0" opacity="0.9" />
-                        <circle cx="600" cy="860" r="4.5" fill="#c8b7f0" opacity="0.9" />
-                        <circle cx="930" cy="860" r="4.5" fill="#c8b7f0" opacity="0.9" />
-                      </g>
-                    </svg>
-
-                  <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center">
-                    <div className="relative pb-8">
-                      <AvatarNode
-                        name="You"
-                        amount="Level 0"
-                        avatar={MODEL_ASSETS.traditional}
-                        crown
-                        size="root"
-                      />
-                    </div>
-
-                    <div className="relative w-full">
-                      <div className="grid grid-cols-1 gap-8 pt-10 md:grid-cols-3 md:gap-6">
-                        {level1.map((member, index) => (
-                          <div key={`${member.name}-${index}`} className="relative flex flex-col items-center">
-                            <AvatarNode
-                              name={member.name}
-                              amount={member.amount}
-                              avatar={member.avatar}
-                              crown={member.crown}
-                              size="md"
-                            />
-                            <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)]">
-                              <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">
-                                Level 1
-                              </p>
-                              <p className="mt-1 text-[0.72rem] text-[#7b6f69]">
-                                {member.members || "Referral partner"}
-                              </p>
+                      <div className="relative w-full">
+                        <div className="grid pt-0" style={{ gridTemplateColumns: `repeat(${level1.length}, minmax(0, 1fr))` }}>
+                          {level1.map((member, index) => (
+                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
+                              <div className="w-[4px] h-6 bg-[#e7c5c0] mb-2 rounded-full relative">
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#d7a24d]"></div>
+                              </div>
+                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={member.crown} size="md" />
+                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
+                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 1</p>
+                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.members || "Referral partner"}</p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="relative mt-2 w-full">
+                        <div className="grid" style={{ gridTemplateColumns: `repeat(${level2.length}, minmax(0, 1fr))` }}>
+                          {level2.map((member, index) => (
+                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
+                              <div className="w-[4px] h-14 bg-[#d28da3]/60 mb-2 rounded-full relative">
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#d28da3]"></div>
+                              </div>
+                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={false} size="md" />
+                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
+                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 2</p>
+                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.name === "Open Slot" ? "No referrals" : "Active"}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="relative mt-2 w-full">
+                        <div className="grid" style={{ gridTemplateColumns: `repeat(${level3.length}, minmax(0, 1fr))` }}>
+                          {level3.map((member, index) => (
+                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
+                              <div className="w-[4px] h-14 bg-[#c8b7f0]/60 mb-2 rounded-full relative">
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#c8b7f0]"></div>
+                              </div>
+                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={false} size="md" />
+                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
+                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 3</p>
+                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.name === "Open Slot" ? "No referrals" : "Active"}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="relative mt-12 w-full">
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-6">
-                        {level2Clusters.map((cluster, index) => (
-                          <div
-                            key={`l2-cluster-${index}`}
-                            className="relative rounded-[1.5rem] border border-[#eddcd4] bg-white/70 p-4 shadow-[0_10px_20px_rgba(95,93,62,0.04)]"
-                          >
-                            <div className="grid gap-4">
-                              {cluster.items.map((member) => (
-                                <SmallNode
-                                  key={member.name}
-                                  name={member.name}
-                                  amount={member.amount}
-                                  avatar={member.avatar}
-                                />
-                              ))}
-                            </div>
-                            <div className="mt-4 flex items-center justify-between gap-3">
-                              <span className="inline-flex items-center rounded-full border border-[#e8d5c8] bg-[#fff7f3] px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#9c4044]">
-                                {cluster.more}
-                              </span>
-                              <span className="rounded-full border border-[#e9d9d0] bg-white px-3 py-1 text-[0.62rem] uppercase tracking-[0.14em] text-[#7b6f69]">
-                                {cluster.members}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="relative mt-12 w-full">
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-6">
-                        {level3Clusters.map((cluster, index) => (
-                          <div
-                            key={index}
-                            className="relative rounded-[1.5rem] border border-[#f0ddd6] bg-white/60 p-4 shadow-[0_8px_18px_rgba(95,93,62,0.04)]"
-                          >
-                            <div className="grid grid-cols-3 gap-3">
-                              {cluster.map((member) => (
-                                <SmallNode
-                                  key={member.name}
-                                  name={member.name}
-                                  amount={member.amount}
-                                  avatar={member.avatar}
-                                />
-                              ))}
-                            </div>
-                            <div className="mt-4 flex items-center justify-center">
-                              <span className="inline-flex items-center rounded-full border border-[#e8d5c8] bg-[#fff7f3] px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#9c4044]">
-                                + more
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                   </div>
                 </div>
               </div>
-
               <div className="grid gap-4 xl:sticky xl:top-6 xl:self-start">
                 <div className="rounded-[1.4rem] border border-[#f0ddd6] bg-[#fff9f7] p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)]">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#9c4049]">
@@ -676,7 +564,7 @@ export default async function ReferralsPage() {
                   <p className="mt-2 font-[family:var(--font-display)] text-[1.4rem] leading-[1.08] tracking-[-0.03em] text-[#7a2e43] mb-4">
                     The more you empower, the more you earn.
                   </p>
-                  <CopyInviteButton referralCode={referralCode} variant="secondary" />
+                  <CopyInviteButton referralCode={referralCode} partnerReferralCode={partnerReferralCode} variant="secondary" />
                 </div>
               </div>
             </div>

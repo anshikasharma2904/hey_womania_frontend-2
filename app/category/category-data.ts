@@ -83,7 +83,7 @@ export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
   { label: "JUST DROPPED", href: "/category/just-dropped", columns: [] },
   { label: "LAST CHANCE", href: "/category/last-chance", columns: [] },
   { label: "EVERYDAY", href: "/category/everyday", columns: [] },
-  { label: "CO-ORDS", href: "/category/co-ords", columns: [] },
+  { label: "Co-Ords", href: "/category/co-ords", columns: [] },
   { label: "SHIRTS STORIES", href: "/category/shirts-stories", columns: [] },
   { label: "TOP STYLE", href: "/category/top-style", columns: [] },
   { label: "DESI COLLECTIONS", href: "/category/desi-collections", columns: [] },
@@ -256,7 +256,7 @@ const formalsProducts: CategoryProduct[] = [
     formalGallery
   ),
   createProduct(
-    "Clean Line Co-ord",
+    "Clean Line Co-Ord",
     "₹345",
     "Minimal tailored dressing",
     MODEL_ASSETS.minimal,
@@ -454,7 +454,7 @@ const plusSizeProducts: CategoryProduct[] = [
     [MODEL_ASSETS.formal, MODEL_ASSETS.minimal, MODEL_ASSETS.western, PRODUCT_ASSETS.western2]
   ),
   createProduct(
-    "Curve Formal Co-ord",
+    "Curve Formal Co-Ord",
     "₹268",
     "Clean confident dressing",
     MODEL_ASSETS.editorial,
@@ -552,7 +552,7 @@ export const leadCategories: LeadCategory[] = [
 export const categoryPages: Record<CategorySlug, CategoryPageData> = {
   all: {
     title: "All Categories",
-    eyebrow: "HeyWomaniyaa Edit",
+    eyebrow: "Hey Womaniyaa Edit",
     intro:
       "Browse the full women’s fashion floor, from western and traditional statements to workwear, jewellery, and bags.",
     heroVideo: CATEGORY_VIDEOS.western,

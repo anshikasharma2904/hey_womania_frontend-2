@@ -38,7 +38,7 @@ export function StoreFooter() {
               href="/"
               className="font-[family:var(--font-display)] text-2xl uppercase leading-[0.9] tracking-tight text-[#111111] md:text-[30px]"
             >
-              HeyWomaniyaa
+              Hey Womaniyaa
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-6 text-[#6d655d]">
               Fashion-first storefront for western, traditional, occasion, and everyday wardrobe edits.

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import CopyInviteButton from "@/components/CopyInviteButton";
 import PartnerDocModal from "@/components/PartnerDocModal";
+import AccountInfoSection from "@/components/AccountInfoSection";
 import {
   FaBell,
   FaBars,
@@ -35,9 +36,14 @@ type PartnerDashboardResponse = {
     totalOrders?: number;
     totalReferrals?: number;
     walletBalance?: number;
+    networkWalletBalance?: number;
     rank?: string;
     sellPointsTotal?: number;
     activeDirects?: number;
+    womaniyaaPointsStreak?: number;
+    superWomaniyaaPointsStreak?: number;
+    activeWomaniyaaPoints?: number;
+    activeSuperWomaniyaaPoints?: number;
   };
   businessPlan?: {
     formula?: string;
@@ -57,13 +63,13 @@ type PartnerDashboardResponse = {
 const buildPartnerStats = (stats: {
   totalOrders: number;
   totalReferrals: number;
-  rank: string;
-  activeDirects: number;
+  wp: number;
+  swp: number;
 }) => [
   { value: `${stats.totalOrders}`, label: "My Orders", icon: FaShoppingBag },
   { value: `${stats.totalReferrals}`, label: "My Referrals", icon: FaUsers },
-  { value: stats.rank || "Starter", label: "My Rank", icon: MdLeaderboard },
-  { value: `${stats.activeDirects}`, label: "Active Directs", icon: FaUsers }
+  { value: `${stats.wp}`, label: "Womaniyaa Points", icon: FaCrown },
+  { value: `${stats.swp}`, label: "Super W. Points", icon: FaCrown }
 ];
 
 const quickActions = [
@@ -71,11 +77,9 @@ const quickActions = [
   { label: "My Orders", icon: RiShoppingBag3Line, href: "/earnings/orders" },
   { label: "My Referrals", icon: FaUsers, href: "/earnings/referrals" },
   { label: "My Team", icon: FaUsers, href: "/earnings/team" },
+  { label: "Network Tree", icon: FaUsers, href: "/earnings/network" },
   { label: "My Wallet", icon: MdOutlineWallet, href: "/earnings/wallet" },
-  { label: "Rank & Rewards", icon: MdLeaderboard, href: "/earnings/rank-rewards" },
-  { label: "Programs", icon: FaCrown, href: "/earnings/annual-club" },
-  { label: "Smart Seller Pool", icon: FaStore, href: "/earnings/smart-seller-pool" },
-  { label: "Score Income", icon: FaChartLine, href: "/earnings/score-income" },
+  { label: "Partner", icon: FaCrown, href: "/earnings/annual-club" },
   { label: "Help Center", icon: FaHeadset, href: "/customer-support" }
 ];
 
@@ -145,17 +149,33 @@ export default async function EarningsPage() {
   const businessPlan = partnerData?.businessPlan;
   const displayName =
     user?.name?.trim() || [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner";
+
+  const monthlySelfSales = dashboard?.currentMonthSelfSales || 0;
+  let monthlyBonusPercent = 0;
+  let nextMilestone = 25000;
+  if (monthlySelfSales >= 100000) {
+    monthlyBonusPercent = 2;
+    nextMilestone = 100000;
+  } else if (monthlySelfSales >= 50000) {
+    monthlyBonusPercent = 1;
+    nextMilestone = 100000;
+  } else if (monthlySelfSales >= 25000) {
+    monthlyBonusPercent = 0.5;
+    nextMilestone = 50000;
+  }
+  const monthlyBonusProgress = Math.min(100, (monthlySelfSales / 100000) * 100);
   const displayRank = dashboard?.rank || user?.rank || "Starter";
   const totalOrders = dashboard?.totalOrders ?? 0;
   const totalReferrals = dashboard?.totalReferrals ?? user?.teamIds?.length ?? 0;
   const walletBalance = dashboard?.walletBalance ?? 0;
+  const networkWalletBalance = dashboard?.networkWalletBalance ?? 0;
   const activeDirects = dashboard?.activeDirects ?? 0;
   const referralCode = user?.referralCode || "N/A";
   const partnerStats = buildPartnerStats({
     totalOrders,
     totalReferrals,
-    rank: displayRank,
-    activeDirects
+    wp: dashboard?.activeWomaniyaaPoints || 0,
+    swp: dashboard?.activeSuperWomaniyaaPoints || 0
   });
 
   const recentOrder = (partnerData as any)?.recentOrder;
@@ -164,34 +184,15 @@ export default async function EarningsPage() {
     <main className="min-h-screen bg-[#fcf9f4] pt-10 text-[#1c1c19] sm:pt-10 md:pt-10 lg:pt-10">
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-5 md:px-8 md:pb-20 lg:px-10">
         <div className="overflow-hidden rounded-[2rem] border border-[#e6dcd4] bg-white shadow-[0_24px_70px_rgba(95,93,62,0.06)]">
-          <header className="flex items-center justify-between gap-3 border-b border-[#e6dcd4] px-4 py-4 sm:px-5 md:px-6">
-            <button
-              type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e6dcd4] bg-[#fcf9f4] text-[#5f5d3e] shadow-[0_8px_20px_rgba(95,93,62,0.05)] md:h-12 md:w-12"
-              aria-label="Open menu"
-            >
-              <FaBars className="text-[1rem] md:text-[1.1rem]" />
-            </button>
-
+          <header className="flex items-center justify-center border-b border-[#e6dcd4] px-4 py-6 sm:px-5 md:px-6">
             <div className="text-center">
               <p className="font-[family:var(--font-display)] text-[2rem] leading-[0.95] tracking-[-0.04em] text-[#5f5d3e] sm:text-[2.5rem] md:text-[3.4rem]">
-                HeyWomaniyaa
+                Hey Womaniyaa
               </p>
               <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#5f5d3e]/80 sm:text-[0.72rem]">
                 Empowered Women, Empower Women
               </p>
             </div>
-
-            <button
-              type="button"
-              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e6dcd4] bg-[#fcf9f4] text-[#5f5d3e] shadow-[0_8px_20px_rgba(95,93,62,0.05)] md:h-12 md:w-12"
-              aria-label="Notifications"
-            >
-              <FaBell className="text-[1rem] md:text-[1.1rem]" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#9c4049] px-1 text-[0.65rem] font-semibold text-white">
-                3
-              </span>
-            </button>
           </header>
 
           <section className="px-3 py-4 sm:px-4 md:px-6 md:py-6">
@@ -233,23 +234,26 @@ export default async function EarningsPage() {
               </div>
 
               <div className="rounded-[1.4rem] border border-[#e6dcd4] bg-white p-4 md:p-5">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#5f5d3e]/78">
-                  My Balance
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#5f5d3e]/78 mb-1">
+                  Network Earnings
                 </p>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="text-[1.9rem] font-bold tracking-[-0.04em] text-[#1c1c19] sm:text-[2.2rem] md:text-[2.6rem]">
-                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <p className="text-[1.9rem] font-bold tracking-[-0.04em] text-[#9c4049] sm:text-[2.2rem] md:text-[2.4rem]">
+                    ₹{networkWalletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <span className="text-[#6d655d]">
                     <span className="material-symbols-outlined">visibility</span>
                   </span>
                 </div>
-                <Link
-                  href="/earnings/wallet"
-                  className="mt-4 inline-flex rounded-xl bg-[#5f5d3e] px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                >
-                  My Wallet
-                </Link>
+                
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5f5d3e]/78 mb-1 border-t border-[#e6dcd4] pt-3">
+                  Shopping Wallet
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[1.2rem] font-bold tracking-[-0.04em] text-[#1c1c19] sm:text-[1.4rem]">
+                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -273,6 +277,87 @@ export default async function EarningsPage() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 md:mt-5 md:grid-cols-2">
+              <div className="rounded-[1.15rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)] md:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[#9c4049]">
+                    Womaniyaa Point
+                  </p>
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#fcf9f4] text-xs font-bold text-[#9c4049]">
+                    {dashboard?.activeWomaniyaaPoints || 0}
+                  </span>
+                </div>
+                <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-2">
+                  <div className="absolute top-0 left-0 bg-[#9c4049] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.womaniyaaPointsStreak || 0) / 3) * 100)}%` }}></div>
+                  <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                </div>
+                <p className="text-xs text-[#6d655d] text-right font-medium">
+                  {dashboard?.womaniyaaPointsStreak || 0} / 3 Months (5L Team, 10k Self)
+                </p>
+              </div>
+
+              <div className="rounded-[1.15rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)] md:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[#5f5d3e]">
+                    Super Womaniyaa Point
+                  </p>
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#fcf9f4] text-xs font-bold text-[#5f5d3e]">
+                    {dashboard?.activeSuperWomaniyaaPoints || 0}
+                  </span>
+                </div>
+                <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-2">
+                  <div className="absolute top-0 left-0 bg-[#5f5d3e] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.superWomaniyaaPointsStreak || 0) / 6) * 100)}%` }}></div>
+                  <div className="absolute top-1/2 left-[16.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-[50%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-[83.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                </div>
+                <p className="text-xs text-[#6d655d] text-right font-medium">
+                  {dashboard?.superWomaniyaaPointsStreak || 0} / 6 Months (2.5Cr Team, 25k Self)
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.15rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)] md:p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[#d89c4c]">
+                  Monthly Bonus Progress
+                </p>
+                <span className="inline-flex h-6 px-2 items-center justify-center rounded-full bg-[#fcf9f4] text-xs font-bold text-[#d89c4c]">
+                  {monthlyBonusPercent}% Unlocked
+                </span>
+              </div>
+              
+              <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-6">
+                <div className="absolute top-0 left-0 bg-[#d89c4c] h-2.5 rounded-full transition-all duration-500 z-10" style={{ width: `${monthlyBonusProgress}%` }}></div>
+                
+                {/* 25k Marker */}
+                <div className="absolute top-1/2 left-[25%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                <div className="absolute top-4 left-[25%] -translate-x-1/2 text-[0.65rem] font-bold text-[#6d655d] whitespace-nowrap">25K (0.5%)</div>
+                
+                {/* 50k Marker */}
+                <div className="absolute top-1/2 left-[50%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                <div className="absolute top-4 left-[50%] -translate-x-1/2 text-[0.65rem] font-bold text-[#6d655d] whitespace-nowrap">50K (1%)</div>
+                
+                {/* 1L Marker */}
+                <div className="absolute top-1/2 left-[100%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full hidden"></div>
+                <div className="absolute top-4 right-0 text-[0.65rem] font-bold text-[#6d655d] whitespace-nowrap">1L (2%)</div>
+              </div>
+
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-[#1c1c19] font-bold">
+                  ₹{monthlySelfSales.toLocaleString("en-IN")} <span className="text-[#6d655d] font-medium">Self Sales</span>
+                </p>
+                {monthlySelfSales < 100000 && (
+                  <p className="text-xs text-[#6d655d] text-right font-medium">
+                    Next Tier: ₹{nextMilestone.toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 overflow-hidden rounded-[1.35rem] bg-[linear-gradient(120deg,#4a4933_0%,#5f5d3e_45%,#8b8865_100%)] px-4 py-5 text-white shadow-[0_14px_38px_rgba(95,93,62,0.15)] md:mt-5 md:rounded-[1.5rem] md:px-6 md:py-6">
@@ -302,6 +387,21 @@ export default async function EarningsPage() {
                   </Link>
                 );
               })}
+              <AccountInfoSection user={user as any} />
+            </div>
+
+            <div className="mt-8">
+              <h2 className="font-[family:var(--font-display)] text-[1.4rem] tracking-[-0.03em] text-[#1c1c19] sm:text-[1.65rem] md:text-[2rem]">
+                New Partner Program
+              </h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {incomeCards.map((card) => (
+                  <div key={card.title} className="rounded-[1.2rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_4px_12px_rgba(95,93,62,0.03)]">
+                    <h3 className="text-lg font-bold text-[#1c1c19]">{card.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[#6d655d]">{card.copy}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="mt-4 rounded-[1.3rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_12px_28px_rgba(95,93,62,0.04)] md:mt-5 md:rounded-[1.6rem] md:p-5">

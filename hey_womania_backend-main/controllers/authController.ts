@@ -5,7 +5,7 @@ import { Admin } from "../models/Admin";
 import { createSessionToken, hashPassword, verifyPassword } from "../utils/authHelpers";
 
 const SESSION_COOKIE_NAME = "hey_womania_session";
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 60;
 
 function createReferralCode(firstName: string) {
   const prefix = firstName.replace(/[^a-z0-9]/gi, "").slice(0, 4).toUpperCase() || "HEY";
@@ -14,8 +14,18 @@ function createReferralCode(firstName: string) {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, phone, password, role, ref } = req.body;
+    const { firstName, lastName, email, phone, password, role, ref, refType } = req.body;
     
+    // Validate refType restriction
+    if (ref && refType) {
+      if (refType === 'customer' && role === 'partner') {
+        return res.status(400).json({ error: "This link is for customer registration only." });
+      }
+      if (refType === 'partner' && role === 'member') {
+        return res.status(400).json({ error: "This link is for partner registration only." });
+      }
+    }
+
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) {
       return res.status(400).json({ error: "An account already exists with this email." });
@@ -36,15 +46,25 @@ export const register = async (req: Request, res: Response) => {
       verified: false,
       rank: role === "partner" ? "Starter" : "",
       referralCode: createReferralCode(firstName),
+      partnerReferralCode: role === "partner" ? `HW-${crypto.randomBytes(3).toString("hex").toUpperCase()}` : undefined,
       teamIds: [],
+      joinedViaRefType: (ref && refType) ? refType : undefined,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      partnerProfile: {
+        walletBalance: role === "partner" ? 100 : 0,
+        networkWalletBalance: 0
+      }
     });
 
     if (ref) {
-      const sponsor = await User.findOne({ referralCode: ref.toString().toUpperCase().trim() });
+      const sponsorRef = ref.toString().toUpperCase().trim();
+      const sponsor = await User.findOne({ 
+        $or: [{ referralCode: sponsorRef }, { partnerReferralCode: sponsorRef }] 
+      });
       if (sponsor) {
         newUser.uplineId = sponsor.id;
+        newUser.ancestors = [...(sponsor.ancestors || []), sponsor.id];
         if (!sponsor.teamIds) {
           sponsor.teamIds = [];
         }

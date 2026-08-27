@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FaBoxOpen, FaShippingFast, FaCheckCircle, FaUserCircle } from "react-icons/fa";
+import BecomePartnerModal from "./BecomePartnerModal";
+import AccountInfoSection from "@/components/AccountInfoSection";
 
 
 const parseAmount = (value: number | string | undefined | null) => {
@@ -61,6 +63,8 @@ async function fetchOrders() {
   }
 }
 
+import CopyInviteButton from "@/components/CopyInviteButton";
+
 export default async function AccountPage() {
   const user = await fetchUser();
   if (!user || !["member", "partner"].includes(user.role)) {
@@ -72,6 +76,35 @@ export default async function AccountPage() {
 
   return (
     <section className="flex flex-col gap-6">
+      {/* Referral Section */}
+      <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)] md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-[family:var(--font-display)] text-2xl">
+            Earning Room
+          </h2>
+          <p className="mt-2 text-sm text-[#6d655d]">
+            {user.role === "partner" 
+              ? "Track your team sales, point pools, and network income."
+              : "Become a partner to earn through our powerful referral network."}
+          </p>
+        </div>
+        <div>
+          {user.role === "partner" ? (
+            <Link 
+              href="/earnings" 
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 bg-[#5f5d3e]"
+            >
+              Enter Dashboard
+            </Link>
+          ) : (
+            <BecomePartnerModal user={user} />
+          )}
+        </div>
+      </div>
+
+      {/* Account Info: Personal, KYC & Bank Details */}
+      <AccountInfoSection user={user} renderAsCard={true} />
+
       {/* Orders Overview */}
       <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)] md:p-8">
         <div className="flex items-center justify-between">

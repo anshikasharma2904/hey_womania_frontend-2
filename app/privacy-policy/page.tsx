@@ -108,7 +108,7 @@ export default function PrivacyPolicy() {
               
               <div id="collection" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">1. Information We Collect</h2>
-                <p className="mb-4">HeyWomaniyaa may collect the following information from users:</p>
+                <p className="mb-4">Hey Womaniyaa may collect the following information from users:</p>
                 <ul className="list-disc pl-5 mb-4 space-y-2">
                   <li>Name, Mobile number, Email address</li>
                   <li>Billing and Shipping addresses</li>
@@ -134,17 +134,17 @@ export default function PrivacyPolicy() {
 
               <div id="payments" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">3. Payment Information</h2>
-                <p className="mb-4">Online payments on HeyWomaniyaa are processed through secure third-party payment gateways. HeyWomaniyaa does not store full card numbers, CVV, UPI PIN, or net banking passwords.</p>
+                <p className="mb-4">Online payments on Hey Womaniyaa are processed through secure third-party payment gateways. Hey Womaniyaa does not store full card numbers, CVV, UPI PIN, or net banking passwords.</p>
               </div>
 
               <div id="kyc" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">4. KYC and Payout Information</h2>
-                <p className="mb-4">If you are eligible for rewards or wallet withdrawals, HeyWomaniyaa may collect KYC details. This is used strictly for identity verification, fraud prevention, and tax compliance.</p>
+                <p className="mb-4">If you are eligible for rewards or wallet withdrawals, Hey Womaniyaa may collect KYC details. This is used strictly for identity verification, fraud prevention, and tax compliance.</p>
               </div>
 
               <div id="sharing" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">5. Sharing of Information</h2>
-                <p className="mb-4">HeyWomaniyaa may share required information with trusted third parties only when necessary, such as courier partners, payment gateways, and KYC verification providers. We do not sell your personal information.</p>
+                <p className="mb-4">Hey Womaniyaa may share required information with trusted third parties only when necessary, such as courier partners, payment gateways, and KYC verification providers. We do not sell your personal information.</p>
               </div>
 
               <div id="cookies" className="scroll-mt-32 mb-10">
@@ -154,7 +154,7 @@ export default function PrivacyPolicy() {
 
               <div id="security" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">7. Data Security</h2>
-                <p className="mb-4">HeyWomaniyaa uses reasonable security measures to protect user data. However, users are responsible for keeping their login details and OTPs safe.</p>
+                <p className="mb-4">Hey Womaniyaa uses reasonable security measures to protect user data. However, users are responsible for keeping their login details and OTPs safe.</p>
               </div>
 
               <div id="retention" className="scroll-mt-32 mb-10">
@@ -164,12 +164,12 @@ export default function PrivacyPolicy() {
 
               <div id="marketing" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">9. Marketing Communication</h2>
-                <p className="mb-4">By using HeyWomaniyaa, you may receive promotional messages. You may opt out of promotional communication at any time.</p>
+                <p className="mb-4">By using Hey Womaniyaa, you may receive promotional messages. You may opt out of promotional communication at any time.</p>
               </div>
 
               <div id="rights" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">10. User Rights</h2>
-                <p className="mb-4">Users may request to update, correct, or delete their personal information where applicable by contacting HeyWomaniyaa support.</p>
+                <p className="mb-4">Users may request to update, correct, or delete their personal information where applicable by contacting Hey Womaniyaa support.</p>
               </div>
 
               <div className="mt-16 rounded-xl border border-[#ece6df] bg-[#fcf9f4] p-6 text-sm">

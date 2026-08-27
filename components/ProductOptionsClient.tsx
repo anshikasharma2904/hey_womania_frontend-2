@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
+import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart } from "react-icons/fa";
+import { useWishbag } from "@/contexts/WishbagContext";
 
 interface Variant {
   sku?: string;
@@ -23,6 +24,7 @@ interface ProductOptionsClientProps {
 }
 
 export function ProductOptionsClient({ product, onColorChange }: ProductOptionsClientProps) {
+  const { isWishbagged, addToWishbag, removeFromWishbag } = useWishbag();
   const variants = product.variants || [];
 
   // Canonical size order for clothing
@@ -174,9 +176,14 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
     );
 
     if (existingIndex > -1) {
-      currentCart[existingIndex].quantity += itemDetails.quantity;
+      currentCart[existingIndex].quantity = Math.min(
+        currentCart[existingIndex].quantity + itemDetails.quantity,
+        availableStock
+      );
+      // Also update maxStock for fallback on cart page
+      currentCart[existingIndex].maxStock = availableStock;
     } else {
-      currentCart.push(itemDetails);
+      currentCart.push({ ...itemDetails, maxStock: availableStock });
     }
 
     localStorage.setItem("hey_womania_cart", JSON.stringify(currentCart));
@@ -418,6 +425,35 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
           className="rounded-full border border-[#ddd5cc] bg-white px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#111111] transition hover:bg-[#f4efe8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Buy Now
+        </button>
+      </div>
+
+      {/* Wishlist Button */}
+      <div className="mt-4 flex">
+        <button
+          type="button"
+          onClick={() => {
+            const slugStr = (product as any).slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            if (isWishbagged(slugStr)) {
+              removeFromWishbag(slugStr);
+            } else {
+              addToWishbag({
+                slug: slugStr,
+                title: product.name,
+                category: (product as any).categoryLabel || "Live Collection",
+                price: String(product.price),
+                image: product.image || "",
+                href: `/product/${slugStr}`
+              });
+            }
+          }}
+          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.1em] text-[#9c4049] transition-all hover:opacity-80 active:scale-95"
+        >
+          {isWishbagged((product as any).slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) ? (
+            <><FaHeart className="text-base" /> Remove from Wishbag</>
+          ) : (
+            <><FaRegHeart className="text-base" /> Add to Wishbag</>
+          )}
         </button>
       </div>
     </div>

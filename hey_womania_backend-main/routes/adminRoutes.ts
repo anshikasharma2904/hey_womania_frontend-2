@@ -1,5 +1,5 @@
 import express from "express";
-import { getDashboardStats } from "../controllers/adminController";
+import { getDashboardStats, getCentralWalletStats } from "../controllers/adminController";
 import { getSettings, updateSettings } from "../controllers/settingController";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "../controllers/categoryController";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../controllers/productController";
@@ -17,6 +17,7 @@ import { getZohoStatus, pullAllStock, pullProductStock, syncAllProducts, syncPro
 const router = express.Router();
 
 router.get("/dashboard/stats", getDashboardStats);
+router.get("/dashboard/central-wallet", getCentralWalletStats);
 router.get("/settings", getSettings);
 router.put("/settings", updateSettings);
 

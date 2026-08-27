@@ -53,3 +53,15 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   req.user = payload;
   next();
 };
+
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies[SESSION_COOKIE_NAME];
+  if (token) {
+    const payload = verifySessionToken(token);
+    if (payload) {
+      // @ts-ignore
+      req.user = payload;
+    }
+  }
+  next();
+};

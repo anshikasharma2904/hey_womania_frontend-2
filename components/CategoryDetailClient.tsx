@@ -3,6 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { formatCoOrd } from "@/lib/format-utils";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { useWishbag } from "@/contexts/WishbagContext";
 import type {
   CategoryPageData,
   CategoryQuickLink
@@ -75,6 +78,7 @@ export function CategoryDetailClient({
   activeQuickLink,
   sizes
 }: CategoryDetailClientProps) {
+  const { isWishbagged, addToWishbag, removeFromWishbag } = useWishbag();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
@@ -249,7 +253,7 @@ export function CategoryDetailClient({
     }
 
     if (selectedCategories.length === 1) {
-      return selectedCategories[0];
+      return formatCoOrd(selectedCategories[0]);
     }
 
     if (selectedSubcategories.length > 1) {
@@ -260,19 +264,19 @@ export function CategoryDetailClient({
       return `${selectedCategories.length} categories`;
     }
 
-    return category.title;
+    return formatCoOrd(category.title);
   }, [category.title, selectedCategories, selectedSubcategories]);
 
   const activeHeaderTitle = useMemo(() => {
     if (selectedSubcategories.length === 1) {
-      return selectedSubcategories[0];
+      return formatCoOrd(selectedSubcategories[0]);
     }
 
     if (selectedCategories.length === 1) {
-      return selectedCategories[0];
+      return formatCoOrd(selectedCategories[0]);
     }
 
-    return category.title;
+    return formatCoOrd(category.title);
   }, [category.title, selectedCategories, selectedSubcategories]);
 
   const handleCategoryToggle = (value: string) => {
@@ -378,7 +382,7 @@ export function CategoryDetailClient({
                         : "border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
                     }`}
                   >
-                    {item}
+                    {formatCoOrd(item)}
                   </button>
                 );
               })}
@@ -405,7 +409,7 @@ export function CategoryDetailClient({
                         : "border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
                     }`}
                   >
-                    {item}
+                    {formatCoOrd(item)}
                   </button>
                 );
               })}
@@ -462,7 +466,7 @@ export function CategoryDetailClient({
       </aside>
 
       {/* ----------------- Mobile Drawer & Products Grid Area ----------------- */}
-      <div>
+      <div className="w-full min-w-0 max-w-full">
         {/* Mobile Filter Drawer Overlay */}
         <div
           className={`fixed inset-0 z-[60] bg-[#2d251f]/25 transition-opacity duration-300 lg:hidden ${
@@ -509,7 +513,7 @@ export function CategoryDetailClient({
                           : "border-[#ddd5cc] bg-white text-[#6d655d]"
                       }`}
                     >
-                      {item}
+                      {formatCoOrd(item)}
                     </button>
                   );
                 })}
@@ -536,7 +540,7 @@ export function CategoryDetailClient({
                           : "border-[#ddd5cc] bg-white text-[#6d655d]"
                       }`}
                     >
-                      {item}
+                      {formatCoOrd(item)}
                     </button>
                   );
                 })}
@@ -660,26 +664,58 @@ export function CategoryDetailClient({
                     className="group block w-full min-w-0 max-w-full box-border overflow-hidden rounded-[1rem] sm:rounded-[1.75rem] border border-[#ece6df] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(95,93,62,0.1)]"
                   >
                     <div className="p-1.5 sm:p-4 pb-0 w-full min-w-0 box-border">
-                      <div className="relative aspect-[3/4] w-full min-w-0 overflow-hidden rounded-[0.85rem] sm:rounded-[1.35rem] bg-[#f4efe8] flex items-center justify-center p-1">
+                      <div className="relative aspect-[3/4] w-full min-w-0 overflow-hidden rounded-[0.85rem] sm:rounded-[1.35rem] bg-[#f4efe8]">
                         <Image
                           src={product.image}
                           alt={product.name}
                           fill
                           className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                         />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const slugStr = (product as any).slug || slugifyProductName(product.name);
+                            if (isWishbagged(slugStr)) {
+                              removeFromWishbag(slugStr);
+                            } else {
+                              addToWishbag({
+                                slug: slugStr,
+                                title: product.name,
+                                category: (product as any).categoryLabel || "Live Collection",
+                                price: String(product.price),
+                                image: product.image,
+                                href: `/product/${slugStr}`
+                              });
+                            }
+                          }}
+                          className="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-[#9c4049] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:scale-110 active:scale-95 sm:h-9 sm:w-9 sm:left-2 sm:top-2"
+                        >
+                          {isWishbagged((product as any).slug || slugifyProductName(product.name)) ? (
+                            <FaHeart className="text-[0.55rem] sm:text-sm sm:text-base" />
+                          ) : (
+                            <FaRegHeart className="text-[0.55rem] sm:text-sm sm:text-base" />
+                          )}
+                        </button>
+                        {(product as any).discountPercentage ? (
+                          <div className="absolute right-1.5 top-1.5 z-10 flex items-center justify-center rounded-full bg-[#9c4049] px-1.5 py-0.5 text-[0.55rem] font-bold tracking-wider text-white shadow-sm sm:right-2 sm:top-2 sm:px-2.5 sm:py-1 sm:text-[0.7rem]">
+                            -{(product as any).discountPercentage}%
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
                     <div className="flex w-full min-w-0 flex-col gap-1 p-2 sm:p-4 pt-2 sm:pt-4 box-border">
                       <p className="truncate text-[0.55rem] uppercase tracking-[0.14em] text-[#9c4049]/72 sm:text-[0.64rem]">
-                        {(product as any).categoryLabel || "Live Collection"}
+                        {formatCoOrd((product as any).categoryLabel || "Live Collection")}
                       </p>
                       <h2 className="line-clamp-2 min-h-[2.1rem] text-[0.75rem] font-semibold leading-[1.05rem] text-[#1c1c19] break-words sm:min-h-[2.8rem] sm:text-[1.05rem] sm:leading-[1.35rem]">
-                        {product.name}
+                        {formatCoOrd(product.name)}
                       </h2>
                       {(product as any).subcategoryLabel ? (
                         <p className="truncate text-[0.68rem] text-[#8a8076] sm:text-[0.82rem]">
-                          {(product as any).subcategoryLabel}
+                          {formatCoOrd((product as any).subcategoryLabel)}
                         </p>
                       ) : null}
                       <div className="mt-auto flex flex-wrap items-center justify-between gap-1 pt-0.5">
@@ -718,7 +754,7 @@ export function CategoryDetailClient({
                   <span className="font-bold text-[#111111]">{filteredProducts.length}</span> items
                 </p>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap justify-center items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handlePageChange(currentPage - 1)}
@@ -728,24 +764,48 @@ export function CategoryDetailClient({
                     ‹
                   </button>
 
-                  {Array.from({ length: totalPages }).map((_, idx) => {
-                    const pageNum = idx + 1;
-                    const isActive = pageNum === currentPage;
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition ${
-                          isActive
-                            ? "bg-[#9c4049] text-white shadow-md"
-                            : "border border-[#ddd5cc] bg-white text-[#48473d] hover:bg-[#f4efe8]"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                  {(() => {
+                    const items: (number | string)[] = [];
+                    const window = 1; // Number of pages to show around current page
+                    
+                    for (let i = 1; i <= totalPages; i++) {
+                      if (
+                        i === 1 || 
+                        i === totalPages ||
+                        (i >= currentPage - window && i <= currentPage + window)
+                      ) {
+                        items.push(i);
+                      } else if (items[items.length - 1] !== "...") {
+                        items.push("...");
+                      }
+                    }
+                    
+                    return items.map((item, idx) => {
+                      if (item === "...") {
+                        return (
+                          <span key={`ellipsis-${idx}`} className="flex h-9 w-9 items-center justify-center text-[#7b6d64]">
+                            ...
+                          </span>
+                        );
+                      }
+                      const pageNum = item as number;
+                      const isActive = pageNum === currentPage;
+                      return (
+                        <button
+                          key={`page-${pageNum}`}
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition ${
+                            isActive
+                              ? "bg-[#9c4049] text-white shadow-md"
+                              : "border border-[#ddd5cc] bg-white text-[#48473d] hover:bg-[#f4efe8]"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    });
+                  })()}
 
                   <button
                     type="button"

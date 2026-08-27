@@ -3,14 +3,15 @@ import { FaChevronRight, FaUsers, FaUserPlus, FaShareAlt } from "react-icons/fa"
 import { MdLeaderboard, MdOutlineCurrencyRupee } from "react-icons/md";
 import { getPartnerDashboardData, getPartnerReferralsList } from "@/lib/server/partner-dashboard";
 import CopyInviteButton from "@/components/CopyInviteButton";
+import TeamListClient from "@/components/TeamListClient";
 
 const filters = ["All", "Level 1", "Level 2", "Level 3"];
 
-function buildOverviewCards(activeDirects: number, teamSp: number, score: string) {
+function buildOverviewCards(totalTeamSize: number, teamSales: number, wpCount: number) {
   return [
-    { label: "Active Direct", value: `${activeDirects}`, icon: FaUsers },
-    { label: "Monthly Team Sales", value: `₹${teamSp.toLocaleString("en-IN")}`, icon: MdOutlineCurrencyRupee },
-    { label: "Unlocked Score", value: score, icon: MdLeaderboard }
+    { label: "Total Team Size", value: `${totalTeamSize}`, icon: FaUsers },
+    { label: "Monthly Team Sales", value: `₹${teamSales.toLocaleString("en-IN")}`, icon: MdOutlineCurrencyRupee },
+    { label: "Womaniyaa Points", value: `${wpCount}`, icon: MdLeaderboard }
   ];
 }
 
@@ -30,10 +31,13 @@ export default async function TeamPage() {
   const l3SP = dbL3.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
   const teamSp = l1SP + l2SP + l3SP;
 
+  const totalTeamSize = dbL1.length + dbL2.length + dbL3.length;
+  const wpCount = partnerData?.user?.partnerProfile?.womaniyaaPoints?.length || 0;
+
   const overviewCards = buildOverviewCards(
-    dbL1.length,
+    totalTeamSize,
     teamSp,
-    dashboard?.rank || "Starter"
+    wpCount
   );
 
   const teamRows = [
@@ -115,77 +119,9 @@ export default async function TeamPage() {
               })}
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              {filters.map((filter, index) => (
-                <span
-                  key={filter}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] ${
-                    index === 0
-                      ? "border-[#7f3144] bg-[#7f3144] text-white"
-                      : "border-[#e7ddd2] bg-white text-[#5f5d3e]"
-                  }`}
-                >
-                  {filter}
-                </span>
-              ))}
-            </div>
-
             <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="rounded-[1.5rem] border border-[#f0ddd6] bg-white p-4 shadow-[0_12px_28px_rgba(95,93,62,0.04)] md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-[family:var(--font-display)] text-[1.35rem] tracking-[-0.03em] text-[#382933] md:text-[1.7rem]">
-                    Team Level Members
-                  </h2>
-                  <span className="text-xs uppercase tracking-[0.14em] text-[#9c4049]">
-                    Live
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {teamRows.map((row, index) => (
-                    <div
-                      key={`${row.name}-${row.level}`}
-                      className="grid gap-3 rounded-[1rem] bg-[#fff9f7] p-4 md:grid-cols-[1fr_auto_auto] md:items-center"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7f3144] text-sm font-bold text-white">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-[#2a2430]">{row.name}</p>
-                          <p className="mt-1 text-[0.68rem] uppercase tracking-[0.12em] text-[#7b6f69]">
-                            {row.joined}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-[#5e5a54]">
-                        <span className="rounded-full border border-[#eddad3] bg-white px-3 py-1 text-xs uppercase tracking-[0.12em] text-[#9c4049]">
-                          {row.level}
-                        </span>
-                        <span>{row.status}</span>
-                      </div>
-                      <div className="md:text-right">
-                        <p className="text-lg font-bold text-[#2a2430]">{row.business}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-[1.2rem] border border-[#f0ddd6] bg-[linear-gradient(120deg,#fff1f4_0%,#fff9f6_100%)] p-4">
-                  <p className="font-[family:var(--font-display)] text-[1.2rem] tracking-[-0.02em] text-[#7a2e43] md:text-[1.5rem]">
-                    Build with care, grow with style.
-                  </p>
-                  <p className="mt-1 text-sm text-[#b26a6d]">
-                    Track Level 1, 2, and 3 teams for fast track income and score qualification.
-                  </p>
-                  <Link
-                    href="/earnings/referrals"
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#7f3144] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-                  >
-                    <FaShareAlt className="text-[0.85rem]" />
-                    View Referrals
-                  </Link>
-                </div>
+              <div className="flex flex-col gap-5">
+                <TeamListClient teamRows={teamRows} />
               </div>
 
               <div className="grid gap-4 xl:sticky xl:top-6 xl:self-start">

@@ -86,6 +86,11 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
                     sizes="(max-width: 768px) 42vw, (max-width: 1200px) 21vw, 260px"
                     className={`absolute w-auto object-contain transition-transform duration-500 group-hover:scale-[1.04] ${item.imageClass}`}
                   />
+                  {(item as any).discountPercentage ? (
+                    <div className="absolute right-2 top-2 z-10 flex items-center justify-center rounded-full bg-[#9c4049] px-2 py-1 text-[0.65rem] font-bold tracking-wider text-white shadow-sm sm:px-2.5 sm:py-1 sm:text-[0.7rem]">
+                      -{(item as any).discountPercentage}%
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

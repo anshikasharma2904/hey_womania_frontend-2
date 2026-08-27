@@ -34,8 +34,11 @@ const userSchema = new mongoose.Schema({
   verified: { type: Boolean, default: false },
   rank: String,
   referralCode: String,
+  partnerReferralCode: String,
   uplineId: String,
   teamIds: [String],
+  ancestors: [String],
+  joinedViaRefType: { type: String, enum: ["customer", "partner"] },
   address: {
     streetAddress: String,
     streetAddressLine2: String,
