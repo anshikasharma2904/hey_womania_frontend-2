@@ -72,7 +72,7 @@ export const getCentralWalletStats = async (req: Request, res: Response) => {
     
     let totalNetworkBalances = 0;
     
-    const partnerStats = partners.map(p => {
+    const partnerStats = await Promise.all(partners.map(async p => {
       const nwBalance = p.partnerProfile?.networkWalletBalance || 0;
       totalNetworkBalances += nwBalance;
       return {
@@ -81,9 +81,9 @@ export const getCentralWalletStats = async (req: Request, res: Response) => {
         email: p.email,
         networkWalletBalance: nwBalance,
         shoppingWalletBalance: p.partnerProfile?.walletBalance || 0,
-        teamSize: p.teamIds?.length || 0
+        teamSize: await User.countDocuments({ role: "partner", ancestors: p.id })
       };
-    });
+    }));
 
     res.json({
       success: true,

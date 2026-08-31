@@ -24,7 +24,7 @@ import {
   syncZohoCategoriesToDb,
   syncZohoItemsToProducts
 } from "./services/zohoInventoryService";
-import { runAutomatedMonthlyClosing } from "./controllers/closingController";
+import { lockCurrentSalesMonth, runAutomatedMonthlyClosing } from "./controllers/closingController";
 
 dotenv.config(); // Load .env
 dotenv.config({ path: "env" }); // Load env (without dot fallback)
@@ -174,7 +174,13 @@ async function bootstrap() {
   cron.schedule("0 0 10 * *", () => {
     console.log("[CRON] Running automated monthly closing...");
     runAutomatedMonthlyClosing();
-  });
+  }, { timezone: "Asia/Kolkata" });
+
+  // Run on possible month-end dates; the handler locks only the actual final
+  // calendar day (28/29 February and 30/31-day months are all supported).
+  cron.schedule("59 23 28-31 * *", () => {
+    lockCurrentSalesMonth().catch(error => console.error("[Sales Close] Failed:", error));
+  }, { timezone: "Asia/Kolkata" });
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

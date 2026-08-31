@@ -19,8 +19,19 @@ const walletTransactionSchema = new mongoose.Schema({
     required: true 
   },
   description: { type: String, required: true },
+  orderId: String,
+  referralCustomerId: String,
+  commissionMonth: String,
   createdAt: { type: String, required: true },
   updatedAt: { type: String, required: true },
 }, { collection: "walletTransactions" });
+
+walletTransactionSchema.index(
+  { source: 1, type: 1, orderId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { source: "Affiliate Link", orderId: { $type: "string" } }
+  }
+);
 
 export const WalletTransaction = mongoose.model("WalletTransaction", walletTransactionSchema);

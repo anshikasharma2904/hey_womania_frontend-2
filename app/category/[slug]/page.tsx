@@ -298,10 +298,40 @@ export default async function CategoryDetailPage({
         discountPercentage = isJewellery ? 20 : 15;
       }
 
-      const gallery = (p.images || []).map((img: string) => {
-        if (img.startsWith("http")) return img;
-        return `${API_URL}${img}`;
-      });
+      const gallery = (p.images || [])
+        .filter(Boolean)
+        .map((img: string) => {
+          if (img.startsWith("http")) return img;
+          return `${API_URL}${img}`;
+        });
+
+      let defaultImage = null;
+      
+      if (Array.isArray(p.variants)) {
+        const vWithImg = p.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+        if (vWithImg) {
+          const img = vWithImg.images[0];
+          defaultImage = img.startsWith("http") ? img : `${API_URL}${img}`;
+        }
+      }
+
+      if (!defaultImage && gallery.length > 0) {
+        defaultImage = gallery[0];
+      }
+
+      if (!defaultImage) {
+        defaultImage = "/products/product-placeholder.png";
+      }
+
+      const normalizedVariants = Array.isArray(p.variants)
+        ? p.variants.map((v: any) => ({
+            ...v,
+            images: (v.images || []).filter(Boolean).map((img: string) => {
+              if (img.startsWith("http")) return img;
+              return `${API_URL}${img}`;
+            })
+          }))
+        : [];
 
       return {
         id: p.id,
@@ -312,14 +342,12 @@ export default async function CategoryDetailPage({
         subtitle: p.description || "Newly added",
         categoryLabel: formatCategoryLabel(categoryParts[1] || categoryParts[0] || "Collection"),
         subcategoryLabel: categoryParts[2] ? formatCategoryLabel(categoryParts[2]) : undefined,
-        image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
+        image: defaultImage,
         gallery,
-        variants: p.variants || [],
-        sizes: Array.isArray(p.variants)
-          ? p.variants
-              .map((variant: any) => String(variant?.size || "").trim())
-              .filter(Boolean)
-          : [],
+        variants: normalizedVariants,
+        sizes: normalizedVariants
+          .map((variant: any) => String(variant?.size || "").trim())
+          .filter(Boolean),
         slug: p.slug
       };
     })

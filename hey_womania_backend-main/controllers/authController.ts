@@ -52,28 +52,50 @@ export const register = async (req: Request, res: Response) => {
       createdAt: now,
       updatedAt: now,
       partnerProfile: {
-        walletBalance: role === "partner" ? 100 : 0,
+        walletBalance: 100,
         networkWalletBalance: 0
       }
     });
+
+    let sponsorToUpdate = null;
 
     if (ref) {
       const sponsorRef = ref.toString().toUpperCase().trim();
       const sponsor = await User.findOne({ 
         $or: [{ referralCode: sponsorRef }, { partnerReferralCode: sponsorRef }] 
       });
-      if (sponsor) {
-        newUser.uplineId = sponsor.id;
-        newUser.ancestors = [...(sponsor.ancestors || []), sponsor.id];
-        if (!sponsor.teamIds) {
-          sponsor.teamIds = [];
-        }
-        sponsor.teamIds.push(newUser.id);
-        await sponsor.save();
+
+      if (!sponsor) {
+        return res.status(400).json({ error: "Invalid referral code." });
       }
+
+      const userRole = role || "member";
+      if (userRole === "member" && sponsor.partnerReferralCode === sponsorRef) {
+        return res.status(400).json({ error: "This referral code is for partner registration only." });
+      }
+      if (userRole === "partner" && sponsor.referralCode === sponsorRef) {
+        return res.status(400).json({ error: "This referral code is for customer registration only." });
+      }
+
+      newUser.uplineId = sponsor.id;
+      newUser.ancestors = [...(sponsor.ancestors || []), sponsor.id];
+      // Manually entered codes do not include a URL refType. Infer the
+      // relationship from the chosen account role after the code is validated.
+      newUser.joinedViaRefType = refType === "customer" || refType === "partner"
+        ? refType
+        : (userRole === "partner" ? "partner" : "customer");
+      sponsorToUpdate = sponsor;
     }
 
     await newUser.save();
+
+    if (sponsorToUpdate) {
+      if (!sponsorToUpdate.teamIds) {
+        sponsorToUpdate.teamIds = [];
+      }
+      sponsorToUpdate.teamIds.push(newUser.id);
+      await sponsorToUpdate.save();
+    }
 
     const token = createSessionToken({ id: newUser.id, role: newUser.role as string });
     
@@ -87,6 +109,7 @@ export const register = async (req: Request, res: Response) => {
 
     res.json({ success: true, user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role } });
   } catch (error) {
+    console.error("Register error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

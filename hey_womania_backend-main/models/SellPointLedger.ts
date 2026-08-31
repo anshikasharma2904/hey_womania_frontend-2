@@ -4,6 +4,7 @@ const sellPointLedgerSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   userId: { type: String, required: true },
   orderId: { type: String, required: true },
+  salesMonth: { type: String, index: true },
   productId: String,
   sellPrice: Number,
   sellPoints: { type: Number, required: true },

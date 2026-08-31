@@ -10,7 +10,9 @@ const incomeLedgerSchema = new mongoose.Schema({
       "Self Sell Income", "Fast Track Income", "Glam Score", 
       "Style Score", "Gorgeous Score", "Super Womania Score", 
       "Dream Car Fund", "Dream House Fund", "Partnership Bonus", 
-      "Smart Seller Pool", "Annual Club", "Bonanza"
+      "Smart Seller Pool", "Annual Club", "Bonanza", "Level Income",
+      "Monthly Bonus", "Womaniyaa Point Income", "Super Womaniyaa Point Income",
+      "Affiliate Income"
     ], 
     required: true 
   },

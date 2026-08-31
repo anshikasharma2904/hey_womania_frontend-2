@@ -170,8 +170,20 @@ function mapProductsToArrivals(products: Product[]) {
       const totalStock = product.variants?.reduce((sum, v) => sum + (v.availableStock || 0), 0) || 0;
 
       let imageUrl = arrivalImages[index % arrivalImages.length];
-      if (product.images && product.images.length > 0) {
-          imageUrl = product.images[0].startsWith('http') ? product.images[0] : `${apiUrl}${product.images[0]}`;
+      
+      let defaultImg = null;
+      if (Array.isArray(product.variants)) {
+        const vWithImg = product.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+        if (vWithImg) {
+          defaultImg = vWithImg.images[0];
+        }
+      }
+      if (!defaultImg && product.images && product.images.length > 0) {
+        defaultImg = product.images[0];
+      }
+      
+      if (defaultImg) {
+          imageUrl = defaultImg.startsWith('http') ? defaultImg : `${apiUrl}${defaultImg}`;
       }
 
       return {
@@ -221,10 +233,22 @@ function mapProductsToBestSellers(products: BestSellerProduct[]) {
     const categoryLabel = formatCategoryLabel(parts[1] || parts[0] || "Collection");
 
     let imageUrl = arrivalImages[index % arrivalImages.length];
-    if (product.images && product.images.length > 0) {
-      imageUrl = product.images[0].startsWith("http")
-        ? product.images[0]
-        : `${apiUrl}${product.images[0]}`;
+    
+    let defaultImg = null;
+    if (Array.isArray(product.variants)) {
+      const vWithImg = product.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+      if (vWithImg) {
+        defaultImg = vWithImg.images[0];
+      }
+    }
+    if (!defaultImg && product.images && product.images.length > 0) {
+      defaultImg = product.images[0];
+    }
+    
+    if (defaultImg) {
+      imageUrl = defaultImg.startsWith("http")
+        ? defaultImg
+        : `${apiUrl}${defaultImg}`;
     }
 
     return {
@@ -263,10 +287,23 @@ function mapProductsToTestimonials(products: Product[]) {
     const prod = validProducts[index % Math.max(1, validProducts.length)];
     let imageUrl = arrivalImages[index % arrivalImages.length];
 
-    if (prod && prod.images && prod.images.length > 0) {
-      imageUrl = prod.images[0].startsWith("http")
-        ? prod.images[0]
-        : `${apiUrl}${prod.images[0]}`;
+    if (prod) {
+      let defaultImg = null;
+      if (Array.isArray(prod.variants)) {
+        const vWithImg = prod.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+        if (vWithImg) {
+          defaultImg = vWithImg.images[0];
+        }
+      }
+      if (!defaultImg && prod.images && prod.images.length > 0) {
+        defaultImg = prod.images[0];
+      }
+      
+      if (defaultImg) {
+        imageUrl = defaultImg.startsWith("http")
+          ? defaultImg
+          : `${apiUrl}${defaultImg}`;
+      }
     }
 
     return {
@@ -306,8 +343,24 @@ export default async function Home() {
       </section>
 
       <ShopByCategory 
-        mostLovedImages={bestSellerProducts.filter(p => p.images && p.images.length > 0).map(p => p.images![0].startsWith('http') ? p.images![0] : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${p.images![0]}`)}
-        justDroppedImages={products.filter(p => p.images && p.images.length > 0).map(p => p.images![0].startsWith('http') ? p.images![0] : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${p.images![0]}`)}
+        mostLovedImages={bestSellerProducts.map(p => {
+          let defaultImg = null;
+          if (Array.isArray(p.variants)) {
+            const vWithImg = p.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+            if (vWithImg) defaultImg = vWithImg.images[0];
+          }
+          if (!defaultImg && p.images && p.images.length > 0) defaultImg = p.images[0];
+          return defaultImg ? (defaultImg.startsWith('http') ? defaultImg : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${defaultImg}`) : null;
+        }).filter(Boolean) as string[]}
+        justDroppedImages={products.map(p => {
+          let defaultImg = null;
+          if (Array.isArray(p.variants)) {
+            const vWithImg = p.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
+            if (vWithImg) defaultImg = vWithImg.images[0];
+          }
+          if (!defaultImg && p.images && p.images.length > 0) defaultImg = p.images[0];
+          return defaultImg ? (defaultImg.startsWith('http') ? defaultImg : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${defaultImg}`) : null;
+        }).filter(Boolean) as string[]}
       />
 
       <NewArrivalsCarousel cards={arrivalCards} />

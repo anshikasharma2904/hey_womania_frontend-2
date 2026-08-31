@@ -6,6 +6,7 @@ import { SellPointLedger } from "../models/SellPointLedger";
 import { InventoryLedger } from "../models/InventoryLedger";
 import { IncomeLedger } from "../models/IncomeLedger";
 import crypto from "crypto";
+import { getSalesMonth } from "../utils/salesMonth";
 
 export const getOrders = async (req: Request, res: Response) => {
   try {
@@ -61,6 +62,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         id: crypto.randomUUID(),
         userId: order.userId,
         orderId: order.id,
+        salesMonth: getSalesMonth(new Date(now)),
         sellPrice: totalNum,
         sellPoints: totalPoints,
         type: "Credit",

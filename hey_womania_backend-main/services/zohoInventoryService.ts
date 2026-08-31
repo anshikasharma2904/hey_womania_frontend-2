@@ -419,15 +419,6 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
 
   const hasAttachment = Boolean(finalItem?.has_attachment || finalItem?.image_id || finalItem?.image_name);
 
-  // If DB already has valid Cloudflare images, return immediately with 0 Zoho API calls!
-  if (hasCloudflareUrls && existingCfIds.length > 0) {
-    console.log(`[Zero-API Skip] Item ${itemId} already has ${existingUrls.length} Cloudflare images in DB.`);
-    return {
-      imageUrls: existingUrls,
-      cloudflareImageIds: existingCfIds
-    };
-  }
-
   // If item has no image in Zoho list summary and no DB image, skip Zoho detail call
   if (!hasAttachment && existingUrls.length === 0) {
     console.log(`[No Image Skip] Item ${itemId} has no image attached in Zoho.`);
@@ -437,18 +428,8 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     };
   }
 
-  // 2. ONLY FETCH ZOHO ITEM DETAIL IF NEW PRODUCT OR MISSING CLOUDFLARE IMAGES
+  // 2. USE PROVIDED FINAL ITEM (which is already detailed)
   let itemData = finalItem;
-  if ((!itemData?.documents || !Array.isArray(itemData.documents)) && itemId) {
-    try {
-      const detailed = await fetchZohoItem(itemId);
-      if (detailed?.item) {
-        itemData = detailed.item;
-      }
-    } catch (e) {
-      // Fallback if rate limited
-    }
-  }
 
   const documents = Array.isArray(itemData.documents) ? itemData.documents : [];
   let zohoDocIds = documents.map((d: any) => String(d.document_id || "").trim()).filter(Boolean);
@@ -720,7 +701,14 @@ export async function syncSingleZohoItemToProduct(
   const itemId = String(item.item_id || "");
   if (!itemId) return null;
   const now = new Date().toISOString();
-  const finalItem = detailedItem || item;
+  let finalItem = detailedItem || item;
+
+  if ((!finalItem?.documents || !Array.isArray(finalItem.documents))) {
+    try {
+      const detailed = await fetchZohoItem(itemId);
+      if (detailed?.item) finalItem = detailed.item;
+    } catch (e) {}
+  }
 
   const rawGroupId = finalItem?.group_id || finalItem?.item_group_id || item?.group_id || item?.item_group_id;
   const groupId = rawGroupId && String(rawGroupId).trim() !== "undefined" ? String(rawGroupId).trim() : "";

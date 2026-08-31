@@ -11,15 +11,15 @@ export const getNetworkTree = async (req: Request, res: Response) => {
     }
 
     // Level 1: direct referrals
-    const level1Users = await User.find({ uplineId: userId }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, partnerProfile: 1 });
+    const level1Users = await User.find({ uplineId: userId, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, partnerProfile: 1 });
     const level1Ids = level1Users.map(u => u.id);
 
     // Level 2: referrals of level 1
-    const level2Users = level1Ids.length > 0 ? await User.find({ uplineId: { $in: level1Ids } }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
+    const level2Users = level1Ids.length > 0 ? await User.find({ uplineId: { $in: level1Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
     const level2Ids = level2Users.map(u => u.id);
 
     // Level 3: referrals of level 2
-    const level3Users = level2Ids.length > 0 ? await User.find({ uplineId: { $in: level2Ids } }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
+    const level3Users = level2Ids.length > 0 ? await User.find({ uplineId: { $in: level2Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
 
     // Optionally calculate total sales for each user by checking SellPointLedger
     const allIds = [...level1Ids, ...level2Ids, ...level3Users.map(u => u.id)];

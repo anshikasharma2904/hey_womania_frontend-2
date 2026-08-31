@@ -198,34 +198,9 @@ export const createOrder = async (req: Request, res: Response) => {
             await user.save({ session });
           }
           
-          // --- First Purchase 5% Commission Logic ---
-          if (user.uplineId && user.joinedViaRefType === "customer") {
-            const previousOrders = await Order.countDocuments({ userId }).session(session);
-            if (previousOrders === 0) {
-              const uplineUser = await User.findOne({ id: user.uplineId }).session(session);
-              if (uplineUser && uplineUser.partnerProfile) {
-                const commission = Math.floor(subtotal * 0.05);
-                if (commission > 0) {
-                  uplineUser.partnerProfile.networkWalletBalance = (uplineUser.partnerProfile.networkWalletBalance || 0) + commission;
-                  uplineUser.markModified("partnerProfile");
-                  await uplineUser.save({ session });
-                  
-                  // Create Transaction Log
-                  const { WalletTransaction } = await import("../models/WalletTransaction");
-                  await WalletTransaction.create([{
-                    id: crypto.randomUUID(),
-                    userId: uplineUser.id,
-                    amount: commission,
-                    type: "CREDIT",
-                    source: "Affiliate Link",
-                    description: `5% First Order Commission from ${user.name || user.firstName || 'Customer'}`,
-                    createdAt: now,
-                    updatedAt: now
-                  }], { session });
-                }
-              }
-            }
-          }
+          // Referral commission is deliberately not credited during checkout.
+          // It is calculated from paid, delivered orders by the monthly closing
+          // job on the 10th, after the order is no longer merely pending.
         }
       }
 

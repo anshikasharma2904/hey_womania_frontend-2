@@ -3,7 +3,138 @@ import { User } from "../models/User";
 import { SellPointLedger } from "../models/SellPointLedger";
 import { IncomeLedger } from "../models/IncomeLedger";
 import { Payout } from "../models/Payout";
+import { Order } from "../models/Order";
+import { WalletTransaction } from "../models/WalletTransaction";
+import { SalesMonthClose } from "../models/SalesMonthClose";
+import { getClosingMonth, isLastDayInIndia } from "../utils/salesMonth";
 import crypto from "crypto";
+
+type AffiliateCommission = {
+  sponsorId: string;
+  customerId: string;
+  customerName: string;
+  orderId: string;
+  amount: number;
+};
+
+function parseMoney(value: unknown): number {
+  const parsed = typeof value === "number"
+    ? value
+    : parseFloat(String(value ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function orderSubtotal(order: any): number {
+  return (order.items || []).reduce(
+    (sum: number, item: any) => sum + parseMoney(item.price) * (item.qty || 1),
+    0
+  );
+}
+
+function isPaidForCommission(order: any): boolean {
+  if (order.paymentStatus === "Paid") return true;
+  return /cod|cash on delivery/i.test(String(order.paymentMethod || order.paymentStatus || ""));
+}
+
+async function getAffiliateCommissionsForMonth(month: string): Promise<AffiliateCommission[]> {
+  const deliveredLedgers = await SellPointLedger.find({
+    status: "approved",
+    type: "Credit",
+    $or: [
+      { salesMonth: month },
+      { salesMonth: { $exists: false }, createdAt: { $regex: `^${month}` } }
+    ]
+  }).lean();
+  if (deliveredLedgers.length === 0) return [];
+
+  const orderIds = deliveredLedgers.map((ledger: any) => ledger.orderId);
+  const orders = await Order.find({ id: { $in: orderIds }, status: "Delivered" }).lean();
+  const commissions: AffiliateCommission[] = [];
+
+  for (const order of orders) {
+    if (!order.id) continue;
+    if (!isPaidForCommission(order)) continue;
+
+    const customer = await User.findOne({
+      id: order.userId,
+      joinedViaRefType: "customer",
+      uplineId: { $exists: true, $ne: "" }
+    }).lean();
+    if (!customer?.uplineId) continue;
+
+    const sponsor = await User.findOne({ id: customer.uplineId, role: "partner" }).lean();
+    if (!sponsor) continue;
+
+    // "First order" means the customer's first order that actually became
+    // paid and delivered. Cancelled, failed, returned and refunded orders do
+    // not consume the one-time referral benefit.
+    const deliveredOrders = await Order.find({ userId: customer.id, status: "Delivered" })
+      .sort({ createdAt: 1, id: 1 })
+      .lean();
+    const firstEligibleOrder = deliveredOrders.find(isPaidForCommission);
+    if (!firstEligibleOrder || firstEligibleOrder.id !== order.id) continue;
+
+    const alreadyPosted = await WalletTransaction.exists({
+      source: "Affiliate Link",
+      type: "CREDIT",
+      orderId: order.id
+    });
+    if (alreadyPosted) continue;
+
+    const amount = Math.floor(orderSubtotal(order) * 0.05);
+    if (amount <= 0) continue;
+    commissions.push({
+      sponsorId: sponsor.id,
+      customerId: customer.id,
+      customerName: customer.name || customer.firstName || "Customer",
+      orderId: order.id,
+      amount
+    });
+  }
+
+  return commissions;
+}
+
+async function reverseInvalidAffiliateCommissions(now: string): Promise<void> {
+  const credits = await WalletTransaction.find({ source: "Affiliate Link", type: "CREDIT", orderId: { $exists: true } });
+  for (const credit of credits) {
+    const order = await Order.findOne({ id: credit.orderId }).lean();
+    if (order && order.status === "Delivered" && isPaidForCommission(order)) continue;
+
+    const reversed = await WalletTransaction.exists({
+      source: "Affiliate Link",
+      type: "DEBIT",
+      orderId: credit.orderId
+    });
+    if (reversed) continue;
+
+    await User.findOneAndUpdate(
+      { id: credit.userId },
+      { $inc: { "partnerProfile.networkWalletBalance": -credit.amount } }
+    );
+    await WalletTransaction.create({
+      id: crypto.randomUUID(),
+      userId: credit.userId,
+      amount: credit.amount,
+      type: "DEBIT",
+      source: "Affiliate Link",
+      description: `Referral commission reversed because order ${credit.orderId} is no longer eligible`,
+      orderId: credit.orderId,
+      referralCustomerId: credit.referralCustomerId,
+      commissionMonth: now.substring(0, 7),
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+}
+
+function isTenthInIndia(): boolean {
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit"
+  }).format(new Date());
+  return day === "10";
+}
 
 async function getDownlineIds(userId: string): Promise<string[]> {
   const list: string[] = [];
@@ -32,15 +163,33 @@ export function getPrevMonth(monthStr: string, subtractMonths = 1): string {
 }
 
 export async function checkTeamSalesForMonth(partnerId: string, monthStr: string): Promise<{ teamSales: number, selfSales: number }> {
-  const teamUsers = await User.find({ $or: [{ id: partnerId }, { ancestors: partnerId }] }, { id: 1 }).lean();
+  const teamUsers = await User.find(
+    { role: "partner", $or: [{ id: partnerId }, { ancestors: partnerId }] },
+    { id: 1 }
+  ).lean();
   const teamUserIds = teamUsers.map(u => u.id);
 
   const result = await SellPointLedger.aggregate([
     {
       $match: {
         status: "approved",
-        createdAt: { $regex: `^${monthStr}` },
+        $or: [
+          { salesMonth: monthStr },
+          { salesMonth: { $exists: false }, createdAt: { $regex: `^${monthStr}` } }
+        ],
         userId: { $in: teamUserIds }
+      }
+    },
+    { $lookup: { from: "orders", localField: "orderId", foreignField: "id", as: "order" } },
+    { $unwind: "$order" },
+    {
+      $match: {
+        "order.status": "Delivered",
+        $or: [
+          { "order.paymentStatus": "Paid" },
+          { "order.paymentMethod": { $regex: /cod|cash on delivery/i } },
+          { "order.paymentStatus": { $regex: /cod/i } }
+        ]
       }
     },
     {
@@ -84,14 +233,32 @@ export const getClosingPreview = async (req: Request, res: Response) => {
       {
         $match: {
           status: "approved",
-          createdAt: { $regex: new RegExp(`^(${monthsToCheck.join("|")})`) }
+          $or: [
+            { salesMonth: { $in: monthsToCheck } },
+            {
+              salesMonth: { $exists: false },
+              createdAt: { $regex: new RegExp(`^(${monthsToCheck.join("|")})`) }
+            }
+          ]
+        }
+      },
+      { $lookup: { from: "orders", localField: "orderId", foreignField: "id", as: "order" } },
+      { $unwind: "$order" },
+      {
+        $match: {
+          "order.status": "Delivered",
+          $or: [
+            { "order.paymentStatus": "Paid" },
+            { "order.paymentMethod": { $regex: /cod|cash on delivery/i } },
+            { "order.paymentStatus": { $regex: /cod/i } }
+          ]
         }
       },
       {
         $group: {
           _id: {
             userId: "$userId",
-            month: { $substr: ["$createdAt", 0, 7] }
+            month: { $ifNull: ["$salesMonth", { $substr: ["$createdAt", 0, 7] }] }
           },
           totalSales: {
             $sum: {
@@ -127,6 +294,9 @@ export const getClosingPreview = async (req: Request, res: Response) => {
     const l2SalesMap = new Map();
     const l3SalesMap = new Map();
     const userMap = new Map();
+    const partnerIdSet = new Set(
+      (await User.find({ role: "partner" }, { id: 1 }).lean()).map((user: any) => user.id)
+    );
     
     const usersCursor = User.find({}, { id: 1, name: 1, firstName: 1, lastName: 1, ancestors: 1, partnerProfile: 1, role: 1 }).cursor();
     for await (const u of usersCursor) {
@@ -134,23 +304,24 @@ export const getClosingPreview = async (req: Request, res: Response) => {
 
       for (const m of monthsToCheck) {
         const selfSales = historicalSelfSales.get(m)?.get(u.id) || 0;
-        if (selfSales === 0) continue;
+        if (selfSales === 0 || u.role !== "partner") continue;
         
         const mTeamMap = historicalTeamSales.get(m);
         mTeamMap.set(u.id, (mTeamMap.get(u.id) || 0) + selfSales);
         
-        for (const anc of (u.ancestors || [])) {
+        for (const anc of (u.ancestors || []).filter((id: string) => partnerIdSet.has(id))) {
           mTeamMap.set(anc, (mTeamMap.get(anc) || 0) + selfSales);
         }
       }
 
       // Compute L1/L2/L3 bases for current month
       const currentSelfSales = historicalSelfSales.get(currentMonthStr)?.get(u.id) || 0;
-      if (currentSelfSales > 0 && u.ancestors && u.ancestors.length > 0) {
-        const len = u.ancestors.length;
-        const l1 = len >= 1 ? u.ancestors[len - 1] : null;
-        const l2 = len >= 2 ? u.ancestors[len - 2] : null;
-        const l3 = len >= 3 ? u.ancestors[len - 3] : null;
+      if (currentSelfSales > 0 && u.role === "partner" && u.ancestors && u.ancestors.length > 0) {
+        const partnerAncestors = u.ancestors.filter((id: string) => partnerIdSet.has(id));
+        const len = partnerAncestors.length;
+        const l1 = len >= 1 ? partnerAncestors[len - 1] : null;
+        const l2 = len >= 2 ? partnerAncestors[len - 2] : null;
+        const l3 = len >= 3 ? partnerAncestors[len - 3] : null;
 
         if (l1) l1SalesMap.set(l1, (l1SalesMap.get(l1) || 0) + currentSelfSales);
         if (l2) l2SalesMap.set(l2, (l2SalesMap.get(l2) || 0) + currentSelfSales);
@@ -233,6 +404,15 @@ export const getClosingPreview = async (req: Request, res: Response) => {
     const womaniyaaVal = totalWomaniyaaPointsCompany > 0 ? womaniyaaPool / totalWomaniyaaPointsCompany : 0;
     const superWomaniyaaVal = totalSuperWomaniyaaPointsCompany > 0 ? superWomaniyaaPool / totalSuperWomaniyaaPointsCompany : 0;
 
+    const affiliateCommissions = await getAffiliateCommissionsForMonth(currentMonthStr);
+    const affiliateByPartner = new Map<string, number>();
+    for (const commission of affiliateCommissions) {
+      affiliateByPartner.set(
+        commission.sponsorId,
+        (affiliateByPartner.get(commission.sponsorId) || 0) + commission.amount
+      );
+    }
+
     // Step 4: Compute final payouts for each partner
     const partnerPreviews = rawData.map((data) => {
       const selfLevelIncome = data.selfSales * 0.05;
@@ -252,8 +432,9 @@ export const getClosingPreview = async (req: Request, res: Response) => {
 
       const womaniyaaIncome = data.totalWP * womaniyaaVal;
       const superWomaniyaaIncome = data.totalSWP * superWomaniyaaVal;
+      const affiliateIncome = affiliateByPartner.get(data.partner.id) || 0;
 
-      const totalEstimatedIncome = levelIncome + monthlyBonus + womaniyaaIncome + superWomaniyaaIncome;
+      const totalEstimatedIncome = levelIncome + monthlyBonus + womaniyaaIncome + superWomaniyaaIncome + affiliateIncome;
 
       return {
         userId: data.partner.id,
@@ -268,6 +449,7 @@ export const getClosingPreview = async (req: Request, res: Response) => {
         monthlyBonus,
         womaniyaaIncome,
         superWomaniyaaIncome,
+        affiliateIncome,
         totalEstimatedIncome
       };
     });
@@ -299,6 +481,10 @@ export const executeClosing = async (req: Request, res: Response) => {
     const { month, previews } = req.body;
     if (!month || !previews) return res.status(400).json({ error: "Invalid data" });
 
+    if (!isTenthInIndia()) {
+      return res.status(400).json({ error: "Monthly commissions can only be credited on the 10th (Asia/Kolkata)." });
+    }
+
     // Look for existing locked month
     const existingLedgers = await IncomeLedger.findOne({ month, incomeType: "Level Income" });
     if (existingLedgers) {
@@ -306,12 +492,26 @@ export const executeClosing = async (req: Request, res: Response) => {
     }
 
     const now = new Date().toISOString();
+    const affiliateCommissions = await getAffiliateCommissionsForMonth(month);
+    const affiliateByPartner = new Map<string, AffiliateCommission[]>();
+    for (const commission of affiliateCommissions) {
+      const list = affiliateByPartner.get(commission.sponsorId) || [];
+      list.push(commission);
+      affiliateByPartner.set(commission.sponsorId, list);
+    }
+
+    await reverseInvalidAffiliateCommissions(now);
 
     for (const preview of previews) {
+      // Affiliate income is always recalculated on the server. Never trust a
+      // client-supplied preview for money movement.
+      const partnerAffiliateCommissions = affiliateByPartner.get(preview.userId) || [];
+      const affiliateIncome = partnerAffiliateCommissions.reduce((sum, item) => sum + item.amount, 0);
       const closingIncomeAmount = (preview.levelIncome || 0) + 
                             (preview.monthlyBonus || 0) + 
                             (preview.womaniyaaIncome || 0) + 
-                            (preview.superWomaniyaaIncome || 0);
+                            (preview.superWomaniyaaIncome || 0) +
+                            affiliateIncome;
 
       // We still want to update WP/SWP arrays even if closing income is 0, just in case they earned a point.
       const user = await User.findOne({ id: preview.userId });
@@ -347,6 +547,33 @@ export const executeClosing = async (req: Request, res: Response) => {
       // Log specific income types in ledgers
       // Log to WalletTransaction as well
       const { WalletTransaction } = await import("../models/WalletTransaction");
+
+      for (const commission of partnerAffiliateCommissions) {
+        await IncomeLedger.create({
+          id: crypto.randomUUID(),
+          userId: preview.userId,
+          month,
+          incomeType: "Affiliate Income",
+          amount: commission.amount,
+          status: "approved",
+          remarks: `5% first delivered-order commission for order ${commission.orderId}`,
+          createdAt: now,
+          updatedAt: now
+        });
+        await WalletTransaction.create({
+          id: crypto.randomUUID(),
+          userId: preview.userId,
+          amount: commission.amount,
+          type: "CREDIT",
+          source: "Affiliate Link",
+          description: `5% First Delivered Order Commission from ${commission.customerName}`,
+          orderId: commission.orderId,
+          referralCustomerId: commission.customerId,
+          commissionMonth: month,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
       
       if (preview.levelIncome > 0) {
         await new IncomeLedger({
@@ -509,4 +736,41 @@ export const runAutomatedMonthlyClosing = async () => {
   } catch (error) {
     console.error(`[Auto Closing] Error running automated closing for ${monthStr}:`, error);
   }
+};
+
+export const lockCurrentSalesMonth = async () => {
+  const now = new Date();
+  if (!isLastDayInIndia(now)) return;
+
+  const month = getClosingMonth(now);
+  const eligibleLedgers = await SellPointLedger.aggregate([
+    { $match: { salesMonth: month, status: "approved", type: "Credit" } },
+    { $lookup: { from: "orders", localField: "orderId", foreignField: "id", as: "order" } },
+    { $unwind: "$order" },
+    {
+      $match: {
+        "order.status": "Delivered",
+        $or: [
+          { "order.paymentStatus": "Paid" },
+          { "order.paymentMethod": { $regex: /cod|cash on delivery/i } },
+          { "order.paymentStatus": { $regex: /cod/i } }
+        ]
+      }
+    },
+    { $count: "count" }
+  ]);
+
+  await SalesMonthClose.findOneAndUpdate(
+    { month },
+    {
+      $setOnInsert: {
+        month,
+        status: "Locked",
+        deliveredOrderCount: eligibleLedgers[0]?.count || 0,
+        lockedAt: now.toISOString()
+      }
+    },
+    { upsert: true, new: true }
+  );
+  console.log(`[Sales Close] Locked ${month} at 11:59 PM Asia/Kolkata.`);
 };

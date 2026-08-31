@@ -82,7 +82,9 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     const dashboard = await ensureDashboard(userId);
     const recentOrder = await Order.findOne({ userId }).sort({ createdAt: -1 });
 
-    const activeDirectsCount = await User.countDocuments({ uplineId: userId, role: "partner" });
+    const directPartners = await User.find({ uplineId: userId, role: "partner" }, { id: 1 }).lean();
+    const activeDirectsCount = directPartners.length;
+    const totalPartnerReferrals = await User.countDocuments({ role: "partner", ancestors: userId });
 
     const currentMonthStr = new Date().toISOString().substring(0, 7); // YYYY-MM
     let wpStreak = 0;
@@ -110,7 +112,7 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     const dashboardData = {
       ...dashboard.toObject(),
       totalOrders: totalOrders,
-      totalReferrals: user.teamIds?.length || 0,
+      totalReferrals: totalPartnerReferrals,
       walletBalance: user.partnerProfile?.walletBalance || 0,
       networkWalletBalance: user.partnerProfile?.networkWalletBalance || 0,
       activeDirects: activeDirectsCount,
@@ -131,8 +133,10 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     let swpIncome = 0;
 
     transactions.forEach((tx: any) => {
+      if (tx.source === "Affiliate Link") {
+        affiliateIncome += tx.type === "DEBIT" ? -tx.amount : tx.amount;
+      }
       if (tx.type === "CREDIT") {
-        if (tx.source === "Affiliate Link") affiliateIncome += tx.amount;
         if (tx.source === "Womaniyaa Point") wpIncome += tx.amount;
         if (tx.source === "Super Womaniyaa Point") swpIncome += tx.amount;
       }
@@ -147,7 +151,7 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         rank: user.rank,
-        teamIds: user.teamIds,
+        teamIds: directPartners.map(partner => partner.id),
         referralCode: user.referralCode,
         partnerReferralCode: user.partnerReferralCode
       },
@@ -282,8 +286,7 @@ export const getPartnerReferrals = async (req: Request, res: Response) => {
       };
     };
 
-    const l1Ids = user.teamIds || [];
-    const l1Users = await User.find({ id: { $in: l1Ids } });
+    const l1Users = await User.find({ uplineId: userId, role: "partner" });
     const level1 = await Promise.all(l1Users.map(async (u) => {
       const stats = await getStats(u);
       return { ...stats, uplineId: userId, level: 1 };
@@ -291,9 +294,8 @@ export const getPartnerReferrals = async (req: Request, res: Response) => {
 
     const level2: any[] = [];
     for (const l1 of l1Users) {
-      const l2Ids = l1.teamIds || [];
-      if (l2Ids.length > 0) {
-        const l2Users = await User.find({ id: { $in: l2Ids } });
+      const l2Users = await User.find({ uplineId: l1.id, role: "partner" });
+      if (l2Users.length > 0) {
         const mapped = await Promise.all(l2Users.map(async (u) => {
           const stats = await getStats(u);
           return { ...stats, uplineId: l1.id, level: 2 };
@@ -306,9 +308,8 @@ export const getPartnerReferrals = async (req: Request, res: Response) => {
     for (const l2 of level2) {
       const l2UserObj = await User.findOne({ id: l2.id });
       if (l2UserObj) {
-        const l3Ids = l2UserObj.teamIds || [];
-        if (l3Ids.length > 0) {
-          const l3Users = await User.find({ id: { $in: l3Ids } });
+        const l3Users = await User.find({ uplineId: l2.id, role: "partner" });
+        if (l3Users.length > 0) {
           const mapped = await Promise.all(l3Users.map(async (u) => {
             const stats = await getStats(u);
             return { ...stats, uplineId: l2.id, level: 3 };
