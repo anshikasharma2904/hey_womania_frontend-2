@@ -3,8 +3,10 @@ import mongoose from "mongoose";
 const kycSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   userId: { type: String, required: true },
-  panNumber: String,
   aadhaarNumber: String,
+  secondaryDocumentType: { type: String, enum: ["Voter ID", "Driving License", "Other"] },
+  secondaryDocumentNumber: String,
+  verificationProviderId: String,
   bankAccount: String,
   ifscCode: String,
   upiId: String,

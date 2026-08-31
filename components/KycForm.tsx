@@ -7,11 +7,12 @@ import { FaIdCard, FaUpload, FaCheckCircle, FaTimesCircle } from "react-icons/fa
 export function KycForm() {
   const router = useRouter();
   const [aadhaarNumber, setAadhaarNumber] = useState("");
-  const [panNumber, setPanNumber] = useState("");
+  const [secondaryDocType, setSecondaryDocType] = useState<string>("Voter ID");
+  const [secondaryDocNumber, setSecondaryDocNumber] = useState("");
   const [aadhaarFront, setAadhaarFront] = useState<string | null>("aadhaar_front.png");
   const [aadhaarBack, setAadhaarBack] = useState<string | null>("aadhaar_back.png");
-  const [panFront, setPanFront] = useState<string | null>("pan_front.png");
-  const [panBack, setPanBack] = useState<string | null>("pan_back.png");
+  const [secondaryDocFront, setSecondaryDocFront] = useState<string | null>("doc_front.png");
+  const [secondaryDocBack, setSecondaryDocBack] = useState<string | null>("doc_back.png");
   
   const [status, setStatus] = useState<{
     tone: "idle" | "error" | "success";
@@ -22,10 +23,10 @@ export function KycForm() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!aadhaarNumber || !panNumber) {
+    if (!aadhaarNumber || !secondaryDocNumber) {
       setStatus({
         tone: "error",
-        message: "Please enter both Aadhaar and PAN numbers."
+        message: "Please enter both Aadhaar and secondary document numbers."
       });
       return;
     }
@@ -39,12 +40,13 @@ export function KycForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           aadhaarNumber,
-          panNumber,
+          secondaryDocumentType: secondaryDocType,
+          secondaryDocumentNumber: secondaryDocNumber,
           files: {
             aadhaarFront,
             aadhaarBack,
-            panFront,
-            panBack
+            secondaryDocFront,
+            secondaryDocBack
           }
         })
       });
@@ -102,15 +104,29 @@ export function KycForm() {
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-[#5f5d3e]">PAN Card Number</span>
+          <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-[#5f5d3e]">Secondary Document Type</span>
+          <select
+            value={secondaryDocType}
+            onChange={(e) => {
+              setSecondaryDocType(e.target.value);
+              setSecondaryDocNumber(""); // Reset number when type changes
+            }}
+            className="w-full rounded-xl border border-[#e8e2d9] bg-[#fcf9f4] px-4 py-3 text-sm text-[#1c1c19] outline-none transition focus:border-[#5f5d3e]"
+          >
+            <option value="Voter ID">Voter ID</option>
+            <option value="Driving License">Driving License</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        
+        <label className="block md:col-span-2">
+          <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-[#5f5d3e]">{secondaryDocType} Number</span>
           <input
             type="text"
             required
-            pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
-            maxLength={10}
-            value={panNumber}
-            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-            placeholder="ABCDE1234F"
+            value={secondaryDocNumber}
+            onChange={(e) => setSecondaryDocNumber(e.target.value)}
+            placeholder={`Enter your ${secondaryDocType} number`}
             className="w-full rounded-xl border border-[#e8e2d9] bg-[#fcf9f4] px-4 py-3 text-sm text-[#1c1c19] outline-none transition focus:border-[#5f5d3e]"
           />
         </label>
@@ -130,15 +146,15 @@ export function KycForm() {
           </div>
         </div>
         <div className="rounded-xl border border-dashed border-[#e8e2d9] bg-[#fcf9f4]/40 p-4 text-center">
-          <p className="text-xs font-semibold text-[#48473d]">PAN Card Front</p>
+          <p className="text-xs font-semibold text-[#48473d]">{secondaryDocType} Front</p>
           <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[#8b837b]">
-            <FaUpload /> {panFront ?? "Select File"}
+            <FaUpload /> {secondaryDocFront ?? "Select File"}
           </div>
         </div>
         <div className="rounded-xl border border-dashed border-[#e8e2d9] bg-[#fcf9f4]/40 p-4 text-center">
-          <p className="text-xs font-semibold text-[#48473d]">PAN Card Back</p>
+          <p className="text-xs font-semibold text-[#48473d]">{secondaryDocType} Back</p>
           <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[#8b837b]">
-            <FaUpload /> {panBack ?? "Select File"}
+            <FaUpload /> {secondaryDocBack ?? "Select File"}
           </div>
         </div>
       </div>

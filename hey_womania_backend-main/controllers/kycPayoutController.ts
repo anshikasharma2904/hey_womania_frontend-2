@@ -117,12 +117,19 @@ export const getMyKyc = async (req: Request, res: Response) => {
 export const submitKyc = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { panNumber, aadhaarNumber, bankAccount, ifscCode, upiId } = req.body;
+    const { secondaryDocumentType, secondaryDocumentNumber, aadhaarNumber, bankAccount, ifscCode, upiId } = req.body;
+
+    // Mock Third-Party KYC Verification
+    console.log(`[KYC Service] Verifying Aadhaar: ${aadhaarNumber}`);
+    console.log(`[KYC Service] Verifying ${secondaryDocumentType}: ${secondaryDocumentNumber}`);
+    const verificationProviderId = `txn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     const existing = await Kyc.findOne({ userId });
     if (existing) {
-      existing.panNumber = panNumber;
+      existing.secondaryDocumentType = secondaryDocumentType;
+      existing.secondaryDocumentNumber = secondaryDocumentNumber;
       existing.aadhaarNumber = aadhaarNumber;
+      existing.verificationProviderId = verificationProviderId;
       existing.bankAccount = bankAccount;
       existing.ifscCode = ifscCode;
       existing.upiId = upiId;
@@ -135,8 +142,10 @@ export const submitKyc = async (req: Request, res: Response) => {
     const kyc = new Kyc({
       id: `kyc_${Date.now()}`,
       userId,
-      panNumber,
+      secondaryDocumentType,
+      secondaryDocumentNumber,
       aadhaarNumber,
+      verificationProviderId,
       bankAccount,
       ifscCode,
       upiId,
