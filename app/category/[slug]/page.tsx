@@ -370,14 +370,47 @@ export default async function CategoryDetailPage({
     });
 
   if (slug === "just-dropped") {
-    mappedLive = mappedLive.reverse().slice(0, 12);
+    mappedLive = mappedLive.slice(0, 12);
   } else if (slug === "most-loved") {
     mappedLive = mappedLive.sort(() => Math.random() - 0.5).slice(0, 12);
   } else if (slug === "last-chance") {
-    mappedLive = mappedLive.filter((p: any) => {
+    const lowStock = mappedLive.filter((p: any) => {
       const totalStock = (p.variants || []).reduce((acc: number, v: any) => acc + (Number(v.availableStock) || 0), 0);
       return totalStock > 0 && totalStock <= 2;
-    }).slice(0, 10);
+    });
+
+    const byCategory: Record<string, any[]> = {};
+    lowStock.forEach(p => {
+      const cat = String(p.category || "").split('/')[0] || "Other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(p);
+    });
+    
+    const result = [];
+    const categories = Object.keys(byCategory);
+    const categoryCounts: Record<string, number> = {};
+    categories.forEach(c => categoryCounts[c] = 0);
+    
+    let added = true;
+    while(added && result.length < 12) {
+      added = false;
+      for (const cat of categories) {
+        if (result.length >= 12) break;
+        if (categoryCounts[cat] < 3 && byCategory[cat].length > 0) {
+          result.push(byCategory[cat].shift());
+          categoryCounts[cat]++;
+          added = true;
+        }
+      }
+    }
+    
+    for (const cat of categories) {
+      while (result.length < 12 && byCategory[cat].length > 0) {
+        result.push(byCategory[cat].shift());
+      }
+    }
+    
+    mappedLive = result.sort(() => Math.random() - 0.5);
   }
 
   const matchedCategory =

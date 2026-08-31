@@ -5,7 +5,7 @@ import { categoryQuickLinks } from "@/app/category/category-data";
 import { BAG_ASSETS, JEWELLERY_ASSETS, MODEL_ASSETS, PRODUCT_ASSETS } from "@/lib/fashion-assets";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const LOCAL_ASSET_PREFIXES = ["/models/", "/products/", "/jewellery/", "/bags/"];
+const LOCAL_ASSET_PREFIXES = ["/models/", "/products/", "/jewellery/", "/bags/", "/categoryImage/"];
 
 type LiveCategory = {
   id: string;
@@ -43,12 +43,20 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const formatCategoryLabel = (value: string) =>
-  value
+const formatCategoryLabel = (value: string) => {
+  const label = value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+
+  if (label.toLowerCase() === "co ords" || label.toLowerCase() === "coords") return "Co-Ords";
+  if (label.toLowerCase() === "brandsstudio" || label.toLowerCase() === "brands studio") return "Brands Studio";
+  if (label.toLowerCase() === "desicollections" || label.toLowerCase() === "desi collections") return "Desi Collections";
+
+  return label;
+};
 
 const getCategoryPathParts = (value: string) =>
   value
@@ -121,26 +129,26 @@ const directionCopy: Record<
     image: string;
   }
 > = {
-  western: {
-    match: "Western Wear",
-    title: "Western Wear",
+  everyday: {
+    match: "Everyday",
+    title: "Everyday",
     eyebrow: "Featured Floor",
-    description: "City tailoring and fluid silhouettes",
-    image: MODEL_ASSETS.western
+    description: "Daily Wear and comfortable looks",
+    image: "/categoryImage/everyday.jpeg"
   },
-  traditional: {
-    match: "Traditional Wear",
-    title: "Traditional Wear",
+  "co-ords": {
+    match: "Co-Ords",
+    title: "Co-Ords",
     eyebrow: "Featured Floor",
-    description: "Ceremony color, festive texture",
-    image: MODEL_ASSETS.traditional
+    description: "Matching Sets",
+    image: "/categoryImage/coordSet.jpeg"
   },
-  formals: {
-    match: "Formals",
-    title: "Formals",
+  "desi-collections": {
+    match: "Desi Collections",
+    title: "Desi Collections",
     eyebrow: "Featured Floor",
-    description: "Sharp evening dressing and quiet work polish",
-    image: MODEL_ASSETS.formal
+    description: "Ethnic Wear",
+    image: "/categoryImage/desi.jpeg"
   }
 };
 
@@ -338,13 +346,21 @@ const shortcutCategories = [
     };
   });
 
-  const spotlightCards = spotlightDefaults.map((item) => {
-    const liveCategory = findLiveCategory(item.title) || categoryMap.get(item.slug);
+  const directionSlugs = Object.keys(directionCopy);
+  const liveSpotlightCategories = categoriesWithProducts
+    .filter((cat) => {
+      const matchKey = slugify(cat.name);
+      return !directionSlugs.includes(matchKey) && matchKey !== "all";
+    })
+    .slice(0, 4);
+
+  const spotlightCards = liveSpotlightCategories.map((liveCategory, index) => {
     return {
-      ...item,
-      href: `/category/${liveCategory?.slug || item.slug}`,
-      title: liveCategory ? getDisplayCategoryTitle(liveCategory.name) : item.title,
-      image: toImageUrl(liveCategory?.image || liveCategory?.products[0]?.images?.[0] || item.image)
+      slug: liveCategory.slug,
+      href: `/category/${liveCategory.slug}`,
+      title: getDisplayCategoryTitle(liveCategory.name),
+      eyebrow: ["Discover", "Trending", "Featured", "New In"][index % 4],
+      image: toImageUrl(liveCategory.image || liveCategory.products[0]?.images?.[0])
     };
   });
 
@@ -501,20 +517,22 @@ const shortcutCategories = [
             </p>
 
             <div className="mt-10 grid gap-5 md:grid-cols-2">
-              {groupedCategoryFamilies.slice(0, 2).map((group) => (
+              {groupedCategoryFamilies.slice(0, 4).map((group) => (
                 <div
                   key={group.title}
-                  className="rounded-[2rem] border border-white/16 bg-white/8 p-8 backdrop-blur-sm"
+                  className="group relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/10 p-6 backdrop-blur-md transition-all duration-300 hover:bg-white/15 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
                 >
-                  <h3 className="font-[family:var(--font-display)] text-[2.2rem] leading-none">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <h3 className="relative z-10 font-[family:var(--font-display)] text-[2rem] leading-none text-white drop-shadow-sm">
                     {group.title}
                   </h3>
-                  <div className="mt-8 space-y-5 text-[1.05rem] font-medium uppercase tracking-[0.28em] text-white/90">
-                    {group.items.length > 0 ? (
-                      group.items.map((item) => <p key={item}>{item}</p>)
-                    ) : (
-                      <p>{group.title}</p>
-                    )}
+                  <div className="relative z-10 mt-6 space-y-4 text-[0.95rem] font-medium uppercase tracking-[0.25em] text-white/80 transition-colors duration-300 group-hover:text-white">
+                    {group.items.slice(0, 3).map((item) => (
+                      <p key={item} className="flex items-center gap-2">
+                        <span className="h-[1px] w-4 bg-white/40 transition-all duration-300 group-hover:w-6 group-hover:bg-white/80" />
+                        {item}
+                      </p>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -526,23 +544,25 @@ const shortcutCategories = [
               <Link
                 key={card.slug}
                 href={card.href}
-                className="group rounded-[2.2rem] border border-[#f3e8dd] bg-[#fffaf4] p-5 shadow-[0_22px_56px_rgba(121,91,66,0.08)] transition-transform duration-300 hover:-translate-y-1"
+                className="group relative flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-[2.2rem] shadow-[0_22px_56px_rgba(121,91,66,0.12)] transition-transform duration-500 hover:-translate-y-2"
               >
-                <div className="relative aspect-[4/5] w-full h-auto overflow-hidden rounded-[1.8rem] bg-[#fcf9f4]">
-                  <Image
-                    src={card.image}
-                    alt={card.title}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 25vw"
-                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
-                  />
+                <Image
+                  src={card.image}
+                  alt={card.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 25vw"
+                  className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90" />
+                
+                <div className="relative z-10 p-6 md:p-8">
+                  <p className="text-[0.75rem] font-bold uppercase tracking-[0.34em] text-white/80">
+                    {card.eyebrow}
+                  </p>
+                  <h3 className="mt-2 font-[family:var(--font-display)] text-[2rem] leading-none tracking-[-0.02em] text-white md:text-[2.4rem]">
+                    {card.title}
+                  </h3>
                 </div>
-                <p className="mt-6 text-[0.82rem] font-semibold uppercase tracking-[0.34em] text-[#cb6e67]">
-                  {card.eyebrow}
-                </p>
-                <h3 className="mt-3 font-[family:var(--font-display)] text-[1.9rem] leading-none tracking-[-0.04em] text-[#7b5648]">
-                  {card.title}
-                </h3>
               </Link>
             ))}
           </div>

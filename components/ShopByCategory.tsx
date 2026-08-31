@@ -9,17 +9,17 @@ type ShopByCategoryProps = {
   justDroppedImages?: string[];
 };
 
-const categories = [
+const categories: { title: string; items: string; image: string; href: string; isSlider?: string; video?: string }[] = [
   { title: "MOST LOVED", items: "Trending Now", image: "", href: "/category/most-loved", isSlider: "mostLoved" },
   { title: "JUST DROPPED", items: "New Arrivals", image: "", href: "/category/just-dropped", isSlider: "justDropped" },
-  { title: "LAST CHANCE", items: "Clearance", image: "/models/model-traditional.png", href: "/category/last-chance" },
-  { title: "EVERYDAY", items: "Daily Wear", image: "/models/model-minimal.png", href: "/category/everyday" },
-  { title: "Co-Ords", items: "Matching Sets", image: "/models/model-western.png", href: "/category/co-ords" },
+  { title: "LAST CHANCE", items: "Clearance", image: "/categoryImage/lastChance.jpeg", href: "/category/last-chance" },
+  { title: "EVERYDAY", items: "Daily Wear", image: "/categoryImage/everyday.jpeg", href: "/category/everyday" },
+  { title: "Co-Ords", items: "Matching Sets", image: "/categoryImage/coordSet.jpeg", href: "/category/co-ords" },
   { title: "SHIRTS STORIES", items: "Tops & Blouses", image: "/models/model-formal.png", href: "/category/shirt" },
   { title: "TOP STYLE", items: "Premium Styles", image: "/models/model-couture.png", href: "/category/top-style" },
-  { title: "DESI COLLECTIONS", items: "Ethnic Wear", image: "/models/model-traditional.png", href: "/category/desi-collections" },
-  { title: "BRANDS STUDIO", items: "Designer", image: "/models/model-editorial.png", href: "/category/brands-studio" },
-  { title: "JEWEL ROOM", items: "Accessories", image: "/jewellery/Temple Gold Necklace.webp", video: "/video/VID_20260719_033847_651_bsl.mp4", href: "/category/jewel-room" },
+  { title: "DESI COLLECTIONS", items: "Ethnic Wear", image: "/categoryImage/desi.jpeg", href: "/category/desi-collections" },
+  { title: "BRANDS STUDIO", items: "Designer", image: "/categoryImage/brandStudio.jpeg", href: "/category/brands-studio" },
+  { title: "JEWEL ROOM", items: "Accessories", image: "/categoryImage/jewelroom.jpeg", href: "/category/jewel-room" },
   { title: "BAG AFFAIRS", items: "Handbags", image: "/bags/Studio Mini Bag.jpeg", href: "/category/bag-affairs" },
   { title: "BIG SIZES STYL", items: "Plus Size", image: "/models/model-minimal.png", href: "/category/big-sizes-styl" },
   { title: "DRESS GALLERY", items: "All Dresses", image: "/models/model-western.png", href: "/category/dress-gallery" }
@@ -47,7 +47,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4">
           {categories.map((category) => {
             let activeImage = category.image;
-            
+
             if (category.isSlider === "mostLoved" && mostLovedImages.length > 0) {
               activeImage = mostLovedImages[currentIndex % mostLovedImages.length];
             } else if (category.isSlider === "justDropped" && justDroppedImages.length > 0) {
@@ -76,7 +76,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                         src={activeImage}
                         alt={category.title}
                         fill
-                        className="object-cover object-top transition-opacity duration-1000"
+                        className="object-contain scale-[1.0] transition-opacity duration-1000"
                       />
                     )
                   )}
