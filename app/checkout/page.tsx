@@ -278,9 +278,9 @@ export default function CheckoutPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         amount: grandTotal, // kept as fallback
-        items: items,
-        useWallet: applyWallet,
-        useNetworkWallet: applyNetworkWallet
+        items: payload.items,
+        useWallet: useWallet,
+        useNetworkWallet: useNetworkWallet
       })
     });
 
