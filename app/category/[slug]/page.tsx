@@ -348,7 +348,8 @@ export default async function CategoryDetailPage({
         sizes: normalizedVariants
           .map((variant: any) => String(variant?.size || "").trim())
           .filter(Boolean),
-        slug: p.slug
+        slug: p.slug,
+        category: p.category
       };
     })
     .filter((product: any) => {
