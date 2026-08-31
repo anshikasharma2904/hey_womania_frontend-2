@@ -69,6 +69,7 @@ type BestSellerProduct = {
   category: string;
   description?: string;
   images?: string[];
+  variants?: any[];
   soldCount?: number;
 };
 
