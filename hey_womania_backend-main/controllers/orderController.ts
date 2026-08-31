@@ -157,13 +157,25 @@ export const createOrder = async (req: Request, res: Response) => {
       let walletDiscount = 0;
       let networkWalletDiscount = 0;
       
-      const parseAmount = (val: string | number) => {
-        if (typeof val === "number") return val;
-        const parsed = parseFloat(String(val).replace(/[^0-9.]/g, ""));
-        return isNaN(parsed) ? 0 : parsed;
-      };
-      
-      const subtotal = items.reduce((sum: number, item: any) => sum + (parseAmount(item.price) * (item.qty || item.quantity || 1)), 0);
+      let subtotal = 0;
+      for (const item of items) {
+        const product = await Product.findOne({ id: item.productId }).session(session);
+        if (!product) {
+          throw new Error(`Product not found: ${item.productId}`);
+        }
+        const qty = parseInt(item.qty || item.quantity || "1", 10);
+        if (isNaN(qty) || qty <= 0) {
+          throw new Error(`Invalid quantity for item ${item.sku}`);
+        }
+        
+        const actualPrice = product.salePrice > 0 ? product.salePrice : product.price;
+        subtotal += actualPrice * qty;
+        
+        // Overwrite the frontend data with clean backend data
+        item.qty = qty;
+        item.price = actualPrice;
+      }
+
       const deliveryFee = subtotal >= 999 ? 0 : 99; // Fallback calculation
 
       if (userId !== "guest-user") {
@@ -176,7 +188,7 @@ export const createOrder = async (req: Request, res: Response) => {
             walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
 
             if (walletDiscount > 0) {
-              user.partnerProfile.walletBalance = 0; // Drain entire shopping wallet
+              user.partnerProfile.walletBalance -= walletDiscount;
               user.markModified("partnerProfile");
             }
           }
@@ -240,21 +252,24 @@ export const createOrder = async (req: Request, res: Response) => {
         await ledgerEntry.save({ session });
       }
 
+      const secureTotalAmount = subtotal + deliveryFee - walletDiscount - networkWalletDiscount;
+      const secureTotalString = `₹${secureTotalAmount.toLocaleString("en-IN")}`;
+
       // 2. All items reserved successfully. Create the Order.
       newOrder = new Order({
         id: orderId,
         userId,
         orderNumber,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        total,
+        total: secureTotalString,
         walletDiscount,
         networkWalletDiscount,
-        sellPoints: req.body.sellPoints || 0,
+        sellPoints: 0,
         status: "Pending",
         statusText: "We are processing your order",
         activeStep: 1,
         paymentMethod,
-        paymentStatus: req.body.paymentStatus || (paymentMethod === "cod" ? "COD" : "Pending"),
+        paymentStatus: res.locals.isVerifiedRazorpay ? "Paid" : (paymentMethod === "cod" ? "COD" : "Pending"),
         razorpayOrderId: req.body.razorpayOrderId,
         razorpayPaymentId: req.body.razorpayPaymentId,
         address,
@@ -356,5 +371,50 @@ export const cancelOrder = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error cancelling order:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const cleanupAbandonedOrders = async (req: Request, res: Response) => {
+  try {
+    // Find all "Pending" Razorpay orders created more than 60 minutes ago
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const abandonedOrders = await Order.find({
+      status: "Pending",
+      paymentStatus: "Pending",
+      paymentMethod: "Razorpay",
+      createdAt: { $lt: oneHourAgo }
+    });
+
+    let count = 0;
+    for (const order of abandonedOrders) {
+      // Restore stock
+      for (const item of order.items) {
+        if (item.sku) {
+          const product = await Product.findOne({ "variants.sku": item.sku });
+          if (product) {
+            const variant = product.variants.find((v: any) => v.sku === item.sku);
+            if (variant && variant.availableStock !== undefined) {
+              // Also release reserved stock if tracked
+              variant.availableStock += item.qty || 1;
+              if (variant.reservedStock !== undefined && variant.reservedStock >= (item.qty || 1)) {
+                variant.reservedStock -= item.qty || 1;
+              }
+              await product.save();
+            }
+          }
+        }
+      }
+
+      order.status = "Cancelled";
+      order.statusText = "Abandoned Cart Cancelled";
+      await order.save();
+      count++;
+    }
+
+    res.json({ success: true, message: `Cleaned up ${count} abandoned orders.` });
+  } catch (error) {
+    console.error("Error in cleanupAbandonedOrders:", error);
+    res.status(500).json({ error: "Internal server error during cleanup" });
   }
 };

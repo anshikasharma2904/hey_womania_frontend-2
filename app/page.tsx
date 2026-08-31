@@ -124,7 +124,7 @@ function getDisplayCategoryLabel(value: string) {
 async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const res = await fetch(`${apiUrl}/api/products?limit=24`, {
+    const res = await fetch(`${apiUrl}/api/products?limit=50`, {
       cache: "no-store"
     });
     if (!res.ok) return [];
@@ -153,7 +153,50 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
 
 function mapProductsToArrivals(products: Product[]) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  return products.slice(0, 10).map((product, index) => {
+  
+  const getBroadCategory = (catStr: string) => {
+    const lower = catStr.toLowerCase();
+    if (lower.includes("jewel") || lower.includes("ring") || lower.includes("necklace")) return "jewellery";
+    if (lower.includes("top") || lower.includes("crop")) return "tops";
+    if (lower.includes("shirt")) return "shirts";
+    return "cloth";
+  };
+
+  const grouped: Record<string, Product[]> = { jewellery: [], tops: [], shirts: [], cloth: [] };
+  
+  products.forEach(p => {
+    const broadCat = getBroadCategory(String(p.category || ""));
+    grouped[broadCat].push(p);
+  });
+
+  Object.keys(grouped).forEach(k => {
+    grouped[k] = grouped[k].sort(() => Math.random() - 0.5);
+  });
+
+  const result = [
+    ...grouped.cloth.slice(0, 3),
+    ...grouped.jewellery.slice(0, 3),
+    ...grouped.tops.slice(0, 3),
+    ...grouped.shirts.slice(0, 3)
+  ];
+
+  let needed = 12 - result.length;
+  const usedIds = new Set(result.map(r => r.id));
+  
+  if (needed > 0) {
+    for (const item of [...products].sort(() => Math.random() - 0.5)) {
+      if (needed <= 0) break;
+      if (!usedIds.has(item.id)) {
+        result.push(item);
+        usedIds.add(item.id);
+        needed--;
+      }
+    }
+  }
+
+  const finalProducts = result.sort(() => Math.random() - 0.5);
+
+  return finalProducts.map((product, index) => {
     const price = product.salePrice || product.price || 0;
       const hasDiscount = product.price > product.salePrice;
       const compareAt = hasDiscount ? product.price : price * 1.2;

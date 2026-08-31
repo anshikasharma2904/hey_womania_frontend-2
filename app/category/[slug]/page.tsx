@@ -370,7 +370,47 @@ export default async function CategoryDetailPage({
     });
 
   if (slug === "just-dropped") {
-    mappedLive = mappedLive.slice(0, 12);
+    const getBroadCategory = (catStr: string) => {
+      const lower = catStr.toLowerCase();
+      if (lower.includes("jewel") || lower.includes("ring") || lower.includes("necklace")) return "jewellery";
+      if (lower.includes("top") || lower.includes("crop")) return "tops";
+      if (lower.includes("shirt")) return "shirts";
+      return "cloth";
+    };
+
+    const grouped: Record<string, any[]> = { jewellery: [], tops: [], shirts: [], cloth: [] };
+    
+    mappedLive.forEach(p => {
+      const broadCat = getBroadCategory(String(p.category || ""));
+      grouped[broadCat].push(p);
+    });
+
+    Object.keys(grouped).forEach(k => {
+      grouped[k] = grouped[k].sort(() => Math.random() - 0.5);
+    });
+
+    const result = [
+      ...grouped.cloth.slice(0, 3),
+      ...grouped.jewellery.slice(0, 3),
+      ...grouped.tops.slice(0, 3),
+      ...grouped.shirts.slice(0, 3)
+    ];
+
+    let needed = 12 - result.length;
+    const usedIds = new Set(result.map(r => r.id));
+    
+    if (needed > 0) {
+      for (const item of mappedLive.sort(() => Math.random() - 0.5)) {
+        if (needed <= 0) break;
+        if (!usedIds.has(item.id)) {
+          result.push(item);
+          usedIds.add(item.id);
+          needed--;
+        }
+      }
+    }
+
+    mappedLive = result.sort(() => Math.random() - 0.5);
   } else if (slug === "most-loved") {
     mappedLive = mappedLive.sort(() => Math.random() - 0.5).slice(0, 12);
   } else if (slug === "last-chance") {
@@ -384,6 +424,10 @@ export default async function CategoryDetailPage({
       const cat = String(p.category || "").split('/')[0] || "Other";
       if (!byCategory[cat]) byCategory[cat] = [];
       byCategory[cat].push(p);
+    });
+    
+    Object.keys(byCategory).forEach(cat => {
+      byCategory[cat] = byCategory[cat].sort(() => Math.random() - 0.5);
     });
     
     const result = [];
@@ -410,6 +454,19 @@ export default async function CategoryDetailPage({
       }
     }
     
+    let needed = 12 - result.length;
+    if (needed > 0) {
+      const usedIds = new Set(result.map(r => r.id));
+      for (const item of mappedLive.sort(() => Math.random() - 0.5)) {
+        if (needed <= 0) break;
+        if (!usedIds.has(item.id)) {
+          result.push(item);
+          usedIds.add(item.id);
+          needed--;
+        }
+      }
+    }
+
     mappedLive = result.sort(() => Math.random() - 0.5);
   }
 

@@ -276,7 +276,12 @@ export default function CheckoutPage() {
     const orderResponse = await fetch("/api/razorpay/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: grandTotal })
+      body: JSON.stringify({ 
+        amount: grandTotal, // kept as fallback
+        items: items,
+        useWallet: applyWallet,
+        useNetworkWallet: applyNetworkWallet
+      })
     });
 
     const razorpayOrder = await orderResponse.json().catch(() => ({}));

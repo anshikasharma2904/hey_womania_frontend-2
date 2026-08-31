@@ -32,7 +32,7 @@ export function HeroVideoSlider() {
             preload="auto"
             autoPlay
             loop
-            className="h-full w-full object-center"
+            className="h-full w-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply pointer-events-none" />
         </div>
