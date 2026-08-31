@@ -224,7 +224,8 @@ async function zohoRequest(path: string, init: RequestInit = {}, isRetry = false
       Authorization: `Zoho-oauthtoken ${token}`,
       "Content-Type": "application/json",
       ...(init.headers || {})
-    }
+    },
+    signal: AbortSignal.timeout(30000)
   });
 
   const data = await response.json().catch(() => ({}));
@@ -338,7 +339,8 @@ async function fetchZohoItemImageBuffer(itemId: string, retries = 2): Promise<Bu
       {
         headers: {
           Authorization: `Zoho-oauthtoken ${token}`
-        }
+        },
+        signal: AbortSignal.timeout(20000)
       }
     );
 
@@ -348,6 +350,7 @@ async function fetchZohoItemImageBuffer(itemId: string, retries = 2): Promise<Bu
     }
 
     if (!response.ok) {
+      await response.text().catch(() => {});
       return null;
     }
 
@@ -377,7 +380,8 @@ async function fetchZohoDocumentImageBuffer(documentId: string, retries = 2): Pr
       {
         headers: {
           Authorization: `Zoho-oauthtoken ${token}`
-        }
+        },
+        signal: AbortSignal.timeout(20000)
       }
     );
 
@@ -387,6 +391,7 @@ async function fetchZohoDocumentImageBuffer(documentId: string, retries = 2): Pr
     }
 
     if (!response.ok) {
+      await response.text().catch(() => {});
       return null;
     }
 

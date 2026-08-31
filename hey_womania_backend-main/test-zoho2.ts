@@ -9,6 +9,7 @@ async function run() {
   const data = await fetchZohoItems();
   const items = data.items || [];
   let found = 0;
+  console.log("Total items returned by Zoho /items endpoint:", items.length);
   for (const item of items) {
     if (item.label_rate) {
       console.log(item.name, "Rate:", item.rate, "Label Rate:", item.label_rate);

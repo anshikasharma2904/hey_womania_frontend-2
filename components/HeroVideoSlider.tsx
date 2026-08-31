@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const HERO_VIDEOS = [
-  { id: "v1", src: "/video/hey%20womaniya%20111.mp4" },
-  { id: "v2", src: "/video/video%202.mp4" }
+  { id: "v1", src: "/headerVideo.mp4" },
+  { id: "v2", src: "/phoneVideo.mp4" }
 ];
 
 export function HeroVideoSlider() {
@@ -22,7 +22,7 @@ export function HeroVideoSlider() {
       if (videoEl) {
         if (idx === currentIndex) {
           videoEl.currentTime = 0;
-          void videoEl.play().catch(() => {});
+          void videoEl.play().catch(() => { });
         } else {
           videoEl.pause();
         }
@@ -39,9 +39,8 @@ export function HeroVideoSlider() {
           return (
             <div
               key={item.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                isActive ? "opacity-100 z-10" : "opacity-0 z-0"
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? "opacity-100 z-10" : "opacity-0 z-0"
+                }`}
             >
               <video
                 ref={(el) => { videoRefs.current[index] = el; }}

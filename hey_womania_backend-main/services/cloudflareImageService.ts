@@ -32,12 +32,16 @@ function getCloudflareImageConfig(): CloudflareImageConfig | null {
 }
 
 function getCloudflareAuthHeaders(config: CloudflareImageConfig): Record<string, string> {
-  if (config.apiToken.startsWith("cfk_") || config.email) {
+  // If no email was explicitly set for Cloudflare, it's highly likely an API Token
+  const isGlobalApiKey = config.email && process.env.CLOUDFLARE_EMAIL;
+  
+  if (isGlobalApiKey) {
     return {
       "X-Auth-Key": config.apiToken,
-      "X-Auth-Email": config.email || "hwomaniyaa@gmail.com"
+      "X-Auth-Email": config.email as string
     };
   }
+  
   return {
     Authorization: `Bearer ${config.apiToken}`
   };
@@ -63,14 +67,29 @@ export async function uploadImageToCloudflare(
   formData.append("metadata", JSON.stringify({ source: sourceLabel }));
   formData.append("requireSignedURLs", "false");
 
-  const response = await fetch(
+  let response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
     {
       method: "POST",
       headers: getCloudflareAuthHeaders(config),
-      body: formData
+      body: formData,
+      signal: AbortSignal.timeout(20000)
     }
   );
+
+  if (response.status === 429) {
+    console.warn("Cloudflare rate limited. Waiting 2 seconds...");
+    await new Promise(r => setTimeout(r, 2000));
+    response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
+      {
+        method: "POST",
+        headers: getCloudflareAuthHeaders(config),
+        body: formData,
+        signal: AbortSignal.timeout(20000)
+      }
+    );
+  }
 
   const data = await response.json().catch(() => ({}));
 
@@ -112,14 +131,29 @@ export async function uploadImageUrlToCloudflare(
   formData.append("metadata", JSON.stringify({ source: sourceLabel }));
   formData.append("requireSignedURLs", "false");
 
-  const response = await fetch(
+  let response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
     {
       method: "POST",
       headers: getCloudflareAuthHeaders(config),
-      body: formData
+      body: formData,
+      signal: AbortSignal.timeout(20000)
     }
   );
+
+  if (response.status === 429) {
+    console.warn("Cloudflare rate limited. Waiting 2 seconds...");
+    await new Promise(r => setTimeout(r, 2000));
+    response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/images/v1`,
+      {
+        method: "POST",
+        headers: getCloudflareAuthHeaders(config),
+        body: formData,
+        signal: AbortSignal.timeout(20000)
+      }
+    );
+  }
 
   const data = await response.json().catch(() => ({}));
 
