@@ -39,6 +39,7 @@
   ],
   "exclude": [
     "node_modules",
-    "hey_womania_backend-main"
+    "hey_womania_backend-main",
+    "admin-panel"
   ]
 }

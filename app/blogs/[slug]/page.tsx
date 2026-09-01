@@ -1,5 +1,5 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { MainNavbar } from "@/components/MainNavbar";
+import { StoreFooter } from "@/components/StoreFooter";
 
 async function getBlogBySlug(slug: string) {
   try {
@@ -19,21 +19,21 @@ export default async function BlogDetails({ params }: { params: { slug: string }
   if (!blog) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navbar />
+        <MainNavbar />
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900">Blog Not Found</h1>
             <p className="mt-2 text-gray-500">The article you are looking for does not exist.</p>
           </div>
         </main>
-        <Footer />
+        <StoreFooter />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar />
+      <MainNavbar />
       <main className="flex-grow">
         {blog.coverImage && (
           <div className="w-full h-64 sm:h-96 relative">
@@ -71,7 +71,7 @@ export default async function BlogDetails({ params }: { params: { slug: string }
           </div>
         </article>
       </main>
-      <Footer />
+      <StoreFooter />
     </div>
   );
 }
