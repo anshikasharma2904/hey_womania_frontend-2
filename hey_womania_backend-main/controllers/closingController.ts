@@ -682,6 +682,12 @@ export const executeClosing = async (req: Request, res: Response) => {
         updatedAt: now
       }).save();
 
+      // Credit the total closing income amount to the user's wallet
+      await User.findOneAndUpdate(
+        { id: preview.userId },
+        { $inc: { "partnerProfile.walletBalance": closingIncomeAmount } }
+      );
+      
       // Wallet balance is updated along with WP/SWP arrays above.
     }
 

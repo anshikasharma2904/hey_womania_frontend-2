@@ -19,6 +19,8 @@ import shiprocketRoutes from "./routes/shiprocketRoutes";
 import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import blogRoutes from "./routes/blogRoutes";
+import uploadRoutes from "./routes/uploadRoutes";
+import settingRoutes from "./routes/settingRoutes";
 import { shiprocketWebhook } from "./controllers/shiprocketController";
 import {
   getZohoInventoryStatus,
@@ -190,6 +192,9 @@ async function bootstrap() {
   });
 }
 
+// Serve uploaded files statically
+app.use("/uploads", express.static("uploads"));
+
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
@@ -203,6 +208,8 @@ app.use("/api/shiprocket", shiprocketRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/upload", requireAdmin, uploadRoutes); // Ensure only admins can upload files
+app.use("/api/settings", settingRoutes); // Public read-only access for homepage
 app.post("/api/webhooks/shiprocket", shiprocketWebhook);
 
 // Root

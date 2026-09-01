@@ -186,28 +186,34 @@ export const createOrder = async (req: Request, res: Response) => {
             const walletBalance = user.partnerProfile.walletBalance;
             const maxDiscount = subtotal * 0.05;
             walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
-
-            if (walletDiscount > 0) {
-              user.partnerProfile.walletBalance -= walletDiscount;
-              user.markModified("partnerProfile");
-            }
           }
           
           if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
             const networkWalletBalance = user.partnerProfile.networkWalletBalance;
             // Network wallet discounts can be applied to the remaining total
             const remainingTotalBeforeNetwork = subtotal + deliveryFee - walletDiscount;
-            
             networkWalletDiscount = Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork));
-            
-            if (networkWalletDiscount > 0) {
-              user.partnerProfile.networkWalletBalance -= networkWalletDiscount;
-              user.markModified("partnerProfile");
-            }
           }
           
           if (walletDiscount > 0 || networkWalletDiscount > 0) {
-            await user.save({ session });
+            // Use atomic $inc to prevent double-spend race conditions
+            const updateQuery: any = {};
+            if (walletDiscount > 0) updateQuery["partnerProfile.walletBalance"] = -walletDiscount;
+            if (networkWalletDiscount > 0) updateQuery["partnerProfile.networkWalletBalance"] = -networkWalletDiscount;
+            
+            const updatedUser = await User.findOneAndUpdate(
+              { 
+                id: userId,
+                "partnerProfile.walletBalance": { $gte: walletDiscount },
+                "partnerProfile.networkWalletBalance": { $gte: networkWalletDiscount }
+              },
+              { $inc: updateQuery },
+              { new: true, session }
+            );
+
+            if (!updatedUser) {
+              throw new Error("Failed to apply wallet discount. Insufficient balance.");
+            }
           }
           
           // Referral commission is deliberately not credited during checkout.

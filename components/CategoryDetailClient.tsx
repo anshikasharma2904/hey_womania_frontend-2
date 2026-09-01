@@ -39,6 +39,11 @@ const parsePrice = (value: string | number | undefined) => {
   return Number(value.replace(/[^0-9.]/g, "")) || 0;
 };
 
+const formatDisplayPrice = (value: string | number | undefined) => {
+  const num = parsePrice(value);
+  return `₹${Math.round(num).toLocaleString("en-IN")}`;
+};
+
 const INVALID_SIZE_TOKENS = new Set([
   "BOX",
   "DEFAULT",
@@ -735,11 +740,11 @@ export function CategoryDetailClient({
                       </div>
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2 pt-0.5">
                         <span className="text-xs font-bold text-[#111111] sm:text-[1.15rem]">
-                          {product.price}
+                          {formatDisplayPrice(product.price)}
                         </span>
                         {(product as any).originalPrice ? (
                           <span className="text-[0.65rem] text-[#a7a09a] line-through sm:text-sm">
-                            {(product as any).originalPrice}
+                            {formatDisplayPrice((product as any).originalPrice)}
                           </span>
                         ) : null}
                       </div>

@@ -86,7 +86,7 @@ const categoryIcons = ["checkroom", "styler", "diamond", "shopping_bag", "palett
 
 function formatPrice(value: unknown) {
   const price = Number(value || 0);
-  return `₹${Number.isFinite(price) ? price.toLocaleString("en-IN") : "0"}`;
+  return `₹${Number.isFinite(price) ? Math.round(price).toLocaleString("en-IN") : "0"}`;
 }
 
 function slugify(value: string) {

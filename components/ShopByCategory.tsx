@@ -27,6 +27,22 @@ const categories: { title: string; items: string; image: string; href: string; i
 
 export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }: ShopByCategoryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [customImages, setCustomImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Fetch dynamic category images from site settings
+    fetch("http://localhost:5000/api/settings")
+      .then(res => {
+        if (!res.ok) return {};
+        return res.json();
+      })
+      .then(data => {
+        if (data.categoryImages) {
+          setCustomImages(data.categoryImages);
+        }
+      })
+      .catch(err => console.error("Error fetching category images:", err));
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -46,7 +62,8 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4">
           {categories.map((category) => {
-            let activeImage = category.image;
+            // Priority: Dynamic Custom Image -> MostLoved/JustDropped Slider -> Hardcoded Image
+            let activeImage = customImages[category.title] || category.image;
 
             if (category.isSlider === "mostLoved" && mostLovedImages.length > 0) {
               activeImage = mostLovedImages[currentIndex % mostLovedImages.length];
@@ -61,19 +78,19 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                 className="group flex flex-col items-center text-center"
               >
                 <div className="relative h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 overflow-hidden rounded-full border border-[#ece6df] bg-[#f8f0e8] transition-transform duration-300 group-hover:scale-105">
-                  {category.video ? (
+                  {category.video || (activeImage && activeImage.match(/\.(mp4|webm)$/i)) ? (
                     <video
-                      src={category.video}
+                      src={category.video || (activeImage.startsWith('http') ? activeImage : `http://localhost:5000${activeImage}`)}
                       autoPlay
                       loop
                       muted
                       playsInline
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     activeImage && (
                       <ImageWithFallback
-                        src={activeImage}
+                        src={activeImage.startsWith('http') || activeImage.startsWith('/') ? activeImage : `http://localhost:5000${activeImage}`}
                         alt={category.title}
                         fill
                         className="object-contain scale-[1.0] transition-opacity duration-1000"

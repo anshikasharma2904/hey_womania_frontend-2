@@ -75,12 +75,12 @@ export const updatePayoutStatus = async (req: Request, res: Response) => {
     const { status, bankReferenceId, rejectionReason } = req.body;
     
     const payout = await Payout.findOneAndUpdate(
-      { id },
+      { id, status: { $ne: "Paid" } }, // Atomic check to prevent race conditions (double payments)
       { status, bankReferenceId, rejectionReason, updatedAt: new Date().toISOString() },
       { new: true }
     );
 
-    if (!payout) return res.status(404).json({ error: "Payout not found" });
+    if (!payout) return res.status(404).json({ error: "Payout not found or already paid" });
 
     // Deduct from wallet balance if Paid
     if (status === "Paid" && payout.userId) {

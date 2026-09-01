@@ -25,6 +25,11 @@ const settingSchema = new mongoose.Schema({
   smartSellerTarget: { type: Number, default: 10000 },
   smartSellerMonths: { type: Number, default: 3 },
 
+  // Site Config (Layout)
+  heroVideoDesktop: { type: String, default: "https://www.youtube.com/watch?v=fAdYAOFqIC4" },
+  heroVideoMobile: { type: String, default: "/phoneVideo.mp4" },
+  categoryImages: { type: mongoose.Schema.Types.Mixed, default: {} },
+
   updatedAt: String,
 }, { collection: "settings" });
 
