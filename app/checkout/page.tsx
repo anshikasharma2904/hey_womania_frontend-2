@@ -79,6 +79,7 @@ export default function CheckoutPage() {
   const [networkWalletBalance, setNetworkWalletBalance] = useState(0);
   const [useNetworkWallet, setUseNetworkWallet] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [hasPastOrders, setHasPastOrders] = useState<boolean>(false);
 
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
@@ -97,6 +98,9 @@ export default function CheckoutPage() {
           setIsLoggedIn(true);
           if (data.user.partnerProfile?.walletBalance) {
             setWalletBalance(data.user.partnerProfile.walletBalance);
+          }
+          if (data.user.hasPastOrders) {
+            setHasPastOrders(true);
           }
           if (data.user.partnerProfile?.networkWalletBalance) {
             setNetworkWalletBalance(data.user.partnerProfile.networkWalletBalance);
@@ -181,7 +185,7 @@ export default function CheckoutPage() {
   const subtotal = Math.round(cartItems.reduce((acc, item) => acc + (Math.round(item.salePrice) * item.quantity), 0));
   const isFreeDelivery = subtotal >= 999;
   const shippingAmount = subtotal > 0 ? (isFreeDelivery ? 0 : shiprocketRate) : 0;
-  const walletDiscount = useWallet ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
+  const walletDiscount = (!hasPastOrders && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
   
   const remainingTotalBeforeNetwork = subtotal + shippingAmount - walletDiscount;
   const networkWalletDiscount = useNetworkWallet ? Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork)) : 0;
@@ -910,18 +914,20 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 
-                {walletBalance > 0 && (
-                  <div className="flex justify-between items-center py-2 border-t border-[#ece6df] mt-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-[#111111] font-semibold text-sm">
-                      <input
-                        type="checkbox"
-                        checked={useWallet}
-                        onChange={(e) => setUseWallet(e.target.checked)}
-                        className="accent-[#9c4049] h-4 w-4 rounded"
-                      />
-                      Use Shopping Wallet
-                    </label>
-                    <span className="text-xs font-bold text-[#8b837b]">Available: ₹{walletBalance}</span>
+                {walletBalance > 0 && !hasPastOrders && (
+                  <div className="flex flex-col py-2 border-t border-[#ece6df] mt-2">
+                    <div className="flex justify-between items-center">
+                      <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm text-[#111111]">
+                        <input
+                          type="checkbox"
+                          checked={useWallet}
+                          onChange={(e) => setUseWallet(e.target.checked)}
+                          className="accent-[#9c4049] h-4 w-4 rounded cursor-pointer"
+                        />
+                        Use Shopping Wallet
+                      </label>
+                      <span className="text-xs font-bold text-[#8b837b]">Available: ₹{walletBalance}</span>
+                    </div>
                   </div>
                 )}
                 

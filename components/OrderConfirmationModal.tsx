@@ -1,4 +1,6 @@
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import { FaTimes, FaMapMarkerAlt, FaCreditCard, FaBoxOpen } from "react-icons/fa";
 
 interface OrderConfirmationModalProps {
@@ -46,8 +48,12 @@ export function OrderConfirmationModal({
             <div className="flex flex-col gap-3">
               {payload.items?.map((item: any, idx: number) => (
                 <div key={idx} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-[#e8e2d9]/50">
-                  <div className="w-12 h-12 rounded-lg bg-[#f0ede8] overflow-hidden shrink-0">
-                    {item.img && <img src={item.img} alt={item.name} className="w-full h-full object-cover" />}
+                  <div className="relative w-12 h-12 rounded-lg bg-[#f0ede8] overflow-hidden shrink-0">
+                    {item.img ? (
+                      <ImageWithFallback src={item.img} alt={item.name} fill className="object-cover" />
+                    ) : (
+                      <ImageWithFallback src="/products/product-placeholder.png" alt={item.name} fill className="object-cover" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-[#1c1c19] text-sm truncate">{item.name}</p>

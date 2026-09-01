@@ -74,7 +74,6 @@ export type CategoryMenu = {
 export const slugifyProductName = (value: string) =>
   value
     .toLowerCase()
-    .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 

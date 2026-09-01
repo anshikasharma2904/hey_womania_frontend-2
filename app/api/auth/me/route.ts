@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-// export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -15,7 +15,8 @@ export async function GET() {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/me`, {
       headers: {
         "Cookie": `hey_womania_session=${sessionToken.value}`
-      }
+      },
+      cache: "no-store"
     });
 
     if (!res.ok) {

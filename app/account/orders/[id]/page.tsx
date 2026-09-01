@@ -70,16 +70,24 @@ export default async function OrderDetailsPage(props: PageProps) {
     );
   }
 
-  const steps = [
+  let steps = [
     { title: "Order Placed", date: order.date, icon: FaFileInvoiceDollar },
     { title: "Processing", date: order.activeStep >= 2 ? "In Progress" : "Pending", icon: FaBoxOpen },
     { title: "Shipped", date: order.activeStep >= 3 ? "Completed" : "Pending", icon: FaShippingFast },
     { title: "Delivered", date: order.status === "Delivered" ? order.statusText.replace("Delivered on ", "") : "Pending", icon: FaCheckCircle }
   ];
 
+  let displayActiveStep = order.activeStep;
   if (order.status === "Cancelled") {
-    steps.push({ title: "Cancelled", date: order.statusText, icon: FaTimesCircle });
+    steps = [
+      { title: "Order Placed", date: order.date, icon: FaFileInvoiceDollar },
+      { title: "Cancelled", date: order.statusText, icon: FaTimesCircle }
+    ];
+    displayActiveStep = 2; // Both steps active
   }
+
+  // Calculate percentage based on dynamic steps length
+  const progressPercentage = steps.length > 1 ? ((displayActiveStep - 1) / (steps.length - 1)) * 100 : 0;
 
   return (
     <section className="flex flex-col gap-6">
@@ -109,67 +117,79 @@ export default async function OrderDetailsPage(props: PageProps) {
         </div>
 
         {/* Tracking Timeline Component */}
-        <div className="mb-10 rounded-[1.5rem] border border-[#e8e2d9] bg-[#fcf9f4] p-6 md:p-8">
-          <div className="mb-8 flex items-center justify-between">
-            <h3 className="font-bold text-[#1c1c19]">Tracking Status</h3>
-            <div className="flex items-center gap-3">
-              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${
-                order.status === "Delivered" ? "bg-[#edf7ef] text-[#367743]" : 
-                order.status === "Cancelled" ? "bg-[#fde8e8] text-[#ef6f63]" :
-                order.status === "Ongoing" ? "bg-[#eff6ff] text-[#3b82f6]" : "bg-[#fffbeb] text-[#d97706]"
-              }`}>
-                {order.status}
-              </span>
-              <CancelOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} />
+        {order.status === "Cancelled" ? (
+          <div className="mb-8 flex items-start gap-4 rounded-xl border border-[#fde8e8] bg-[#fdf5f5] p-5">
+            <FaTimesCircle className="mt-0.5 text-xl text-[#ef6f63] shrink-0" />
+            <div>
+              <h3 className="font-bold text-[#ef6f63] uppercase tracking-[0.1em] text-sm">Order Cancelled</h3>
+              <p className="mt-1 text-sm text-[#ef6f63]/80">{order.statusText}</p>
             </div>
           </div>
-          <p className="mb-8 text-center font-[family:var(--font-display)] text-xl text-[#1c1c19]">
-            {order.statusText}
-          </p>
+        ) : (
+          <div className="mb-10 rounded-[1.5rem] border border-[#e8e2d9] bg-[#fcf9f4] p-6 md:p-8">
+            <div className="mb-8 flex items-center justify-between">
+              <h3 className="font-bold text-[#1c1c19]">Tracking Status</h3>
+              <div className="flex items-center gap-3">
+                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${
+                  order.status === "Delivered" ? "bg-[#edf7ef] text-[#367743]" : 
+                  order.status === "Ongoing" ? "bg-[#eff6ff] text-[#3b82f6]" : "bg-[#fffbeb] text-[#d97706]"
+                }`}>
+                  {order.status}
+                </span>
+                <CancelOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} />
+              </div>
+            </div>
+            <p className="mb-8 text-center font-[family:var(--font-display)] text-xl text-[#1c1c19]">
+              {order.statusText}
+            </p>
 
-          <div className="relative mt-8">
-            {/* Connecting Line Background (Vertical for mobile, Horizontal for md+) */}
-            <div className="absolute left-[1.5rem] top-6 bottom-6 w-[2px] bg-[#e8e2d9] md:left-0 md:right-0 md:top-[1.5rem] md:h-[2px] md:w-full" />
-            
-            {/* Connecting Line Active */}
-            {/* Vertical active line for mobile */}
-            <div 
-              className="absolute left-[1.5rem] top-6 w-[2px] bg-[#5f5d3e] transition-all duration-1000 md:hidden" 
-              style={{ height: `${((order.activeStep - 1) / 3) * 100}%` }}
-            />
-            {/* Horizontal active line for desktop */}
-            <div 
-              className="absolute left-0 top-[1.5rem] hidden h-[2px] bg-[#5f5d3e] transition-all duration-1000 md:block" 
-              style={{ width: `${((order.activeStep - 1) / 3) * 100}%` }}
-            />
+            <div className="relative mt-8">
+              {/* Connecting Line Background (Vertical for mobile, Horizontal for md+) */}
+              <div className="absolute left-[1.5rem] top-6 bottom-6 w-[2px] bg-[#e8e2d9] md:left-0 md:right-0 md:top-[1.5rem] md:h-[2px] md:w-full" />
+              
+              {/* Connecting Line Active */}
+              {/* Vertical active line for mobile */}
+              <div 
+                className={`absolute left-[1.5rem] top-6 w-[2px] transition-all duration-1000 md:hidden bg-[#5f5d3e]`}
+                style={{ height: `${progressPercentage}%` }}
+              />
+              {/* Horizontal active line for desktop */}
+              <div 
+                className={`absolute left-0 top-[1.5rem] hidden h-[2px] transition-all duration-1000 md:block bg-[#5f5d3e]`}
+                style={{ width: `${progressPercentage}%` }}
+              />
 
-            <div className="relative flex flex-col justify-between gap-8 md:flex-row md:gap-4">
-              {steps.map((step, idx) => {
-                const isActive = idx < order.activeStep;
-                const isCurrent = idx === order.activeStep - 1;
-                const StepIcon = step.icon;
-                
-                return (
-                  <div key={idx} className="flex flex-row items-center gap-4 md:flex-col md:text-center z-10 w-full">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 ${
-                      isActive ? "border-[#fcf9f4] bg-[#5f5d3e] text-white" : "border-[#fcf9f4] bg-[#e8e2d9] text-[#a9a29a]"
-                    } ${isCurrent ? "ring-4 ring-[#5f5d3e]/20" : ""} transition-all duration-500`}>
-                      <StepIcon className="text-xl" />
+              <div className="relative flex flex-col justify-between gap-8 md:flex-row md:gap-4">
+                {steps.map((step, idx) => {
+                  const isActive = idx < displayActiveStep;
+                  const isCurrent = idx === displayActiveStep - 1;
+                  const StepIcon = step.icon;
+                  
+                  let iconClasses = "border-[#fcf9f4] bg-[#e8e2d9] text-[#a9a29a]";
+                  if (isActive) {
+                    iconClasses = "border-[#fcf9f4] bg-[#5f5d3e] text-white";
+                  }
+                  
+                  return (
+                    <div key={idx} className="flex flex-row items-center gap-4 md:flex-col md:text-center z-10 w-full">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 ${iconClasses} ${isCurrent ? "ring-4 ring-[#5f5d3e]/20" : ""} transition-all duration-500`}>
+                        <StepIcon className="text-xl" />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-bold ${isActive ? "text-[#1c1c19]" : "text-[#8b837b]"}`}>
+                          {step.title}
+                        </p>
+                        <p className={`mt-0.5 text-xs ${isActive ? "text-[#5f5d3e]" : "text-[#a9a29a]"}`}>
+                          {step.date}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className={`text-sm font-bold ${isActive ? "text-[#1c1c19]" : "text-[#8b837b]"}`}>
-                        {step.title}
-                      </p>
-                      <p className={`mt-0.5 text-xs ${isActive ? "text-[#5f5d3e]" : "text-[#a9a29a]"}`}>
-                        {step.date}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Items Summary */}

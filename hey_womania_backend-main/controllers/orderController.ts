@@ -183,9 +183,16 @@ export const createOrder = async (req: Request, res: Response) => {
         if (user && user.partnerProfile) {
           
           if (useWallet && user.partnerProfile.walletBalance > 0) {
-            const walletBalance = user.partnerProfile.walletBalance;
-            const maxDiscount = subtotal * 0.05;
-            walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
+            // Check if user has past orders (including cancelled ones)
+            const pastOrderCount = await Order.countDocuments({
+              userId: userId
+            }).session(session);
+
+            if (pastOrderCount === 0) {
+              const walletBalance = user.partnerProfile.walletBalance;
+              const maxDiscount = subtotal * 0.05;
+              walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
+            }
           }
           
           if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
@@ -347,9 +354,9 @@ export const cancelOrder = async (req: Request, res: Response) => {
     }
 
     // Attempt to cancel in Shiprocket if it has a shipping ID
-    if (order.shippingStatus === "NEW" || order.shippingStatus === "Processing") {
+    if (order.shiprocketOrderId) {
       try {
-        await cancelShiprocketOrders([order.orderNumber || order.id]);
+        await cancelShiprocketOrders([order.shiprocketOrderId]);
       } catch (err) {
         console.warn("Failed to cancel in Shiprocket, proceeding with local cancellation:", err);
       }

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import { User } from "../models/User";
+import { Order } from "../models/Order";
 
 export const getMe = async (req: Request, res: Response) => {
   try {
@@ -17,6 +18,12 @@ export const getMe = async (req: Request, res: Response) => {
         (user as any).uplineName = `${uplineUser.firstName || ""} ${uplineUser.lastName || ""}`.trim();
       }
     }
+
+    // Check if user has past orders (including cancelled ones)
+    const pastOrderCount = await Order.countDocuments({
+      userId: userId
+    });
+    (user as any).hasPastOrders = pastOrderCount > 0;
 
     res.json(user);
   } catch (error) {
