@@ -65,3 +65,19 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
   }
   next();
 };
+
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies[SESSION_COOKIE_NAME];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: Missing token" });
+  }
+
+  const payload = verifySessionToken(token);
+  if (!payload || (payload.role !== "admin" && payload.role !== "superadmin")) {
+    return res.status(403).json({ error: "Forbidden: Admin access required" });
+  }
+
+  // @ts-ignore
+  req.user = payload;
+  next();
+};

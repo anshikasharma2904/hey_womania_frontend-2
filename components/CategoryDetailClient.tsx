@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import { useMemo, useState } from "react";
 import { formatCoOrd } from "@/lib/format-utils";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
@@ -665,8 +665,10 @@ export function CategoryDetailClient({
                   >
                     <div className="p-1.5 sm:p-4 pb-0 w-full min-w-0 box-border">
                       <div className="relative aspect-[3/4] w-full min-w-0 overflow-hidden rounded-[0.85rem] sm:rounded-[1.35rem] bg-[#f4efe8]">
-                        <Image
+                        <ImageWithFallback
                           src={product.image}
+                          fallbackSrcs={(product as any).gallery?.slice(1) || []}
+                          fallbackSrc="/products/product-placeholder.png"
                           alt={product.name}
                           fill
                           className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"

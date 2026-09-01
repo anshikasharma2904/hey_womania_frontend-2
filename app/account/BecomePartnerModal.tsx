@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { FaCheckCircle, FaStar, FaUsers, FaArrowRight, FaTimes } from "react-icons/fa";
 import PartnerDocModal from "@/components/PartnerDocModal";
+import { PhoneVerificationField } from "@/components/PhoneVerificationField";
 
 export default function BecomePartnerModal({ user }: { user: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [sponsorCode, setSponsorCode] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ tone: "idle" | "success" | "error"; message: string }>({
     tone: "idle",
@@ -148,9 +150,23 @@ export default function BecomePartnerModal({ user }: { user: any }) {
                     {user?.uplineId && (
                       <div className="rounded-xl bg-[#f4efe8] p-4 border border-[#e6dcd4]">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[#5f5d3e]">Your Sponsor</p>
-                        <p className="mt-1 text-sm text-[#1c1c19]">You are already connected to a sponsor network.</p>
+                        <p className="mt-1 text-sm text-[#1c1c19]">You are already connected to sponsor network: <span className="font-bold text-[#7f3144]">{user.uplineName || user.uplineId}</span></p>
                       </div>
                     )}
+
+                    <div className="rounded-[1rem] border border-[#f0ddd6] bg-white p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[#6d655d] mb-3">
+                        Verify Your Phone Number
+                      </p>
+                      <PhoneVerificationField
+                        id="phone"
+                        name="phone"
+                        initialPhone={user?.phone || ""}
+                        readOnlyPhone={true}
+                        showRequiredIcon={false}
+                        onVerifiedChange={setPhoneVerified}
+                      />
+                    </div>
 
                     <div className="mt-2 flex items-start gap-3">
                       <input
@@ -173,7 +189,7 @@ export default function BecomePartnerModal({ user }: { user: any }) {
 
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || !phoneVerified}
                       className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#7f3144] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#6c2939] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {submitting ? "Upgrading Account..." : "Join Partner Program"}

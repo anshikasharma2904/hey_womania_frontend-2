@@ -6,10 +6,18 @@ export const getMe = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
     const userId = req.user.id;
-    const user = await User.findOne({ id: userId }).select("-passwordHash");
+    const user = await User.findOne({ id: userId }).select("-passwordHash").lean();
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
+
+    if (user.uplineId) {
+      const uplineUser = await User.findOne({ id: user.uplineId }).select("firstName lastName");
+      if (uplineUser) {
+        (user as any).uplineName = `${uplineUser.firstName || ""} ${uplineUser.lastName || ""}`.trim();
+      }
+    }
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
@@ -171,6 +179,16 @@ export const upgradeToPartner = async (req: Request, res: Response) => {
       }
       if (sponsor.id === user.id) {
         return res.status(400).json({ error: "You cannot sponsor yourself." });
+      }
+      
+      // Enforce partner-level sponsor code for partner upgrades
+      if (sponsor.referralCode === sponsorRef && sponsor.partnerReferralCode !== sponsorRef) {
+        return res.status(400).json({ error: "You must use a Partner Sponsor Code to join the partner program." });
+      }
+
+      // Prevent circular loops in the network tree
+      if (sponsor.ancestors && sponsor.ancestors.includes(user.id)) {
+        return res.status(400).json({ error: "You cannot use a sponsor who is already in your downline." });
       }
       
       user.uplineId = sponsor.id;

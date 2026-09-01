@@ -11,12 +11,14 @@ import orderRoutes from "./routes/orderRoutes";
 import partnerRoutes from "./routes/partnerRoutes";
 import userRoutes from "./routes/userRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import { requireAdmin } from "./middlewares/authMiddleware";
 import phoneVerificationRoutes from "./routes/phoneVerificationRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import zohoRoutes from "./routes/zohoRoutes";
 import shiprocketRoutes from "./routes/shiprocketRoutes";
 import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
+import blogRoutes from "./routes/blogRoutes";
 import { shiprocketWebhook } from "./controllers/shiprocketController";
 import {
   getZohoInventoryStatus,
@@ -40,6 +42,7 @@ const ZOHO_AUTO_SYNC_INTERVAL_MINUTES = Math.max(
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://heywomaniyaa.com",
   "https://www.heywomaniyaa.com",
   process.env.FRONTEND_URL,
@@ -192,13 +195,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/partner", partnerRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/admin", requireAdmin, adminRoutes);
 app.use("/api/phone-verification", phoneVerificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/zoho", zohoRoutes);
 app.use("/api/shiprocket", shiprocketRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/blogs", blogRoutes);
 app.post("/api/webhooks/shiprocket", shiprocketWebhook);
 
 // Root

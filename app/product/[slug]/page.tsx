@@ -1,4 +1,4 @@
-import Image from "next/image";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
@@ -74,10 +74,12 @@ export default async function ProductDetailPage({
       const originalPrice = p.price;
       const discountPercent = hasDiscount ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100) : 0;
       
-      const gallery = (p.images || []).map((img: string) => {
-        if (img.startsWith('http')) return img;
-        return `${apiUrl}${img}`;
-      });
+      const gallery = (p.images || [])
+        .filter(Boolean)
+        .map((img: string) => {
+          if (img.startsWith('http')) return img;
+          return `${apiUrl}${img}`;
+        });
 
       const categoryParts = String(p.category || "")
         .split("/")
@@ -146,15 +148,18 @@ export default async function ProductDetailPage({
       const data = await res.json();
       const allLive = data.data ? data.data : Array.isArray(data) ? data : [];
       const liveRelated = allLive.map((p: any) => {
-        const gallery = (p.images || []).map((img: string) => {
-          if (img.startsWith("http")) return img;
-          return `${apiUrl}${img}`;
-        });
+        const gallery = (p.images || [])
+          .filter(Boolean)
+          .map((img: string) => {
+            if (img.startsWith("http")) return img;
+            return `${apiUrl}${img}`;
+          });
         return {
           name: p.title,
           slug: p.slug,
           price: `₹${p.salePrice || p.price}`,
-          image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png"
+          image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
+          gallery: gallery
         };
       });
 
@@ -178,15 +183,18 @@ export default async function ProductDetailPage({
           .filter((p: any) => p.slug !== product.slug)
           .slice(0, 4)
           .map((p: any) => {
-            const gallery = (p.images || []).map((img: string) => {
-              if (img.startsWith("http")) return img;
-              return `${apiUrl}${img}`;
-            });
+            const gallery = (p.images || [])
+              .filter(Boolean)
+              .map((img: string) => {
+                if (img.startsWith("http")) return img;
+                return `${apiUrl}${img}`;
+              });
             return {
               name: p.title,
               slug: p.slug,
               price: `₹${p.salePrice || p.price}`,
-              image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png"
+              image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
+              gallery: gallery
             };
           });
 
@@ -272,8 +280,10 @@ export default async function ProductDetailPage({
                   className="group rounded-[1.35rem] border border-[#f0e7de] bg-[#fffdfa] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-[#e1d1c6] hover:shadow-[0_18px_34px_rgba(95,93,62,0.08)]"
                 >
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.1rem] bg-[#f4efe8] flex items-center justify-center p-1">
-                    <Image
+                    <ImageWithFallback
                       src={item.image}
+                      fallbackSrcs={item.gallery?.slice(1) || []}
+                      fallbackSrc="/products/product-placeholder.png"
                       alt={item.name}
                       width={260}
                       height={340}

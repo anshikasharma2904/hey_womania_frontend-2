@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
 type ShopByCategoryProps = {
   mostLovedImages?: string[];
@@ -72,7 +72,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                     />
                   ) : (
                     activeImage && (
-                      <Image
+                      <ImageWithFallback
                         src={activeImage}
                         alt={category.title}
                         fill

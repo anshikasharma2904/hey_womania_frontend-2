@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import { useState, useEffect, useRef } from "react";
 
 type ProductImageGalleryProps = {
@@ -53,9 +53,11 @@ export function ProductImageGallery({
           onTouchEnd={handleTouchEnd}
           className="relative w-full aspect-[3/4] h-[65vh] max-h-[580px] overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-[#f4efe8] shadow-[0_14px_36px_rgba(95,93,62,0.06)] flex items-center justify-center"
         >
-          <Image
+          <ImageWithFallback
             key={`mobile-active-${activeIndex}`}
             src={activeImage}
+            fallbackSrcs={images.slice(activeIndex + 1)}
+            fallbackSrc="/products/product-placeholder.png"
             alt={`${name} view ${activeIndex + 1}`}
             fill
             loading="eager"
@@ -89,8 +91,10 @@ export function ProductImageGallery({
         {/* Large Main Image: Right on desktop */}
         <div className="order-1 flex w-full max-w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-white p-4 lg:order-2">
           <div className="relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f4efe8] py-3">
-            <Image
+            <ImageWithFallback
               src={activeImage}
+              fallbackSrcs={images.slice(activeIndex + 1)}
+              fallbackSrc="/products/product-placeholder.png"
               alt={name}
               width={760}
               height={900}
@@ -118,8 +122,10 @@ export function ProductImageGallery({
                   }`}
                   aria-label={`View ${name} image ${index + 1}`}
                 >
-                  <Image
+                  <ImageWithFallback
                     src={thumbSrc}
+                    fallbackSrcs={images.slice(index + 1)}
+                    fallbackSrc="/products/product-placeholder.png"
                     alt={`${name} thumbnail ${index + 1}`}
                     width={120}
                     height={120}

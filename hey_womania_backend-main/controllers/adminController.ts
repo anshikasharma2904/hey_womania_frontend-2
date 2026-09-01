@@ -100,3 +100,29 @@ export const getCentralWalletStats = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 }).select("-password");
+    res.json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getAllOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      data: orders
+    });
+  } catch (error) {
+    console.error("Error fetching admin orders:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

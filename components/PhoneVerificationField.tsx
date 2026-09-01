@@ -9,6 +9,8 @@ type PhoneVerificationFieldProps = {
   label?: string;
   placeholder?: string;
   showRequiredIcon?: boolean;
+  initialPhone?: string;
+  readOnlyPhone?: boolean;
   onPhoneChange?: (phone: string) => void;
   onVerifiedChange?: (verified: boolean) => void;
 };
@@ -21,10 +23,12 @@ export function PhoneVerificationField({
   label = "Phone Number",
   placeholder = "+91 98765 43210",
   showRequiredIcon = true,
+  initialPhone = "",
+  readOnlyPhone = false,
   onPhoneChange,
   onVerifiedChange
 }: PhoneVerificationFieldProps) {
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(initialPhone);
   const [otp, setOtp] = useState(Array.from({ length: OTP_LENGTH }, () => ""));
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -354,13 +358,15 @@ export function PhoneVerificationField({
           type="tel"
           required
           value={phone}
+          readOnly={readOnlyPhone}
           onChange={(event) => {
+            if (readOnlyPhone) return;
             setPhone(event.target.value);
             onPhoneChange?.(event.target.value);
             resetVerificationState();
           }}
           placeholder={placeholder}
-          className="w-full border-0 border-b border-[#e8e2d9] bg-transparent py-3 pr-[8.6rem] text-sm text-[#1c1c19] outline-none transition-colors placeholder:text-[#d6cfc7] focus:border-[#5f5d3e] sm:pr-[9.4rem]"
+          className={`w-full border-0 bg-transparent py-3 pr-[8.6rem] text-sm text-[#1c1c19] outline-none transition-colors placeholder:text-[#d6cfc7] sm:pr-[9.4rem] ${readOnlyPhone ? '' : 'border-b border-[#e8e2d9] focus:border-[#5f5d3e]'}`}
         />
 
         <button

@@ -1,8 +1,9 @@
 import express from "express";
-import { getDashboardStats, getCentralWalletStats } from "../controllers/adminController";
+import { getDashboardStats, getCentralWalletStats, getAllUsers, getAllOrders } from "../controllers/adminController";
 import { getSettings, updateSettings } from "../controllers/settingController";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "../controllers/categoryController";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../controllers/productController";
+import { createBlog, getAdminBlogs, updateBlog, deleteBlog } from "../controllers/blogController";
 import { getCustomers, toggleCustomerBlock } from "../controllers/customerController";
 import { getOrders, updateOrderStatus } from "../controllers/adminOrderController";
 import { getShipments, createShipment, createShiprocketShipment, updateShipment } from "../controllers/shipmentController";
@@ -18,6 +19,8 @@ const router = express.Router();
 
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/dashboard/central-wallet", getCentralWalletStats);
+router.get("/users", getAllUsers);
+router.get("/orders", getAllOrders);
 router.get("/settings", getSettings);
 router.put("/settings", updateSettings);
 
@@ -32,6 +35,11 @@ router.get("/products", getProducts);
 router.post("/products", createProduct);
 router.put("/products/:id", updateProduct);
 router.delete("/products/:id", deleteProduct);
+
+router.get("/blogs", getAdminBlogs);
+router.post("/blogs", createBlog);
+router.put("/blogs/:id", updateBlog);
+router.delete("/blogs/:id", deleteBlog);
 
 // Zoho Inventory
 router.get("/zoho/status", getZohoStatus);

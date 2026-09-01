@@ -77,6 +77,7 @@ export default function CheckoutPage() {
   const [useWallet, setUseWallet] = useState(false);
   const [networkWalletBalance, setNetworkWalletBalance] = useState(0);
   const [useNetworkWallet, setUseNetworkWallet] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
@@ -92,6 +93,7 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => {
         if (data.ok && data.user) {
+          setIsLoggedIn(true);
           if (data.user.partnerProfile?.walletBalance) {
             setWalletBalance(data.user.partnerProfile.walletBalance);
           }
@@ -102,9 +104,14 @@ export default function CheckoutPage() {
             setSavedAddresses(data.user.addresses);
             setSelectedAddressId(data.user.addresses[0]._id || data.user.addresses[0].id || "new");
           }
+        } else {
+          setIsLoggedIn(false);
         }
       })
-      .catch(err => console.error("Failed to fetch user addresses:", err));
+      .catch(err => {
+        console.error("Failed to fetch user addresses:", err);
+        setIsLoggedIn(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -419,6 +426,27 @@ export default function CheckoutPage() {
 
   return (
     <>
+      {isLoggedIn === false && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-[#f4efe8] rounded-full flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#9c4049]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-black uppercase text-[#111111]">Login Required</h2>
+            <p className="text-[#6d655d]">You must be logged in to securely place an order and track your shipments.</p>
+            <div className="flex flex-col gap-3 pt-2">
+              <Link href="/login?redirect=/checkout" className="w-full rounded-full bg-[#1c1c19] py-3 text-sm font-semibold uppercase tracking-widest text-white transition hover:bg-[#9c4049]">
+                Log In
+              </Link>
+              <Link href="/register?redirect=/checkout" className="w-full rounded-full bg-white border border-[#1c1c19] py-3 text-sm font-semibold uppercase tracking-widest text-[#1c1c19] transition hover:bg-[#f4efe8]">
+                Sign Up
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="min-h-screen bg-[#fcf9f4] px-4 pb-16 pt-8 text-[#1c1c19] md:px-10 md:pt-12 lg:pt-16 lg:px-16">
         <section className="mx-auto max-w-7xl">
           <div className="mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
