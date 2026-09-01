@@ -23,7 +23,7 @@ export function HeroVideoSlider() {
     // Fetch dynamic settings
     fetch("http://localhost:5000/api/settings")
       .then(res => {
-        if (!res.ok) return {};
+        if (!res.ok) return {} as any;
         return res.json();
       })
       .then(data => {

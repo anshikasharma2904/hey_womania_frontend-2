@@ -33,7 +33,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
     // Fetch dynamic category images from site settings
     fetch("http://localhost:5000/api/settings")
       .then(res => {
-        if (!res.ok) return {};
+        if (!res.ok) return {} as any;
         return res.json();
       })
       .then(data => {
