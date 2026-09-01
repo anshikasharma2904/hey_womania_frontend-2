@@ -8,6 +8,7 @@ export interface WishbagItem {
   category: string;
   price: string;
   image: string;
+  images?: string[];
   href: string;
 }
 

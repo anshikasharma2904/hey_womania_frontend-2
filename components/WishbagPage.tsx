@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
 import { useWishbag } from "@/contexts/WishbagContext";
 import { FaTrash } from "react-icons/fa";
@@ -70,8 +71,9 @@ export default function WishbagPage() {
                 <Link href={item.href} className="group block">
                   <div className="relative overflow-hidden rounded-[0.95rem] bg-[#f4efe8] md:rounded-[1.4rem]">
                     <div className="relative h-[160px] w-full sm:h-[200px] md:h-[280px] flex items-center justify-center p-2">
-                      <Image
+                      <ImageWithFallback
                         src={item.image}
+                        fallbackSrcs={item.images || []}
                         alt={item.title}
                         fill
                         sizes="(max-width: 768px) 45vw, (max-width: 1024px) 50vw, 30vw"

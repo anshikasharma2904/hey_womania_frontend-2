@@ -18,6 +18,7 @@ interface ProductOptionsClientProps {
     name: string;
     price: string;
     image?: string;
+    gallery?: string[];
     variants?: Variant[];
   };
   onColorChange?: (colorName: string) => void;
@@ -156,6 +157,7 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
       productId,
       title: product.name,
       image: product.image || "/products/product-placeholder.png",
+      images: product.gallery || [],
       sku,
       size: selectedSize,
       color: colorName,
@@ -443,6 +445,7 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
                 category: (product as any).categoryLabel || "Live Collection",
                 price: String(product.price),
                 image: product.image || "",
+                images: product.gallery || [],
                 href: `/product/${slugStr}`
               });
             }

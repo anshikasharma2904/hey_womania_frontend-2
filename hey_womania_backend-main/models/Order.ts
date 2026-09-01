@@ -53,6 +53,7 @@ const orderSchema = new mongoose.Schema({
     qty: Number,
     price: String,
     img: String,
+    images: [String],
     sellPoints: { type: Number, default: 0 }
   }],
   createdAt: String,

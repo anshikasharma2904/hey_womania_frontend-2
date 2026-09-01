@@ -688,6 +688,7 @@ export function CategoryDetailClient({
                                 category: (product as any).categoryLabel || "Live Collection",
                                 price: String(product.price),
                                 image: product.image,
+                                images: (product as any).gallery || [],
                                 href: `/product/${slugStr}`
                               });
                             }

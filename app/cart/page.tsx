@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { StoreFooter } from "@/components/StoreFooter";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import { FaTrash, FaMinus, FaPlus } from "react-icons/fa";
 
 interface CartItem {
   productId: string;
   title: string;
   image: string;
+  images?: string[];
   sku: string;
   size: string;
   color: string;
@@ -154,8 +156,9 @@ export default function CartPage() {
                 >
                   <div className="grid gap-3 grid-cols-[88px_1fr] md:grid-cols-[88px_1fr_auto_auto] md:items-center md:gap-6">
                     <div className="overflow-hidden rounded-[0.95rem] bg-[#f4efe8] md:rounded-[1rem] relative w-20 h-20">
-                      <Image
+                      <ImageWithFallback
                         src={item.image}
+                        fallbackSrcs={item.images || []}
                         alt={item.title}
                         fill
                         className="object-cover"

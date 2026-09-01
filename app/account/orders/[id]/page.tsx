@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { FaCheckCircle, FaShippingFast, FaBoxOpen, FaFileInvoiceDollar, FaMapMarkerAlt, FaTimesCircle } from "react-icons/fa";
 import { slugifyProductName } from "@/app/category/category-data";
 import { CancelOrderButton } from "@/components/CancelOrderButton";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -181,8 +182,14 @@ export default async function OrderDetailsPage(props: PageProps) {
                   key={idx} 
                   className="group -mx-2 flex gap-4 rounded-xl p-2 transition-colors hover:bg-[#fcf9f4]"
                 >
-                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f0ede8]">
-                    <img src={item.img || "/products/product-traditional-1.png"} alt={item.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f0ede8]">
+                    <ImageWithFallback
+                      src={item.img || "/products/product-traditional-1.png"}
+                      fallbackSrcs={item.images || []}
+                      alt={item.name}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
                   </div>
                   <div className="flex flex-1 flex-col justify-center">
                     <p className="font-bold text-[#1c1c19] transition-colors group-hover:text-[#9c4049]">{item.name}</p>

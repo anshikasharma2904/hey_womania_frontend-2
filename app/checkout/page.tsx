@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StoreFooter } from "@/components/StoreFooter";
@@ -245,7 +246,8 @@ export default function CheckoutPage() {
         qty: item.quantity,
         price: `₹${item.salePrice.toLocaleString("en-IN")}`,
         name: item.title,
-        img: item.image
+        img: item.image,
+        images: item.images || []
       }))
     };
   };
@@ -853,8 +855,9 @@ export default function CheckoutPage() {
                 {cartItems.map((item) => (
                   <div key={item.sku} className="flex gap-3">
                     <div className="h-14 w-14 shrink-0 rounded-lg bg-[#f4efe8] overflow-hidden p-1 flex items-center justify-center relative">
-                      <Image
+                      <ImageWithFallback
                         src={item.image}
+                        fallbackSrcs={item.images || []}
                         alt={item.title}
                         fill
                         className="object-cover"

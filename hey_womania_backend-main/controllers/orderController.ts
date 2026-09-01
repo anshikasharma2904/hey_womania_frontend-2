@@ -280,6 +280,7 @@ export const createOrder = async (req: Request, res: Response) => {
           qty: item.qty || item.quantity || 1,
           price: typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : String(item.price),
           img: item.img || item.image || "",
+          images: item.images || [],
           sellPoints: item.sellPoints || 0
         })),
         createdAt: now
