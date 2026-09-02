@@ -34,6 +34,8 @@ type PartnerDashboardResponse = {
   };
   dashboard?: {
     totalOrders?: number;
+    partnerOrdersCount?: number;
+    customerOrdersCount?: number;
     totalReferrals?: number;
     totalCustomerReferrals?: number;
     walletBalance?: number;
@@ -42,6 +44,7 @@ type PartnerDashboardResponse = {
     sellPointsTotal?: number;
     activeDirects?: number;
     currentMonthSelfSales?: number;
+    currentMonthTeamSales?: number;
     womaniyaaPointsStreak?: number;
     superWomaniyaaPointsStreak?: number;
     activeWomaniyaaPoints?: number;

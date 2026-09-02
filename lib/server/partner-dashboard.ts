@@ -17,7 +17,10 @@ export type PartnerDashboardResponse = {
   };
   dashboard?: {
     totalOrders?: number;
+    partnerOrdersCount?: number;
+    customerOrdersCount?: number;
     totalReferrals?: number;
+    totalCustomerReferrals?: number;
     walletBalance?: number;
     networkWalletBalance?: number;
     rank?: string;
@@ -25,6 +28,7 @@ export type PartnerDashboardResponse = {
     sellPointsTotal?: number;
     activeDirects?: number;
     currentMonthSelfSales?: number;
+    currentMonthTeamSales?: number;
     womaniyaaPointsStreak?: number;
     superWomaniyaaPointsStreak?: number;
     activeWomaniyaaPoints?: number;
