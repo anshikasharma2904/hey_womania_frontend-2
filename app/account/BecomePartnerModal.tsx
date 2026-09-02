@@ -28,11 +28,9 @@ export default function BecomePartnerModal({ user }: { user: any }) {
     setStatus({ tone: "idle", message: "" });
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/users/upgrade-partner`, {
+      const res = await fetch(`/api/user/upgrade-partner`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ sponsorCode })
       });
       const data = await res.json();
