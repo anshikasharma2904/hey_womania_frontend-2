@@ -12,8 +12,8 @@ export function HeroVideoSlider() {
   const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isDesktopReady, setIsDesktopReady] = useState(false);
   
-  const [desktopVideoUrl, setDesktopVideoUrl] = useState("fAdYAOFqIC4");
-  const [desktopIsYoutube, setDesktopIsYoutube] = useState(true);
+  const [desktopVideoUrl, setDesktopVideoUrl] = useState("/video heywomaniya.mp4");
+  const [desktopIsYoutube, setDesktopIsYoutube] = useState(false);
   const [desktopIsImage, setDesktopIsImage] = useState(false);
   
   const [mobileVideoUrl, setMobileVideoUrl] = useState("/phoneVideo.mp4");
@@ -27,6 +27,7 @@ export function HeroVideoSlider() {
         return res.json();
       })
       .then(data => {
+        /* 
         if (data.heroVideoDesktop) {
           const url = data.heroVideoDesktop;
           const isImg = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
@@ -47,6 +48,7 @@ export function HeroVideoSlider() {
             }
           }
         }
+        */
         
         if (data.heroVideoMobile) {
           const mUrl = data.heroVideoMobile;

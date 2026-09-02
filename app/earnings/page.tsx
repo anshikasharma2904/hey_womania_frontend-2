@@ -35,6 +35,7 @@ type PartnerDashboardResponse = {
   dashboard?: {
     totalOrders?: number;
     totalReferrals?: number;
+    totalCustomerReferrals?: number;
     walletBalance?: number;
     networkWalletBalance?: number;
     rank?: string;
@@ -63,12 +64,18 @@ type PartnerDashboardResponse = {
 
 const buildPartnerStats = (stats: {
   totalOrders: number;
+  partnerOrdersCount: number;
+  customerOrdersCount: number;
   totalReferrals: number;
+  totalCustomerReferrals: number;
   wp: number;
   swp: number;
 }) => [
   { value: `${stats.totalOrders}`, label: "My Orders", icon: FaShoppingBag },
-  { value: `${stats.totalReferrals}`, label: "My Referrals", icon: FaUsers },
+  { value: `${stats.partnerOrdersCount}`, label: "Partner Orders", icon: FaShoppingBag },
+  { value: `${stats.customerOrdersCount}`, label: "Customer Orders", icon: FaShoppingBag },
+  { value: `${stats.totalReferrals}`, label: "Partner Referrals", icon: FaUsers },
+  { value: `${stats.totalCustomerReferrals}`, label: "Customer Referrals", icon: FaUsers },
   { value: `${stats.wp}`, label: "Womaniyaa Points", icon: FaCrown },
   { value: `${stats.swp}`, label: "Super W. Points", icon: FaCrown }
 ];
@@ -79,6 +86,7 @@ const quickActions = [
   { label: "My Referrals", icon: FaUsers, href: "/earnings/referrals" },
   { label: "My Team", icon: FaUsers, href: "/earnings/team" },
   { label: "Network Tree", icon: FaUsers, href: "/earnings/network" },
+  { label: "Partner Orders", icon: RiShoppingBag3Line, href: "/earnings/network-orders" },
   { label: "My Wallet", icon: MdOutlineWallet, href: "/earnings/wallet" },
   { label: "Partner", icon: FaCrown, href: "/earnings/annual-club" },
   { label: "Help Center", icon: FaHeadset, href: "/customer-support" }
@@ -174,7 +182,10 @@ export default async function EarningsPage() {
   const referralCode = user?.referralCode || "N/A";
   const partnerStats = buildPartnerStats({
     totalOrders,
+    partnerOrdersCount: dashboard?.partnerOrdersCount ?? 0,
+    customerOrdersCount: dashboard?.customerOrdersCount ?? 0,
     totalReferrals,
+    totalCustomerReferrals: dashboard?.totalCustomerReferrals ?? 0,
     wp: dashboard?.activeWomaniyaaPoints || 0,
     swp: dashboard?.activeSuperWomaniyaaPoints || 0
   });
@@ -258,7 +269,7 @@ export default async function EarningsPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 md:mt-5 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-3 md:mt-5 md:grid-cols-3 lg:grid-cols-5">
               {partnerStats.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -290,14 +301,33 @@ export default async function EarningsPage() {
                     {dashboard?.activeWomaniyaaPoints || 0}
                   </span>
                 </div>
-                <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-2">
-                  <div className="absolute top-0 left-0 bg-[#9c4049] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.womaniyaaPointsStreak || 0) / 3) * 100)}%` }}></div>
-                  <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-1">
+                      <div className="absolute top-0 left-0 bg-[#9c4049] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.currentMonthTeamSales || 0) / 500000) * 100)}%` }}></div>
+                      <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                      <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[0.65rem] text-[#9c4049] font-medium">
+                        Team: ₹{(dashboard?.currentMonthTeamSales || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({(((dashboard?.currentMonthTeamSales || 0) / 500000) * 100).toFixed(1)}%) of 5L target
+                      </p>
+                      <p className="text-[0.65rem] text-[#6d655d] text-right font-medium">
+                        {dashboard?.womaniyaaPointsStreak || 0} / 3 Months Streak
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-1">
+                      <div className="absolute top-0 left-0 bg-[#d89c4c] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.currentMonthSelfSales || 0) / 10000) * 100)}%` }}></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[0.65rem] text-[#d89c4c] font-medium">
+                        Self: ₹{(dashboard?.currentMonthSelfSales || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({(((dashboard?.currentMonthSelfSales || 0) / 10000) * 100).toFixed(1)}%) of 10K target
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-[#6d655d] text-right font-medium">
-                  {dashboard?.womaniyaaPointsStreak || 0} / 3 Months (5L Team, 10k Self)
-                </p>
               </div>
 
               <div className="rounded-[1.15rem] border border-[#e6dcd4] bg-white p-4 shadow-[0_10px_24px_rgba(95,93,62,0.04)] md:p-5">
@@ -309,17 +339,36 @@ export default async function EarningsPage() {
                     {dashboard?.activeSuperWomaniyaaPoints || 0}
                   </span>
                 </div>
-                <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-2">
-                  <div className="absolute top-0 left-0 bg-[#5f5d3e] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.superWomaniyaaPointsStreak || 0) / 6) * 100)}%` }}></div>
-                  <div className="absolute top-1/2 left-[16.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-[50%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-[83.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-1">
+                      <div className="absolute top-0 left-0 bg-[#5f5d3e] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.currentMonthTeamSales || 0) / 25000000) * 100)}%` }}></div>
+                      <div className="absolute top-1/2 left-[16.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                      <div className="absolute top-1/2 left-[33.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                      <div className="absolute top-1/2 left-[50%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                      <div className="absolute top-1/2 left-[66.66%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                      <div className="absolute top-1/2 left-[83.33%] -translate-y-1/2 w-1 h-3.5 bg-[#e6dcd4] z-20 rounded-full"></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[0.65rem] text-[#5f5d3e] font-medium">
+                        Team: ₹{(dashboard?.currentMonthTeamSales || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({(((dashboard?.currentMonthTeamSales || 0) / 25000000) * 100).toFixed(1)}%) of 2.5Cr target
+                      </p>
+                      <p className="text-[0.65rem] text-[#6d655d] text-right font-medium">
+                        {dashboard?.superWomaniyaaPointsStreak || 0} / 6 Months Streak
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="relative w-full bg-[#fcf9f4] rounded-full h-2.5 mb-1">
+                      <div className="absolute top-0 left-0 bg-[#d89c4c] h-2.5 rounded-full z-10 transition-all duration-500" style={{ width: `${Math.min(100, ((dashboard?.currentMonthSelfSales || 0) / 25000) * 100)}%` }}></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[0.65rem] text-[#d89c4c] font-medium">
+                        Self: ₹{(dashboard?.currentMonthSelfSales || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({(((dashboard?.currentMonthSelfSales || 0) / 25000) * 100).toFixed(1)}%) of 25K target
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-[#6d655d] text-right font-medium">
-                  {dashboard?.superWomaniyaaPointsStreak || 0} / 6 Months (2.5Cr Team, 25k Self)
-                </p>
               </div>
             </div>
 

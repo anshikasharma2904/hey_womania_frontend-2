@@ -61,8 +61,8 @@ export default function BecomePartnerModal({ user }: { user: any }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-4xl rounded-[2rem] border border-[#ead9d1] bg-[#fcf9f4] shadow-[0_24px_70px_rgba(127,49,68,0.15)] overflow-hidden my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl flex flex-col max-h-[90vh] rounded-[2rem] border border-[#ead9d1] bg-[#fcf9f4] shadow-[0_24px_70px_rgba(127,49,68,0.15)] overflow-hidden">
             
             <button 
               onClick={() => setIsOpen(false)}
@@ -83,7 +83,7 @@ export default function BecomePartnerModal({ user }: { user: any }) {
               </p>
             </header>
 
-            <div className="p-6 sm:p-8 md:p-10 flex flex-col md:flex-row gap-8">
+            <div className="p-6 sm:p-8 md:p-10 flex flex-col md:flex-row gap-8 overflow-y-auto">
               
               {/* Benefits Column */}
               <div className="flex-1 space-y-6">

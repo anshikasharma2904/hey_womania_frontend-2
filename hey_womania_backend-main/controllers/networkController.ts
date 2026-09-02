@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
 import { SellPointLedger } from "../models/SellPointLedger";
+import { Order } from "../models/Order";
 
 export const getNetworkTree = async (req: Request, res: Response) => {
   try {
@@ -59,5 +60,63 @@ export const getNetworkTree = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching network tree:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getNetworkOrders = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Find all users who have this partner in their ancestors
+    const networkUsers = await User.find(
+      { ancestors: userId }, 
+      { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, ancestors: 1, role: 1 }
+    ).lean();
+    
+    if (networkUsers.length === 0) {
+      return res.json({ success: true, orders: [] });
+    }
+
+    const networkUserIds = networkUsers.map((u: any) => u.id);
+    const userMap: Record<string, any> = {};
+    networkUsers.forEach((u: any) => {
+      // Calculate level based on ancestors array position
+      const partnerIndex = u.ancestors.indexOf(userId);
+      const level = u.ancestors.length - partnerIndex;
+      
+      userMap[u.id] = {
+        name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        email: u.email,
+        level,
+        role: u.role || 'user'
+      };
+    });
+
+    // Fetch all orders from these users
+    const orders = await Order.find({ userId: { $in: networkUserIds } })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedOrders = orders.map((o: any) => ({
+      _id: o._id,
+      orderNumber: o.orderNumber || o._id.toString().slice(-6).toUpperCase(),
+      date: o.date || o.createdAt,
+      total: o.total,
+      status: o.status,
+      items: o.items,
+      customerName: userMap[o.userId]?.name || "Unknown",
+      customerEmail: userMap[o.userId]?.email || "Unknown",
+      level: userMap[o.userId]?.level || 0,
+      role: userMap[o.userId]?.role || 'user'
+    }));
+
+    res.json({ success: true, orders: formattedOrders });
+  } catch (error) {
+    console.error("Error fetching network orders:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };

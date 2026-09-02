@@ -85,17 +85,28 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     const directPartners = await User.find({ uplineId: userId, role: "partner" }, { id: 1 }).lean();
     const activeDirectsCount = directPartners.length;
     const totalPartnerReferrals = await User.countDocuments({ role: "partner", ancestors: userId });
+    const totalCustomerReferrals = await User.countDocuments({ role: { $in: ["user", "member"] }, ancestors: userId });
+
+    const partnerReferralDocs = await User.find({ role: "partner", ancestors: userId }, { id: 1 }).lean();
+    const customerReferralDocs = await User.find({ role: { $in: ["user", "member"] }, ancestors: userId }, { id: 1 }).lean();
+    
+    const partnerOrdersCount = await Order.countDocuments({ userId: { $in: partnerReferralDocs.map(u => u.id) } });
+    const customerOrdersCount = await Order.countDocuments({ userId: { $in: customerReferralDocs.map(u => u.id) } });
 
     const currentMonthStr = new Date().toISOString().substring(0, 7); // YYYY-MM
     let wpStreak = 0;
     let swpStreak = 0;
     let currentMonthSelfSales = 0;
+    let currentMonthTeamSales = 0;
 
     // Check up to 5 previous months plus current month
     for (let i = 0; i <= 5; i++) {
       const checkMonth = i === 0 ? currentMonthStr : getPrevMonth(currentMonthStr, i);
       const m = await checkTeamSalesForMonth(userId, checkMonth);
-      if (i === 0) currentMonthSelfSales = m.selfSales;
+      if (i === 0) {
+        currentMonthSelfSales = m.selfSales;
+        currentMonthTeamSales = m.teamSales;
+      }
       
       if (m.teamSales >= 25000000 && m.selfSales >= 25000) {
         swpStreak++;
@@ -112,7 +123,10 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
     const dashboardData = {
       ...dashboard.toObject(),
       totalOrders: totalOrders,
+      partnerOrdersCount,
+      customerOrdersCount,
       totalReferrals: totalPartnerReferrals,
+      totalCustomerReferrals: totalCustomerReferrals,
       walletBalance: user.partnerProfile?.walletBalance || 0,
       networkWalletBalance: user.partnerProfile?.networkWalletBalance || 0,
       activeDirects: activeDirectsCount,
@@ -121,7 +135,8 @@ export const getPartnerDashboard = async (req: Request, res: Response) => {
       superWomaniyaaPointsStreak: swpStreak,
       activeWomaniyaaPoints: (user.partnerProfile?.womaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length,
       activeSuperWomaniyaaPoints: (user.partnerProfile?.superWomaniyaaPoints || []).filter((p: any) => p.expiryMonth >= currentMonthStr).length,
-      currentMonthSelfSales
+      currentMonthSelfSales,
+      currentMonthTeamSales
     };
 
     // Aggregating Transaction History
@@ -265,12 +280,12 @@ export const getPartnerReferrals = async (req: Request, res: Response) => {
     const getStats = async (u: any) => {
       const ordersCount = await Order.countDocuments({ userId: u.id });
       const orders = await Order.find({ userId: u.id });
-      let totalSP = 0;
+      let totalSales = 0;
       for (const order of orders) {
         if (order.status === "Delivered") {
           const numericTotal = parseFloat((order.total || "").replace(/[^0-9.]/g, ""));
           if (!isNaN(numericTotal)) {
-            totalSP += numericTotal / 5;
+            totalSales += numericTotal;
           }
         }
       }
@@ -281,7 +296,7 @@ export const getPartnerReferrals = async (req: Request, res: Response) => {
         phone: u.phone,
         dateJoined: u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : "2026-06-24",
         ordersCount,
-        totalSP,
+        totalSales: Number(totalSales.toFixed(2)),
         status: ordersCount > 0 ? "Active" : "Inactive"
       };
     };

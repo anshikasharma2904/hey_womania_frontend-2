@@ -35,7 +35,7 @@ export default async function PartnerOrdersPage() {
             </Link>
             <div className="text-center">
               <p className="font-[family:var(--font-display)] text-[1.8rem] leading-[0.95] tracking-[-0.04em] text-[#5c2530] sm:text-[2.4rem] md:text-[3rem]">
-                Partner Orders
+                My Orders
               </p>
               <p className="mt-1 text-[0.65rem] uppercase tracking-[0.24em] text-[#9c4049]/80 sm:text-[0.72rem]">
                 Order history and delivery status

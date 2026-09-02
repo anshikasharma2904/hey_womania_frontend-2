@@ -163,54 +163,38 @@ export function getPrevMonth(monthStr: string, subtractMonths = 1): string {
 }
 
 export async function checkTeamSalesForMonth(partnerId: string, monthStr: string): Promise<{ teamSales: number, selfSales: number }> {
-  const teamUsers = await User.find(
-    { role: "partner", $or: [{ id: partnerId }, { ancestors: partnerId }] },
-    { id: 1 }
+  // Fetch all users in the partner's network (including customers)
+  const allNetworkUsers = await User.find(
+    { $or: [{ id: partnerId }, { ancestors: partnerId }] },
+    { id: 1, role: 1, uplineId: 1 }
   ).lean();
-  const teamUserIds = teamUsers.map(u => u.id);
+  
+  const allNetworkUserIds = allNetworkUsers.map(u => u.id);
+  
+  // Direct customers whose orders count towards selfSales
+  const directCustomerIds = allNetworkUsers
+    .filter(u => u.uplineId === partnerId && u.role === "member")
+    .map(u => u.id);
 
-  const result = await SellPointLedger.aggregate([
-    {
-      $match: {
-        status: "approved",
-        $or: [
-          { salesMonth: monthStr },
-          { salesMonth: { $exists: false }, createdAt: { $regex: `^${monthStr}` } }
-        ],
-        userId: { $in: teamUserIds }
-      }
-    },
-    { $lookup: { from: "orders", localField: "orderId", foreignField: "id", as: "order" } },
-    { $unwind: "$order" },
-    {
-      $match: {
-        "order.status": "Delivered",
-        $or: [
-          { "order.paymentStatus": "Paid" },
-          { "order.paymentMethod": { $regex: /cod|cash on delivery/i } },
-          { "order.paymentStatus": { $regex: /cod/i } }
-        ]
-      }
-    },
-    {
-      $group: {
-        _id: "$userId",
-        totalSales: {
-          $sum: {
-            $cond: [{ $eq: ["$type", "Credit"] }, "$sellPrice", { $multiply: ["$sellPrice", -1] }]
-          }
-        }
-      }
-    }
-  ]);
+  // Aggregate orders directly instead of relying on SellPointLedger, to show live progress for active orders
+  const orders = await Order.find({
+    userId: { $in: allNetworkUserIds },
+    createdAt: { $regex: `^${monthStr}` },
+    status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] }
+  }).lean();
 
   let teamSales = 0;
   let selfSales = 0;
 
-  for (const r of result) {
-    teamSales += r.totalSales;
-    if (r._id === partnerId) {
-      selfSales = r.totalSales;
+  for (const order of orders) {
+    const totalNum = parseFloat((order.total || "").replace(/[^0-9.]/g, ""));
+    if (isNaN(totalNum)) continue;
+
+    teamSales += totalNum;
+    
+    // Self sales includes own purchases + purchases by direct customers
+    if (order.userId === partnerId || (order.userId && directCustomerIds.includes(order.userId))) {
+      selfSales += totalNum;
     }
   }
 
@@ -228,46 +212,15 @@ export const getClosingPreview = async (req: Request, res: Response) => {
       monthsToCheck.push(getPrevMonth(currentMonthStr, i));
     }
     
-    // Aggregate sales for ALL 6 months directly in DB
-    const historicalAgg = await SellPointLedger.aggregate([
-      {
-        $match: {
-          status: "approved",
-          $or: [
-            { salesMonth: { $in: monthsToCheck } },
-            {
-              salesMonth: { $exists: false },
-              createdAt: { $regex: new RegExp(`^(${monthsToCheck.join("|")})`) }
-            }
-          ]
-        }
-      },
-      { $lookup: { from: "orders", localField: "orderId", foreignField: "id", as: "order" } },
-      { $unwind: "$order" },
-      {
-        $match: {
-          "order.status": "Delivered",
-          $or: [
-            { "order.paymentStatus": "Paid" },
-            { "order.paymentMethod": { $regex: /cod|cash on delivery/i } },
-            { "order.paymentStatus": { $regex: /cod/i } }
-          ]
-        }
-      },
-      {
-        $group: {
-          _id: {
-            userId: "$userId",
-            month: { $ifNull: ["$salesMonth", { $substr: ["$createdAt", 0, 7] }] }
-          },
-          totalSales: {
-            $sum: {
-              $cond: [{ $eq: ["$type", "Credit"] }, "$sellPrice", { $multiply: ["$sellPrice", -1] }]
-            }
-          }
-        }
-      }
-    ]);
+    const allUsers = await User.find({}, { id: 1, role: 1, uplineId: 1, ancestors: 1, partnerProfile: 1, name: 1, firstName: 1, lastName: 1 }).lean();
+    const initialUserMap = new Map();
+    for (const u of allUsers) initialUserMap.set(u.id, u);
+
+    // Aggregate sales for ALL 6 months directly from Orders
+    const orders = await Order.find({
+      status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] },
+      createdAt: { $regex: new RegExp(`^(${monthsToCheck.join("|")})`) }
+    }).lean();
 
     // Build historical sales maps
     const historicalSelfSales = new Map(); // month -> userId -> sales
@@ -279,12 +232,27 @@ export const getClosingPreview = async (req: Request, res: Response) => {
     }
 
     let totalCompanySales = 0;
-    for (const r of historicalAgg) {
-      const monthMap = historicalSelfSales.get(r._id.month);
+    
+    for (const order of orders) {
+      if (!order.createdAt) continue;
+      const month = order.createdAt.substring(0, 7);
+      const num = parseFloat((order.total || "").replace(/[^0-9.]/g, ""));
+      if (isNaN(num) || num === 0) continue;
+      
+      const u = initialUserMap.get(order.userId);
+      if (!u) continue;
+      
+      // If the purchaser is a customer, their order counts towards their upline's selfSales
+      let targetUserId = order.userId;
+      if (u.role === "member" && u.uplineId) {
+        targetUserId = u.uplineId;
+      }
+      
+      const monthMap = historicalSelfSales.get(month);
       if (monthMap) {
-        monthMap.set(r._id.userId, r.totalSales);
-        if (r._id.month === currentMonthStr) {
-          totalCompanySales += r.totalSales;
+        monthMap.set(targetUserId, (monthMap.get(targetUserId) || 0) + num);
+        if (month === currentMonthStr) {
+          totalCompanySales += num;
         }
       }
     }
@@ -478,10 +446,10 @@ function getExpiryMonth(monthStr: string, addMonths: number): string {
 
 export const executeClosing = async (req: Request, res: Response) => {
   try {
-    const { month, previews } = req.body;
+    const { month, previews, force } = req.body;
     if (!month || !previews) return res.status(400).json({ error: "Invalid data" });
 
-    if (!isTenthInIndia()) {
+    if (!force && !isTenthInIndia()) {
       return res.status(400).json({ error: "Monthly commissions can only be credited on the 10th (Asia/Kolkata)." });
     }
 
@@ -677,16 +645,14 @@ export const executeClosing = async (req: Request, res: Response) => {
         sellPointsBasis: preview.selfSales,
         activeDirectsBasis: activeDirects,
         kycVerified,
-        status: "Pending",
+        status: (closingIncomeAmount >= 500 && kycVerified && activeDirects >= 2) ? "Ready" : "Pending",
         createdAt: now,
         updatedAt: now
       }).save();
 
-      // Credit the total closing income amount to the user's wallet
-      await User.findOneAndUpdate(
-        { id: preview.userId },
-        { $inc: { "partnerProfile.walletBalance": closingIncomeAmount } }
-      );
+      // IMPORTANT: Add the total closing income to the partner's actual network wallet
+      // (This is already handled earlier in this function via profile update)
+
       
       // Wallet balance is updated along with WP/SWP arrays above.
     }
@@ -698,10 +664,22 @@ export const executeClosing = async (req: Request, res: Response) => {
   }
 };
 
-export const runAutomatedMonthlyClosing = async () => {
+export const runAutomatedMonthlyClosing = async (force: boolean = false) => {
   const now = new Date();
+  
+  // By default, only run on the 10th
+  if (!force && !isTenthInIndia()) {
+    return;
+  }
+
   let year = now.getFullYear();
   let month = now.getMonth(); 
+  
+  if (force) {
+    // For testing, process the CURRENT month
+    month += 1;
+  }
+  
   if (month === 0) {
     month = 12;
     year -= 1;
@@ -709,7 +687,7 @@ export const runAutomatedMonthlyClosing = async () => {
   const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
 
   try {
-    console.log(`[Auto Closing] Starting automated closing for month: ${monthStr}`);
+    console.log(`[Auto Closing] Starting automated closing for month: ${monthStr}${force ? ' (FORCED)' : ''}`);
 
     const req = { query: { month: monthStr } } as any;
     let previews: any = null;
@@ -729,7 +707,7 @@ export const runAutomatedMonthlyClosing = async () => {
       return;
     }
 
-    const execReq = { body: { month: monthStr, previews } } as any;
+    const execReq = { body: { month: monthStr, previews, force } } as any;
     let execResult = null;
     const execRes = {
       json: (data: any) => { execResult = data; },

@@ -26,9 +26,9 @@ export default async function TeamPage() {
   const dbL2 = referralsData?.level2 || [];
   const dbL3 = referralsData?.level3 || [];
 
-  const l1SP = dbL1.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
-  const l2SP = dbL2.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
-  const l3SP = dbL3.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
+  const l1SP = dbL1.reduce((sum: number, u: any) => sum + ((u.totalSales || 0) * 0.02), 0);
+  const l2SP = dbL2.reduce((sum: number, u: any) => sum + ((u.totalSales || 0) * 0.01), 0);
+  const l3SP = dbL3.reduce((sum: number, u: any) => sum + ((u.totalSales || 0) * 0.005), 0);
   const teamSp = l1SP + l2SP + l3SP;
 
   const totalTeamSize = dbL1.length + dbL2.length + dbL3.length;
@@ -44,31 +44,31 @@ export default async function TeamPage() {
     ...dbL1.map((u: any) => ({
       name: u.name,
       level: "Level 1",
-      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
+      business: `₹${((u.totalSales || 0) * 0.02).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     })),
     ...dbL2.map((u: any) => ({
       name: u.name,
       level: "Level 2",
-      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
+      business: `₹${((u.totalSales || 0) * 0.01).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     })),
     ...dbL3.map((u: any) => ({
       name: u.name,
       level: "Level 3",
-      business: `₹${u.totalSP.toLocaleString('en-IN')}`,
+      business: `₹${((u.totalSales || 0) * 0.005).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
       status: u.ordersCount > 0 ? "Active" : "Inactive",
       joined: u.dateJoined
     }))
   ];
 
   const allTeamMembers = [...dbL1, ...dbL2, ...dbL3];
-  const sortedPerformers = [...allTeamMembers].sort((a, b) => (b.totalSP || 0) - (a.totalSP || 0));
+  const sortedPerformers = [...allTeamMembers].sort((a, b) => (b.totalSales || 0) - (a.totalSales || 0));
   const performers = sortedPerformers.slice(0, 3).map((u, idx) => ({
     name: u.name,
-    amount: `₹${(u.totalSP || 0).toLocaleString('en-IN')}`,
+    amount: `₹${((u.totalSales || 0) * (u.level === 1 ? 0.02 : u.level === 2 ? 0.01 : 0.005)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
     tag: idx === 0 ? "Top performer" : idx === 1 ? "Fast growth" : "Steady growth"
   }));
 

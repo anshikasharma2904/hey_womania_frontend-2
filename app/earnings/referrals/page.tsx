@@ -23,10 +23,10 @@ type ReferralTreeCard = {
 };
 import CopyInviteButton from "@/components/CopyInviteButton";
 
-function buildSummaryCards(totalTeam: number, teamSellPoints: number, score: string, status: string) {
+function buildSummaryCards(totalTeam: number, teamEarnings: number, score: string, status: string) {
   return [
     { label: "Total Team", value: `${totalTeam}`, sub: "Members", icon: FaUsers },
-    { label: "Team Sales", value: `₹${teamSellPoints.toLocaleString("en-IN")}`, sub: "This Month", icon: MdOutlineCurrencyRupee },
+    { label: "Team Earnings", value: `₹${teamEarnings.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, sub: "This Month", icon: MdOutlineCurrencyRupee },
     { label: "Rank", value: score, sub: "Unlocked", icon: FaRegStar },
     { label: "Payout Status", value: status, sub: "Qualified", icon: FaCrown }
   ];
@@ -286,7 +286,7 @@ function TreeNode({
           {name}
         </p>
         <p className="text-[9px] uppercase tracking-wider text-[#9c8e85] font-medium">
-          {amount}
+          ₹{amount}
         </p>
         {moreLabel && (
           <span className="mt-1 inline-flex rounded-full bg-[#fff0f3] border border-[#e8d5c8] px-2 py-0.5 text-[8px] font-bold text-[#9c4049] uppercase tracking-wider">
@@ -311,9 +311,9 @@ export default async function ReferralsPage() {
   const dbL3 = referralsData?.level3 || [];
 
   const totalTeam = dbL1.length + dbL2.length + dbL3.length;
-  const l1SP = dbL1.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
-  const l2SP = dbL2.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
-  const l3SP = dbL3.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
+  const l1SP = dbL1.reduce((sum: number, u: any) => sum + (u.totalSales || 0) * 0.02, 0);
+  const l2SP = dbL2.reduce((sum: number, u: any) => sum + (u.totalSales || 0) * 0.01, 0);
+  const l3SP = dbL3.reduce((sum: number, u: any) => sum + (u.totalSales || 0) * 0.005, 0);
   const teamSellPoints = l1SP + l2SP + l3SP;
 
   const score = dashboard?.rank || "Starter";
@@ -322,57 +322,57 @@ export default async function ReferralsPage() {
     (dashboard?.activeDirects ?? 0) >= (businessPlan?.minimumActiveDirects ?? 2)
       ? "Qualified"
       : "Not ready";
-  const summaryCards = buildSummaryCards(totalTeam, dashboard?.sellPointsTotal ?? 0, score, status);
+  const summaryCards = buildSummaryCards(totalTeam, teamSellPoints, score, status);
 
   const level1: ReferralTreeCard[] = dbL1.slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
-    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    amount: `${((r.totalSales || 0) * 0.02).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
     avatar: [MODEL_ASSETS.western, MODEL_ASSETS.traditional, MODEL_ASSETS.couture][idx % 3],
     members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
     crown: (r.ordersCount || 0) > 0
   }));
   while (level1.length < 3) {
-    level1.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false });
+    level1.push({ id: "", name: "Open Slot", amount: "0", avatar: MODEL_ASSETS.western, members: "No referrals", crown: false });
   }
 
-  const level2: ReferralTreeCard[] = [...dbL2].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+  const level2: ReferralTreeCard[] = [...dbL2].sort((a: any, b: any) => (b.totalSales || 0) - (a.totalSales || 0)).slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
-    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    amount: `${((r.totalSales || 0) * 0.01).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
     avatar: [MODEL_ASSETS.minimal, MODEL_ASSETS.formal, MODEL_ASSETS.editorial][idx % 3],
     members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
     crown: false
   }));
   while (level2.length < 3) {
-    level2.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.minimal, members: "No referrals", crown: false });
+    level2.push({ id: "", name: "Open Slot", amount: "0", avatar: MODEL_ASSETS.minimal, members: "No referrals", crown: false });
   }
 
-  const level3: ReferralTreeCard[] = [...dbL3].sort((a: any, b: any) => (b.totalSP || 0) - (a.totalSP || 0)).slice(0, 3).map((r: any, idx: number) => ({
+  const level3: ReferralTreeCard[] = [...dbL3].sort((a: any, b: any) => (b.totalSales || 0) - (a.totalSales || 0)).slice(0, 3).map((r: any, idx: number) => ({
     id: r.id,
     name: r.name,
-    amount: `₹${(r.totalSP || 0).toLocaleString('en-IN')}`,
+    amount: `${((r.totalSales || 0) * 0.005).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
     avatar: [MODEL_ASSETS.traditional, MODEL_ASSETS.couture, MODEL_ASSETS.western][idx % 3],
     members: `${r.ordersCount || 0} Order${r.ordersCount !== 1 ? 's' : ''}`,
     crown: false
   }));
   while (level3.length < 3) {
-    level3.push({ id: "", name: "Open Slot", amount: "₹0", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false });
+    level3.push({ id: "", name: "Open Slot", amount: "0", avatar: MODEL_ASSETS.traditional, members: "No referrals", crown: false });
   }
 
   const teamSummary = [
-    { label: "Level 1", members: `${dbL1.length} Member${dbL1.length !== 1 ? 's' : ''}`, amount: `₹${l1SP.toLocaleString('en-IN')}` },
-    { label: "Level 2", members: `${dbL2.length} Member${dbL2.length !== 1 ? 's' : ''}`, amount: `₹${l2SP.toLocaleString('en-IN')}` },
-    { label: "Level 3", members: `${dbL3.length} Member${dbL3.length !== 1 ? 's' : ''}`, amount: `₹${l3SP.toLocaleString('en-IN')}` },
-    { label: "Total", members: `${totalTeam} Member${totalTeam !== 1 ? 's' : ''}`, amount: `₹${teamSellPoints.toLocaleString('en-IN')}` }
+    { label: "Level 1", members: `${dbL1.length} Member${dbL1.length !== 1 ? 's' : ''}`, amount: `₹${l1SP.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+    { label: "Level 2", members: `${dbL2.length} Member${dbL2.length !== 1 ? 's' : ''}`, amount: `₹${l2SP.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+    { label: "Level 3", members: `${dbL3.length} Member${dbL3.length !== 1 ? 's' : ''}`, amount: `₹${l3SP.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` },
+    { label: "Total", members: `${totalTeam} Member${totalTeam !== 1 ? 's' : ''}`, amount: `₹${teamSellPoints.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` }
   ];
 
   const allTeamMembers = [...dbL1, ...dbL2, ...dbL3];
-  const sortedPerformers = [...allTeamMembers].sort((a, b) => (b.totalSP || 0) - (a.totalSP || 0));
+  const sortedPerformers = [...allTeamMembers].sort((a, b) => (b.totalSales || 0) - (a.totalSales || 0));
   const topPerformers = sortedPerformers.length > 0
     ? sortedPerformers.slice(0, 3).map((u, idx) => ({
         name: u.name,
-        amount: `₹${(u.totalSP || 0).toLocaleString('en-IN')}`,
+        amount: `₹${((u.totalSales || 0) * (u.level === 1 ? 0.02 : u.level === 2 ? 0.01 : 0.005)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
         badge: idx === 0 ? "Crown Seller" : idx === 1 ? "Growth Lead" : "Style Mentor"
       }))
     : [
