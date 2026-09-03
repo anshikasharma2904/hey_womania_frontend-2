@@ -300,9 +300,10 @@ function TreeNode({
 }
 
 export default async function ReferralsPage() {
-  const [partnerData, networkData] = await Promise.all([
+  const [partnerData, networkData, referralsData] = await Promise.all([
     getPartnerDashboardData(),
-    getPartnerNetworkData()
+    getPartnerNetworkData(),
+    getPartnerReferralsList()
   ]);
 
   const treeData = networkData?.tree || null;
@@ -311,6 +312,7 @@ export default async function ReferralsPage() {
   const referralCode = partnerData?.user?.referralCode || "";
   const partnerReferralCode = partnerData?.user?.partnerReferralCode || referralCode;
 
+  const dbL1 = referralsData?.level1 || [];
   const dbL2 = referralsData?.level2 || [];
   const dbL3 = referralsData?.level3 || [];
 
