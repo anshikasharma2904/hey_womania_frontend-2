@@ -189,3 +189,33 @@ export async function getPartnerOrders(): Promise<any[] | null> {
     return null;
   }
 }
+
+export async function getPartnerNetworkData(): Promise<any | null> {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get("hey_womania_session");
+
+    if (!session) {
+      return null;
+    }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/partner/network`,
+      {
+        headers: {
+          Cookie: `hey_womania_session=${session.value}`
+        },
+        cache: "no-store"
+      }
+    );
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = await res.json();
+    return data.data || null;
+  } catch {
+    return null;
+  }
+}

@@ -8,7 +8,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default function SiteConfig() {
-  const [settings, setSettings] = useState<any>(null);
+  const [, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });

@@ -10,8 +10,9 @@ import {
   FaUsers
 } from "react-icons/fa";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import { getPartnerDashboardData, getPartnerReferralsList } from "@/lib/server/partner-dashboard";
+import { getPartnerDashboardData, getPartnerReferralsList, getPartnerNetworkData } from "@/lib/server/partner-dashboard";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
+import ReferralTree from "@/components/ReferralTree";
 
 type ReferralTreeCard = {
   id: string;
@@ -299,14 +300,17 @@ function TreeNode({
 }
 
 export default async function ReferralsPage() {
-  const partnerData = await getPartnerDashboardData();
+  const [partnerData, networkData] = await Promise.all([
+    getPartnerDashboardData(),
+    getPartnerNetworkData()
+  ]);
+
+  const treeData = networkData?.tree || null;
   const dashboard = partnerData?.dashboard;
   const businessPlan = partnerData?.businessPlan;
   const referralCode = partnerData?.user?.referralCode || "";
   const partnerReferralCode = partnerData?.user?.partnerReferralCode || referralCode;
 
-  const referralsData = await getPartnerReferralsList();
-  const dbL1 = referralsData?.level1 || [];
   const dbL2 = referralsData?.level2 || [];
   const dbL3 = referralsData?.level3 || [];
 
@@ -435,78 +439,7 @@ export default async function ReferralsPage() {
                 </div>
 
                 <div className="mt-5 rounded-[1.8rem] border border-[#f2e2db] bg-[linear-gradient(180deg,#fffaf7_0%,#fff5ef_100%)] px-4 py-6 md:px-6 md:py-8 overflow-x-auto">
-                  <div className="relative mx-auto flex min-w-[800px] max-w-5xl flex-col items-center">
-                    <div className="relative z-10 mx-auto flex w-full flex-col items-center">
-                      <div className="relative pb-4">
-                        <AvatarNode
-                          name="You"
-                          amount="Level 0"
-                          avatar={MODEL_ASSETS.traditional}
-                          crown
-                          size="root"
-                        />
-                      </div>
-
-                      <div className="w-full flex justify-center h-20 w-full relative">
-                        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 100">
-                           <path d="M600 0 C600 50, 200 50, 200 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
-                           <path d="M600 0 C600 50, 600 50, 600 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
-                           <path d="M600 0 C600 50, 1000 50, 1000 100" stroke="#e7c5c0" strokeWidth="4" fill="none" strokeLinecap="round" />
-                        </svg>
-                      </div>
-
-                      <div className="relative w-full">
-                        <div className="grid pt-0" style={{ gridTemplateColumns: `repeat(${level1.length}, minmax(0, 1fr))` }}>
-                          {level1.map((member, index) => (
-                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
-                              <div className="w-[4px] h-6 bg-[#e7c5c0] mb-2 rounded-full relative">
-                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#d7a24d]"></div>
-                              </div>
-                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={member.crown} size="md" />
-                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
-                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 1</p>
-                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.members || "Referral partner"}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="relative mt-2 w-full">
-                        <div className="grid" style={{ gridTemplateColumns: `repeat(${level2.length}, minmax(0, 1fr))` }}>
-                          {level2.map((member, index) => (
-                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
-                              <div className="w-[4px] h-14 bg-[#d28da3]/60 mb-2 rounded-full relative">
-                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#d28da3]"></div>
-                              </div>
-                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={false} size="md" />
-                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
-                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 2</p>
-                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.name === "Open Slot" ? "No referrals" : "Active"}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="relative mt-2 w-full">
-                        <div className="grid" style={{ gridTemplateColumns: `repeat(${level3.length}, minmax(0, 1fr))` }}>
-                          {level3.map((member, index) => (
-                            <div key={`${member.name}-${index}`} className="relative flex flex-col items-center px-4">
-                              <div className="w-[4px] h-14 bg-[#c8b7f0]/60 mb-2 rounded-full relative">
-                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#c8b7f0]"></div>
-                              </div>
-                              <AvatarNode name={member.name} amount={member.amount} avatar={member.avatar} crown={false} size="md" />
-                              <div className="mt-3 rounded-full border border-[#eed8ce] bg-white px-4 py-2 text-center shadow-[0_8px_18px_rgba(95,93,62,0.05)] whitespace-nowrap">
-                                <p className="text-[0.72rem] uppercase tracking-[0.14em] text-[#9c4049]">Level 3</p>
-                                <p className="mt-1 text-[0.72rem] text-[#7b6f69]">{member.name === "Open Slot" ? "No referrals" : "Active"}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <ReferralTree root={treeData} currentUsername={user?.name || user?.firstName || ""} />
                 </div>
               </div>
               <div className="grid gap-4 xl:sticky xl:top-6 xl:self-start">

@@ -12,48 +12,116 @@ export const getNetworkTree = async (req: Request, res: Response) => {
     }
 
     // Level 1: direct referrals
-    const level1Users = await User.find({ uplineId: userId, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, partnerProfile: 1 });
+    const level1Users = await User.find({ uplineId: userId, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, partnerProfile: 1, uplineId: 1 }).lean();
     const level1Ids = level1Users.map(u => u.id);
 
     // Level 2: referrals of level 1
-    const level2Users = level1Ids.length > 0 ? await User.find({ uplineId: { $in: level1Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
+    const level2Users = level1Ids.length > 0 ? await User.find({ uplineId: { $in: level1Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }).lean() : [];
     const level2Ids = level2Users.map(u => u.id);
 
     // Level 3: referrals of level 2
-    const level3Users = level2Ids.length > 0 ? await User.find({ uplineId: { $in: level2Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }) : [];
+    const level3Users = level2Ids.length > 0 ? await User.find({ uplineId: { $in: level2Ids }, role: "partner" }, { id: 1, name: 1, firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1, rank: 1, uplineId: 1, partnerProfile: 1 }).lean() : [];
 
-    // Optionally calculate total sales for each user by checking SellPointLedger
+    // Calculate total sales for each user by checking their Orders
     const allIds = [...level1Ids, ...level2Ids, ...level3Users.map(u => u.id)];
     let salesMap: Record<string, number> = {};
     
     if (allIds.length > 0) {
-      const ledgers = await SellPointLedger.find({ userId: { $in: allIds }, status: "approved" });
-      ledgers.forEach(l => {
-        if (l.type === "Credit") {
-          salesMap[l.userId] = (salesMap[l.userId] || 0) + (l.sellPrice || 0);
-        } else {
-          salesMap[l.userId] = (salesMap[l.userId] || 0) - (l.sellPrice || 0);
+      // Get all orders made by these users
+      const orders = await Order.find({
+        userId: { $in: allIds },
+        status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] }
+      }).lean();
+      
+      orders.forEach(o => {
+        if (!o.userId) return;
+        const num = parseFloat((o.total || "").replace(/[^0-9.]/g, ""));
+        if (!isNaN(num)) {
+          salesMap[o.userId as string] = (salesMap[o.userId as string] || 0) + num;
         }
       });
+      
+      // Also get all orders made by their CUSTOMERS (users who have them as uplineId but are role: "member")
+      const customers = await User.find({ uplineId: { $in: allIds }, role: "member" }, { id: 1, uplineId: 1 }).lean();
+      const customerMap = new Map();
+      customers.forEach(c => customerMap.set(c.id, c.uplineId));
+      
+      if (customers.length > 0) {
+        const customerOrders = await Order.find({
+          userId: { $in: customers.map(c => c.id) },
+          status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] }
+        }).lean();
+        
+        customerOrders.forEach(o => {
+          if (!o.userId) return;
+          const num = parseFloat((o.total || "").replace(/[^0-9.]/g, ""));
+          if (!isNaN(num)) {
+            const upId = customerMap.get(o.userId);
+            if (upId) {
+              salesMap[upId] = (salesMap[upId] || 0) + num;
+            }
+          }
+        });
+      }
     }
 
     const mapUser = (u: any) => ({
       id: u.id,
-      name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+      username: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
       email: u.email,
       phone: u.phone,
       joinedAt: u.createdAt,
-      rank: u.rank || "Starter",
+      rankName: u.rank || "Starter",
       kycStatus: u.partnerProfile?.kycStatus || "Pending",
-      totalSales: salesMap[u.id] || 0
+      businessUsdc: salesMap[u.id] || 0,
+      uplineId: u.uplineId,
+      children: [] as any[]
     });
+
+    const l1 = level1Users.map(mapUser);
+    const l2 = level2Users.map(mapUser);
+    const l3 = level3Users.map(mapUser);
+
+    // Build tree
+    l2.forEach(n2 => {
+      n2.children = l3.filter(n3 => n3.uplineId === n2.id);
+    });
+    l1.forEach(n1 => {
+      n1.children = l2.filter(n2 => n2.uplineId === n1.id);
+    });
+    
+    const rootUser = await User.findOne({ id: userId });
+    
+    // Calculate Root sales
+    let rootSales = 0;
+    const rootOrders = await Order.find({ userId, status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] } }).lean();
+    rootOrders.forEach(o => {
+       const num = parseFloat((o.total || "").replace(/[^0-9.]/g, ""));
+       if (!isNaN(num)) rootSales += num;
+    });
+    const rootCustomers = await User.find({ uplineId: userId, role: "member" }).lean();
+    if (rootCustomers.length > 0) {
+       const rcOrders = await Order.find({ userId: { $in: rootCustomers.map(c => c.id) }, status: { $nin: ["Cancelled", "Returned", "Refunded", "Return Requested"] } }).lean();
+       rcOrders.forEach(o => {
+         const num = parseFloat((o.total || "").replace(/[^0-9.]/g, ""));
+         if (!isNaN(num)) rootSales += num;
+       });
+    }
+
+    const tree = {
+      username: rootUser?.name || `${rootUser?.firstName || ''} ${rootUser?.lastName || ''}`.trim(),
+      rankName: rootUser?.rank || "Starter",
+      businessUsdc: rootSales,
+      children: l1
+    };
 
     res.json({
       success: true,
       data: {
-        level1: level1Users.map(mapUser),
-        level2: level2Users.map(mapUser),
-        level3: level3Users.map(mapUser)
+        level1: l1,
+        level2: l2,
+        level3: l3,
+        tree
       }
     });
 

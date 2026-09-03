@@ -35,6 +35,51 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const pendingReturns = 0;
     const pendingRefunds = 0;
 
+    // Generate last 6 months list for charting
+    const last6Months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      last6Months.push(d.toISOString().substring(0, 7)); // YYYY-MM
+    }
+
+    // Chart 1: Sales & Orders Data
+    const salesData = last6Months.map(month => {
+      const monthOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(month));
+      const monthSales = monthOrders.reduce((sum, order) => {
+        if (order.total) {
+          const num = parseFloat(order.total.replace(/[^0-9.]/g, ""));
+          return sum + (isNaN(num) ? 0 : num);
+        }
+        return sum;
+      }, 0);
+      
+      const dateObj = new Date(month + "-01");
+      const monthName = dateObj.toLocaleString('default', { month: 'short' });
+      return { name: monthName, sales: monthSales, orders: monthOrders.length };
+    });
+
+    // Chart 2: Order Status Distribution
+    const statusCounts = orders.reduce((acc: any, order) => {
+      const status = order.status || "Unknown";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const orderStatusData = Object.keys(statusCounts).map(status => ({
+      name: status,
+      value: statusCounts[status]
+    }));
+
+    // Chart 3: User Growth Data
+    const allUsers = await User.find({}, { createdAt: 1 });
+    const userGrowthData = last6Months.map(month => {
+      const monthUsers = allUsers.filter(u => u.createdAt && (u.createdAt as any).toISOString().startsWith(month)).length;
+      const dateObj = new Date(month + "-01");
+      const monthName = dateObj.toLocaleString('default', { month: 'short' });
+      return { name: monthName, users: monthUsers };
+    });
+
     res.json({
       totalProducts,
       totalOrders,
@@ -44,7 +89,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       deliveredOrders,
       totalCustomers,
       pendingReturns,
-      pendingRefunds
+      pendingRefunds,
+      salesData,
+      orderStatusData,
+      userGrowthData
     });
 
   } catch (error) {

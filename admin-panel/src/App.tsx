@@ -68,54 +68,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode, onLogout: (
   );
 }
 
-function Dashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/admin/dashboard/stats')
-      .then(res => {
-        setStats(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
-
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Total Sales</p>
-          <p className="text-3xl font-bold mt-2 text-indigo-600">
-            {loading ? '...' : `₹${stats?.totalSales?.toLocaleString("en-IN") || 0}`}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Total Orders</p>
-          <p className="text-3xl font-bold mt-2">
-            {loading ? '...' : stats?.totalOrders || 0}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Pending Orders</p>
-          <p className="text-3xl font-bold mt-2 text-amber-500">
-            {loading ? '...' : stats?.pendingOrders || 0}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Total Normal Users</p>
-          <p className="text-3xl font-bold mt-2">
-            {loading ? '...' : stats?.totalCustomers || 0}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import Dashboard from './pages/Dashboard';
 
 import Blogs from './pages/Blogs';
 
