@@ -95,9 +95,17 @@ export function OrderConfirmationModal({
           {/* Total Amount */}
           <div className="bg-[#5f5d3e] p-5 rounded-2xl text-white flex justify-between items-center shadow-lg relative overflow-hidden">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-            <div className="relative z-10">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/70 mb-1">Total Amount</p>
-              <p className="font-[family:var(--font-display)] text-3xl">{payload.total}</p>
+            <div className="relative z-10 w-full flex justify-between items-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/70 mb-1">Total Amount</p>
+                <p className="font-[family:var(--font-display)] text-3xl">{payload.total}</p>
+              </div>
+              {String(payload.paymentMethod || "").toLowerCase() === "cod" && (
+                <div className="text-right text-xs bg-black/20 p-2 rounded-lg ml-4">
+                  <p className="font-bold text-[#fcf9f4]">Pay ₹100 Now</p>
+                  <p className="text-white/80">Rest on delivery</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

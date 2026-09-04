@@ -243,6 +243,7 @@ export default function CheckoutPage() {
       paymentMethod: formData.paymentMethod,
       useWallet,
       useNetworkWallet,
+      deliveryFee: shippingAmount,
       total: `₹${grandTotal.toLocaleString("en-IN")}`,
       items: cartItems.map(item => ({
         productId: item.productId,
@@ -293,7 +294,9 @@ export default function CheckoutPage() {
         amount: grandTotal, // kept as fallback
         items: payload.items,
         useWallet: useWallet,
-        useNetworkWallet: useNetworkWallet
+        useNetworkWallet: useNetworkWallet,
+        deliveryFee: payload.deliveryFee,
+        paymentMethod: payload.paymentMethod
       })
     });
 
@@ -402,7 +405,7 @@ export default function CheckoutPage() {
         }
       }
 
-      if (formData.paymentMethod === "online") {
+      if (formData.paymentMethod === "online" || formData.paymentMethod === "cod") {
         await handleRazorpayPayment(payload);
       } else {
         await completeOrder(payload);

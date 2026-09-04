@@ -44,6 +44,10 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     }
 
     let deliveryFee = subtotal >= 999 ? 0 : 99;
+    if (typeof req.body.deliveryFee === "number") {
+      deliveryFee = req.body.deliveryFee;
+    }
+
     let walletDiscount = 0;
     let networkWalletDiscount = 0;
 

@@ -176,7 +176,10 @@ export const createOrder = async (req: Request, res: Response) => {
         item.price = actualPrice;
       }
 
-      const deliveryFee = subtotal >= 999 ? 0 : 99; // Fallback calculation
+      let deliveryFee = subtotal >= 999 ? 0 : 99; // Fallback calculation
+      if (typeof req.body.deliveryFee === "number") {
+        deliveryFee = req.body.deliveryFee;
+      }
 
       if (userId !== "guest-user") {
         const user = await User.findOne({ id: userId }).session(session);
@@ -295,7 +298,7 @@ export const createOrder = async (req: Request, res: Response) => {
         statusText: "We are processing your order",
         activeStep: 1,
         paymentMethod,
-        paymentStatus: res.locals.isVerifiedRazorpay ? "Paid" : (paymentMethod === "cod" ? "COD" : "Pending"),
+        paymentStatus: String(paymentMethod || "").toUpperCase() === "COD" ? "Pending" : (res.locals.isVerifiedRazorpay ? "Paid" : "Pending"),
         razorpayOrderId: req.body.razorpayOrderId,
         razorpayPaymentId: req.body.razorpayPaymentId,
         address,
