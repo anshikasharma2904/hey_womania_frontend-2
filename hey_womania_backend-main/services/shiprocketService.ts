@@ -175,8 +175,14 @@ function buildOrderItems(items: any[] = []) {
 function buildShiprocketPayload(order: any) {
   const address = normalizeAddress(order);
   const items = buildOrderItems(order.items || []);
-  const subTotal = parseAmount(order.total) || items.reduce((sum, item) => sum + item.selling_price * item.units, 0);
+  let subTotal = parseAmount(order.total) || items.reduce((sum, item) => sum + item.selling_price * item.units, 0);
   const paymentMethod = String(order.paymentMethod || "").toLowerCase().includes("cod") ? "COD" : "Prepaid";
+
+  if (paymentMethod === "COD") {
+    // The user already paid Rs 100 online upfront for COD orders.
+    // Shiprocket should only collect the remaining balance.
+    subTotal = Math.max(0, subTotal - 100);
+  }
 
   const payload: any = {
     order_id: order.orderNumber || order.orderId,

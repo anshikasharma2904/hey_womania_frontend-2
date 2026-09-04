@@ -6,6 +6,7 @@ import { MainNavbar } from "@/components/MainNavbar";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
+import { PromoPopup } from "@/components/PromoPopup";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -78,6 +79,7 @@ export default function RootLayout({
               <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
             </footer>
             <LatestOffersWidget />
+            <PromoPopup />
           </SmoothScrollProvider>
         </WishbagProvider>
       </body>

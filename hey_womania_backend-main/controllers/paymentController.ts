@@ -50,10 +50,17 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     if (userId !== "guest-user") {
       const user = await User.findOne({ id: userId });
       if (user && user.partnerProfile) {
+        
         if (useWallet && user.partnerProfile.walletBalance > 0) {
-          const maxDiscount = subtotal * 0.05;
-          walletDiscount = Math.floor(Math.min(user.partnerProfile.walletBalance, maxDiscount));
+          const { Order } = await import("../models/Order");
+          const pastOrderCount = await Order.countDocuments({ userId: userId });
+          
+          if (pastOrderCount === 0) {
+            const maxDiscount = subtotal * 0.05;
+            walletDiscount = Math.floor(Math.min(user.partnerProfile.walletBalance, maxDiscount));
+          }
         }
+        
         if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
           const remainingTotal = subtotal + deliveryFee - walletDiscount;
           networkWalletDiscount = Math.floor(Math.min(user.partnerProfile.networkWalletBalance, remainingTotal));
@@ -61,7 +68,12 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
       }
     }
 
-    const amount = subtotal + deliveryFee - walletDiscount - networkWalletDiscount;
+    let amount = subtotal + deliveryFee - walletDiscount - networkWalletDiscount;
+
+    // COD orders require a mandatory Rs 100 upfront payment online
+    if (String(req.body.paymentMethod || "").toLowerCase() === "cod") {
+      amount = 100;
+    }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: "Invalid payment amount calculated" });
@@ -136,7 +148,7 @@ export const verifyRazorpayPayment = async (req: Request, res: Response) => {
 
     req.body = {
       ...orderPayload,
-      paymentMethod: "Razorpay",
+      paymentMethod: String(orderPayload.paymentMethod || "").toLowerCase() === "cod" ? "COD" : "Razorpay",
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id
     };

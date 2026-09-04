@@ -181,18 +181,16 @@ export const createOrder = async (req: Request, res: Response) => {
       if (userId !== "guest-user") {
         const user = await User.findOne({ id: userId }).session(session);
         if (user && user.partnerProfile) {
-          
-          if (useWallet && user.partnerProfile.walletBalance > 0) {
-            // Check if user has past orders (including cancelled ones)
-            const pastOrderCount = await Order.countDocuments({
-              userId: userId
-            }).session(session);
+          let isFirstOrder = false;
+          if (user.partnerProfile.walletBalance > 0) {
+            const pastOrderCount = await Order.countDocuments({ userId: userId }).session(session);
+            isFirstOrder = pastOrderCount === 0;
+          }
 
-            if (pastOrderCount === 0) {
-              const walletBalance = user.partnerProfile.walletBalance;
-              const maxDiscount = subtotal * 0.05;
-              walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
-            }
+          if (useWallet && isFirstOrder && user.partnerProfile.walletBalance > 0) {
+            const walletBalance = user.partnerProfile.walletBalance;
+            const maxDiscount = subtotal * 0.05;
+            walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
           }
           
           if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
@@ -202,19 +200,34 @@ export const createOrder = async (req: Request, res: Response) => {
             networkWalletDiscount = Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork));
           }
           
-          if (walletDiscount > 0 || networkWalletDiscount > 0) {
-            // Use atomic $inc to prevent double-spend race conditions
-            const updateQuery: any = {};
-            if (walletDiscount > 0) updateQuery["partnerProfile.walletBalance"] = -walletDiscount;
-            if (networkWalletDiscount > 0) updateQuery["partnerProfile.networkWalletBalance"] = -networkWalletDiscount;
+          const clearShippingWallet = isFirstOrder && user.partnerProfile.walletBalance > 0;
+
+          if (walletDiscount > 0 || networkWalletDiscount > 0 || clearShippingWallet) {
+            const updateSetQuery: any = {};
+            const updateIncQuery: any = {};
             
+            if (clearShippingWallet) {
+              // Entirely wipe the shipping wallet balance on the first order
+              updateSetQuery["partnerProfile.walletBalance"] = 0;
+            } else if (walletDiscount > 0) {
+              updateIncQuery["partnerProfile.walletBalance"] = -walletDiscount;
+            }
+
+            if (networkWalletDiscount > 0) {
+              updateIncQuery["partnerProfile.networkWalletBalance"] = -networkWalletDiscount;
+            }
+            
+            const updateOp: any = {};
+            if (Object.keys(updateSetQuery).length > 0) updateOp.$set = updateSetQuery;
+            if (Object.keys(updateIncQuery).length > 0) updateOp.$inc = updateIncQuery;
+            
+            const findQuery: any = { id: userId };
+            if (!clearShippingWallet && walletDiscount > 0) findQuery["partnerProfile.walletBalance"] = { $gte: walletDiscount };
+            if (networkWalletDiscount > 0) findQuery["partnerProfile.networkWalletBalance"] = { $gte: networkWalletDiscount };
+
             const updatedUser = await User.findOneAndUpdate(
-              { 
-                id: userId,
-                "partnerProfile.walletBalance": { $gte: walletDiscount },
-                "partnerProfile.networkWalletBalance": { $gte: networkWalletDiscount }
-              },
-              { $inc: updateQuery },
+              findQuery,
+              updateOp,
               { new: true, session }
             );
 

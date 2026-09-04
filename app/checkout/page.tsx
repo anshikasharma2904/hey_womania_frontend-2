@@ -933,7 +933,7 @@ export default function CheckoutPage() {
                 
                 {useWallet && walletDiscount > 0 && (
                   <div className="flex justify-between text-[#367743] font-semibold text-xs">
-                    <span>Shopping Wallet Discount (max 5%)</span>
+                    <span>Shopping Wallet Discount (max 5% of order value only for first purchase)</span>
                     <span>-₹{walletDiscount}</span>
                   </div>
                 )}
