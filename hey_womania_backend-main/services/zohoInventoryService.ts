@@ -566,7 +566,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
   if (!isCloudflareImageUploadConfigured() && newUrls.length === 0) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     if (zohoDocIds.length > 0) {
-      fallbackUrls = zohoDocIds.map(docId => `${backendUrl}/api/zoho/documents/${docId}`);
+      fallbackUrls = zohoDocIds.map((docId: string) => `${backendUrl}/api/zoho/documents/${docId}`);
     } else if (hasAttachment) {
       fallbackUrls = [`${backendUrl}/api/zoho/items/${itemId}/image`];
     }
