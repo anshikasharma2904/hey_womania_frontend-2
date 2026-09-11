@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "sync:zoho": "ts-node -T sync-zoho-products.ts"
   },
   "dependencies": {
     "@types/node-cron": "^3.0.11",

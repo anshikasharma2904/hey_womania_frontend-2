@@ -87,11 +87,22 @@ export function ProductImageGallery({
       </div>
 
       {/* ----------------- DESKTOP VIEW (Classic Side Thumbnails + Main Image) ----------------- */}
-      <div className="hidden md:flex md:flex-col md:gap-4 lg:grid lg:grid-cols-[108px_minmax(0,1fr)] lg:items-start">
-        {/* Large Main Image: Right on desktop */}
-        <div className="order-1 flex w-full max-w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-white p-4 lg:order-2">
+      <div
+        className={`hidden md:flex md:flex-col md:gap-4 lg:items-start w-full ${
+          images.length > 1
+            ? "lg:grid lg:grid-cols-[108px_minmax(0,1fr)]"
+            : "lg:flex lg:flex-col"
+        }`}
+      >
+        {/* Large Main Image: Full width if single image, right if multiple */}
+        <div
+          className={`flex w-full max-w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-white p-4 ${
+            images.length > 1 ? "order-1 lg:order-2" : "w-full"
+          }`}
+        >
           <div className="relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f4efe8] py-3">
             <ImageWithFallback
+              key={`main-desktop-${activeImage}`}
               src={activeImage}
               fallbackSrcs={images.slice(activeIndex + 1)}
               fallbackSrc="/products/product-placeholder.png"
@@ -112,7 +123,7 @@ export function ProductImageGallery({
               const thumbSrc = image || "/products/product-placeholder.png";
               return (
                 <button
-                  key={`desktop-thumb-${index}`}
+                  key={`desktop-thumb-${image}-${index}`}
                   type="button"
                   onClick={() => setActiveIndex(index)}
                   className={`group relative shrink-0 snap-start overflow-hidden rounded-[1rem] border bg-[#f4efe8] transition-all duration-300 hover:scale-[1.02] h-[88px] w-[88px] lg:h-[132px] lg:w-full ${
@@ -123,6 +134,7 @@ export function ProductImageGallery({
                   aria-label={`View ${name} image ${index + 1}`}
                 >
                   <ImageWithFallback
+                    key={`thumb-img-${thumbSrc}`}
                     src={thumbSrc}
                     fallbackSrcs={images.slice(index + 1)}
                     fallbackSrc="/products/product-placeholder.png"

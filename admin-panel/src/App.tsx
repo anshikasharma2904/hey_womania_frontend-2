@@ -26,7 +26,7 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
   return (
     <aside className="w-64 bg-white border-r h-screen fixed top-0 left-0 flex flex-col">
       <div className="h-16 flex items-center px-6 border-b shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">Womania Admin</h1>
+        <h1 className="text-xl font-bold text-gray-900">Womaniyaa Admin</h1>
       </div>
       <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
         {navItems.map((item) => (

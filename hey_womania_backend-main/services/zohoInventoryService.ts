@@ -10,8 +10,7 @@ import mongoose from "mongoose";
 import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
 import {
   isCloudflareImageUploadConfigured,
-  uploadImageToCloudflare,
-  deleteImageFromCloudflare
+  uploadImageToCloudflare
 } from "./cloudflareImageService";
 
 // Normalizes variations of "Co-ord", "Coord", "Co ord set", etc. to "Co-Ords" or "Co-Ord"
@@ -259,7 +258,15 @@ async function zohoRequest(path: string, init: RequestInit = {}, isRetry = false
 }
 
 export async function fetchZohoItems() {
-  return zohoRequest("/items");
+  const items: any[] = [];
+  let page = 1;
+  let data: any;
+  do {
+    data = await zohoRequest(`/items?page=${page}&per_page=200`);
+    items.push(...(Array.isArray(data.items) ? data.items : []));
+    page += 1;
+  } while (data.page_context?.has_more_page === true);
+  return { ...data, items };
 }
 
 export async function fetchZohoItem(itemId: string) {
@@ -411,13 +418,17 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     $or: [{ zohoItemId: itemId }, { "variants.zohoItemId": itemId }]
   });
 
-  const existingUrls: string[] = existingProduct?.images || [];
-  const existingCfIds: string[] = existingProduct?.cloudflareImageIds || [];
+  const existingVariant = existingProduct?.variants.find((variant: any) => variant.zohoItemId === itemId);
+  const existingUrls: string[] = existingVariant?.images || [];
+  const existingCfIds: string[] = existingVariant?.cloudflareImageIds || [];
   const hasCloudflareUrls =
     existingUrls.length > 0 &&
     existingUrls.every((img: string) => img.includes("imagedelivery.net") || img.includes("cloudflare"));
 
-  const hasAttachment = Boolean(finalItem?.has_attachment || finalItem?.image_id || finalItem?.image_name);
+  const hasAttachment = Boolean(
+    finalItem?.has_attachment || finalItem?.image_id || finalItem?.image_name ||
+    finalItem?.image_document_id || finalItem?.documents?.some((document: any) => document.document_id)
+  );
 
   // If item has no image in Zoho list summary and no DB image, skip Zoho detail call
   if (!hasAttachment && existingUrls.length === 0) {
@@ -446,18 +457,8 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
   // 3. IF REMOVED IN ZOHO
   if (zohoImageCount === 0) {
     console.log(`Zoho image: None`);
-    if (existingCfIds.length > 0) {
-      console.log(`Removing image from storage...`);
-      for (const cfId of existingCfIds) {
-        if (cfId) {
-          try {
-            await deleteImageFromCloudflare(cfId);
-          } catch (e) {
-            console.error(`Failed deleting storage image ${cfId}:`, e);
-          }
-        }
-      }
-    }
+    // Images may be shared by other sizes and the product gallery.
+    // Storage cleanup must check all references separately from an item sync.
     console.log(`Clearing MongoDB image fields...`);
     console.log(`Done.`);
     console.log(`----------------------------------`);
@@ -491,25 +492,6 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
 
   // 3. IMAGE CHANGED / NEW / REPLACED
   console.log(`Image changed: Yes`);
-
-  // Identify old CF IDs that no longer exist in Zoho and delete them
-  const cfIdsToDelete = existingCfIds.filter((cfId) => {
-    if (zohoDocIds.length > 0) {
-      return !zohoDocIds.some((docId: string) => cfId.includes(docId));
-    }
-    return !cfId.includes(itemId);
-  });
-
-  if (cfIdsToDelete.length > 0) {
-    console.log(`Deleting old image...`);
-    for (const oldId of cfIdsToDelete) {
-      try {
-        await deleteImageFromCloudflare(oldId);
-      } catch (e) {
-        console.error(`Error deleting old storage image ${oldId}:`, e);
-      }
-    }
-  }
 
   const newUrls: string[] = [];
   const newCfIds: string[] = [];
@@ -577,7 +559,7 @@ async function getSyncedImageDataForItem(finalItem: any, itemId: string, baseSlu
     newUrls.length > 0
       ? newUrls
       : (fallbackUrls.length > 0 ? fallbackUrls : existingUrls.filter((img) => img.includes("imagedelivery.net") || img.includes("cloudflare") || img.includes("/api/zoho/")));
-  const finalCfIds = newCfIds.length > 0 ? newCfIds : existingCfIds.filter((id) => !cfIdsToDelete.includes(id));
+  const finalCfIds = newCfIds.length > 0 ? newCfIds : existingCfIds;
 
   console.log(`MongoDB updated successfully.`);
   console.log(`----------------------------------`);

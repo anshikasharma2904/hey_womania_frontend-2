@@ -30,6 +30,26 @@ interface ProductDetailInteractiveProps {
 export function ProductDetailInteractive({ product }: ProductDetailInteractiveProps) {
   const getInitialGallery = () => {
     const variants = product.variants || [];
+    // If variants have colors, find the first color's images
+    const firstColorVariant = variants.find(
+      (v) =>
+        v.color &&
+        !["DEFAULT", "QTY", "BOX", "PCS"].includes(v.color.toUpperCase()) &&
+        v.images &&
+        v.images.length > 0
+    );
+    if (firstColorVariant?.color) {
+      const colorImages = Array.from(
+        new Set(
+          variants
+            .filter((v) => v.color?.toLowerCase().trim() === firstColorVariant.color?.toLowerCase().trim())
+            .flatMap((v) => v.images || [])
+            .filter(Boolean)
+        )
+      );
+      if (colorImages.length > 0) return colorImages;
+    }
+
     const firstVariantWithImages = variants.find((v) => v.images && v.images.length > 0);
     if (firstVariantWithImages && firstVariantWithImages.images!.length > 0) {
       return firstVariantWithImages.images!;
@@ -41,17 +61,22 @@ export function ProductDetailInteractive({ product }: ProductDetailInteractivePr
 
   const [currentGallery, setCurrentGallery] = useState<string[]>(getInitialGallery);
 
-  const handleColorSelect = (selectedColorName: string) => {
-    const variants = product.variants || [];
-    // Find first variant of this color that has images
-    const colorVariantWithImages = variants.find(
-      (v) =>
-        v.color?.toLowerCase().trim() === selectedColorName.toLowerCase().trim() &&
-        v.images &&
-        v.images.length > 0
-    );
+  const handleColorSelect = (selectedColorName: string, customImages?: string[]) => {
+    if (customImages && customImages.length > 0) {
+      setCurrentGallery(customImages);
+      return;
+    }
 
-    const colorImages = colorVariantWithImages?.images || [];
+    const variants = product.variants || [];
+    // Collect all unique images from all variants of this color
+    const colorImages = Array.from(
+      new Set(
+        variants
+          .filter((v) => v.color?.toLowerCase().trim() === selectedColorName.toLowerCase().trim())
+          .flatMap((v) => v.images || [])
+          .filter(Boolean)
+      )
+    );
 
     if (colorImages.length > 0) {
       setCurrentGallery(colorImages);

@@ -18,6 +18,11 @@ export default function ImageWithFallback({
   const [imgSrc, setImgSrc] = useState(src);
   const [errorCount, setErrorCount] = useState(0);
 
+  React.useEffect(() => {
+    setImgSrc(src);
+    setErrorCount(0);
+  }, [src]);
+
   return (
     <Image
       {...props}

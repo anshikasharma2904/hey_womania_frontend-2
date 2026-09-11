@@ -21,7 +21,7 @@ interface ProductOptionsClientProps {
     gallery?: string[];
     variants?: Variant[];
   };
-  onColorChange?: (colorName: string) => void;
+  onColorChange?: (colorName: string, images?: string[]) => void;
 }
 
 export function ProductOptionsClient({ product, onColorChange }: ProductOptionsClientProps) {
@@ -93,7 +93,23 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
   const colors = dynamicColors.map((name) => ({ name, value: colorMap[name] || "#5a573d" }));
 
   const [selectedColor, setSelectedColor] = useState(colors[0]?.name || "");
-  const [selectedSize, setSelectedSize] = useState(sizes[0] || "");
+
+  const getInitialSize = () => {
+    const initialColor = colors[0]?.name;
+    if (initialColor) {
+      const variantForColor = variants.find(
+        (v) =>
+          v.color?.toLowerCase().trim() === initialColor.toLowerCase().trim() &&
+          (v.availableStock ?? 0) > 0 &&
+          v.size &&
+          !["DEFAULT", "QTY", "BOX", "PCS"].includes(v.size.toUpperCase())
+      );
+      if (variantForColor?.size) return variantForColor.size.trim();
+    }
+    return sizes[0] || "";
+  };
+
+  const [selectedSize, setSelectedSize] = useState(getInitialSize);
   const [quantity, setQuantity] = useState(1);
 
   // Trigger color change callback for the first color on mount
@@ -103,32 +119,41 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
     }
   }, []);
 
-  // Find currently matched variant & stock
-  let matchedVariant = variants.find(
-    (v) =>
-      v.size?.toUpperCase() === selectedSize.toUpperCase() &&
-      v.color?.toLowerCase() === selectedColor.toLowerCase()
-  );
-  if (!matchedVariant) {
+  // Find currently matched variant & stock for the selected color & size
+  let matchedVariant: Variant | null | undefined = null;
+
+  if (colors.length > 0 && sizes.length > 0) {
     matchedVariant = variants.find(
-      (v) => v.size?.toUpperCase() === selectedSize.toUpperCase()
+      (v) =>
+        v.size?.toUpperCase().trim() === selectedSize.toUpperCase().trim() &&
+        v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim()
+    );
+  } else if (colors.length > 0) {
+    matchedVariant = variants.find(
+      (v) => v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim()
+    );
+  } else if (sizes.length > 0) {
+    matchedVariant = variants.find(
+      (v) => v.size?.toUpperCase().trim() === selectedSize.toUpperCase().trim()
     );
   }
+
+  // Fallback: for single/default variant products (e.g. jewellery, bags, one-size accessories)
   if (!matchedVariant && variants.length > 0) {
     matchedVariant = variants[0];
   }
 
   // Calculate available stock for selected variant
-  let availableStock = 999;
-  if (variants.length > 0) {
-    if (matchedVariant && matchedVariant.availableStock !== undefined) {
-      availableStock = Math.max(0, matchedVariant.availableStock);
-    } else {
-      availableStock = variants.reduce(
-        (sum, v) => sum + Math.max(0, v.availableStock || 0),
-        0
-      );
-    }
+  let availableStock = 0;
+  if (variants.length === 0) {
+    availableStock = 999;
+  } else if (matchedVariant && matchedVariant.availableStock !== undefined) {
+    availableStock = Math.max(0, matchedVariant.availableStock);
+  } else {
+    availableStock = variants.reduce(
+      (sum, v) => sum + Math.max(0, v.availableStock || 0),
+      0
+    );
   }
 
   const isOutOfStock = availableStock === 0;
@@ -149,18 +174,22 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
       matchedVariant?.sku ||
       `${product.name.replace(/\s+/g, "-").toUpperCase()}-${selectedColor.replace("#", "")}-${selectedSize}`;
     const numericPrice = parseFloat(product.price.replace(/[^0-9.]/g, ""));
-    const colorName =
-      colors.find((c) => c.value === selectedColor)?.name || "Olive";
+    const colorName = selectedColor || colors[0]?.name || "";
     const productId = product.id || product.name;
+    const variantImage =
+      matchedVariant?.images?.[0] || product.image || "/products/product-placeholder.png";
 
     return {
       productId,
       title: product.name,
-      image: product.image || "/products/product-placeholder.png",
-      images: product.gallery || [],
+      image: variantImage,
+      images:
+        matchedVariant?.images && matchedVariant.images.length > 0
+          ? matchedVariant.images
+          : product.gallery || [],
       sku,
-      size: selectedSize,
-      color: colorName,
+      size: selectedSize || matchedVariant?.size || "One Size",
+      color: colorName || matchedVariant?.color || "Standard",
       salePrice: numericPrice,
       quantity: Math.max(1, currentQuantity)
     };
@@ -203,40 +232,114 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
     window.location.href = "/checkout";
   };
 
-  // Check if a specific color has stock for the selected size (or overall if no size)
+  // Check if a specific color has stock overall
   const isColorStockAvailable = (colorName: string) => {
     if (variants.length === 0) return true;
-    const exactVariant = variants.find(
-      (v) =>
-        v.color?.toLowerCase().trim() === colorName.toLowerCase().trim() &&
-        v.size?.toUpperCase().trim() === selectedSize.toUpperCase().trim()
-    );
-    if (exactVariant) {
-      return (exactVariant.availableStock ?? 1) > 0;
-    }
     const colorVariants = variants.filter(
       (v) => v.color?.toLowerCase().trim() === colorName.toLowerCase().trim()
     );
     if (colorVariants.length === 0) return false;
-    return colorVariants.some((v) => (v.availableStock ?? 1) > 0);
+    return colorVariants.some((v) => (v.availableStock ?? 0) > 0);
   };
 
-  // Check if a specific size has stock for the selected color (or overall if no color)
+  // Check if a specific size has stock for the selected color (or overall if no color options)
   const isSizeStockAvailable = (sizeName: string) => {
     if (variants.length === 0) return true;
-    const exactVariant = variants.find(
-      (v) =>
-        v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim() &&
-        v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim()
-    );
-    if (exactVariant) {
-      return (exactVariant.availableStock ?? 1) > 0;
+    if (colors.length > 0 && selectedColor) {
+      const exactVariant = variants.find(
+        (v) =>
+          v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim() &&
+          v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim()
+      );
+      return Boolean(exactVariant && (exactVariant.availableStock ?? 0) > 0);
     }
     const sizeVariants = variants.filter(
       (v) => v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim()
     );
     if (sizeVariants.length === 0) return false;
-    return sizeVariants.some((v) => (v.availableStock ?? 1) > 0);
+    return sizeVariants.some((v) => (v.availableStock ?? 0) > 0);
+  };
+
+  const handleColorChange = (colorName: string) => {
+    setSelectedColor(colorName);
+
+    const colorVariants = variants.filter(
+      (v) => v.color?.toLowerCase().trim() === colorName.toLowerCase().trim()
+    );
+    const colorImgs = Array.from(
+      new Set(colorVariants.flatMap((v) => v.images || []).filter(Boolean))
+    );
+    onColorChange?.(colorName, colorImgs);
+
+    // Check if currently selected size exists with stock for this new color
+    const exactVariant = variants.find(
+      (v) =>
+        v.size?.toUpperCase().trim() === selectedSize.toUpperCase().trim() &&
+        v.color?.toLowerCase().trim() === colorName.toLowerCase().trim() &&
+        (v.availableStock ?? 0) > 0
+    );
+
+    // If current size does NOT exist in the new color, auto-switch to the first available size of this new color!
+    if (!exactVariant) {
+      const firstAvailable = variants.find(
+        (v) =>
+          v.color?.toLowerCase().trim() === colorName.toLowerCase().trim() &&
+          (v.availableStock ?? 0) > 0 &&
+          v.size &&
+          !["DEFAULT", "QTY", "BOX", "PCS"].includes(v.size.toUpperCase())
+      );
+      if (firstAvailable?.size) {
+        setSelectedSize(firstAvailable.size.trim());
+      }
+    }
+  };
+
+  const handleSizeClick = (sizeName: string) => {
+    const isAvailableInCurrentColor = isSizeStockAvailable(sizeName);
+
+    if (isAvailableInCurrentColor) {
+      setSelectedSize(sizeName);
+      // Check if this variant has specific images
+      const exactVariant = variants.find(
+        (v) =>
+          v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim() &&
+          v.color?.toLowerCase().trim() === selectedColor.toLowerCase().trim() &&
+          v.images &&
+          v.images.length > 0
+      );
+      if (exactVariant?.images && exactVariant.images.length > 0) {
+        onColorChange?.(selectedColor, exactVariant.images);
+      }
+      return;
+    }
+
+    // If not available in current color, check if another color has this size in stock
+    const alternateColorVariant = variants.find(
+      (v) =>
+        v.size?.toUpperCase().trim() === sizeName.toUpperCase().trim() &&
+        (v.availableStock ?? 0) > 0 &&
+        v.color &&
+        !["DEFAULT", "QTY", "BOX", "PCS"].includes(v.color.toUpperCase()) &&
+        !SIZE_ORDER.includes(v.color.toUpperCase())
+    );
+
+    if (alternateColorVariant?.color) {
+      const newColorName =
+        colors.find((c) => c.name.toLowerCase() === alternateColorVariant.color?.toLowerCase().trim())
+          ?.name || alternateColorVariant.color.trim();
+      setSelectedColor(newColorName);
+      setSelectedSize(sizeName);
+
+      const newColorVariants = variants.filter(
+        (v) => v.color?.toLowerCase().trim() === newColorName.toLowerCase().trim()
+      );
+      const newColorImgs = Array.from(
+        new Set(newColorVariants.flatMap((v) => v.images || []).filter(Boolean))
+      );
+      onColorChange?.(newColorName, newColorImgs);
+    } else {
+      setSelectedSize(sizeName);
+    }
   };
 
   return (
@@ -257,10 +360,12 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
       {/* Colors */}
       {colors.length > 0 && (
         <div className="mt-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-            Colour
-          </p>
-          <div className="mt-3 flex gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+              Colour: <span className="font-bold text-[#9c4049]">{selectedColor}</span>
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             {colors.map((color) => {
               const isAvailable = isColorStockAvailable(color.name);
               const isSelected = selectedColor.toLowerCase() === color.name.toLowerCase();
@@ -278,55 +383,29 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
                 <button
                   key={color.name}
                   type="button"
-                  onClick={() => {
-                    setSelectedColor(color.name);
-                    onColorChange?.(color.name);
-                  }}
-                  className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border shadow-sm transition-all duration-200 ${
+                  onClick={() => handleColorChange(color.name)}
+                  className={`group relative flex items-center gap-2 rounded-full border px-3 py-1.5 transition-all duration-200 ${
                     isSelected
-                      ? "scale-110 border-[#111111] ring-2 ring-[#ece6df]"
-                      : "border-[#ddd5cc] hover:scale-105"
-                  } ${!isAvailable ? "opacity-80" : ""}`}
-                  style={{ backgroundColor: color.value }}
+                      ? "border-[#111111] bg-[#111111] text-white shadow-md ring-2 ring-[#ece6df]"
+                      : "border-[#e0d8ce] bg-white text-[#4a4238] hover:border-[#b8aea2] hover:bg-[#faf7f2]"
+                  } ${!isAvailable ? "opacity-60" : ""}`}
                   aria-label={`Select color ${color.name} ${!isAvailable ? "(Out of stock)" : ""}`}
                 >
-                  {colorVariantImg ? (
-                    <img
-                      src={colorVariantImg}
-                      alt={color.name}
-                      className="h-full w-full rounded-full"
-                    />
-                  ) : null}
-
-                  {!isAvailable && (
-                    <svg
-                      className="pointer-events-none absolute inset-0 h-full w-full z-10"
-                      viewBox="0 0 32 32"
-                      fill="none"
-                    >
-                      {/* Contrast shadow line */}
-                      <line
-                        x1="4"
-                        y1="28"
-                        x2="28"
-                        y2="4"
-                        stroke="#ffffff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        opacity="0.8"
+                  <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full border border-black/10 shadow-inner">
+                    {colorVariantImg ? (
+                      <img
+                        src={colorVariantImg}
+                        alt={color.name}
+                        className="h-full w-full object-cover object-top"
                       />
-                      {/* Primary crisp diagonal slash */}
-                      <line
-                        x1="4"
-                        y1="28"
-                        x2="28"
-                        y2="4"
-                        stroke="#111111"
-                        strokeWidth="2"
-                        strokeLinecap="round"
+                    ) : (
+                      <div
+                        className="h-full w-full"
+                        style={{ backgroundColor: color.value }}
                       />
-                    </svg>
-                  )}
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold tracking-wide">{color.name}</span>
                 </button>
               );
             })}
@@ -337,24 +416,51 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
       {/* Sizes */}
       {sizes.length > 0 && (
         <div className="mt-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-            Size
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+              Size: <span className="font-bold text-[#111111]">{selectedSize}</span>
+            </p>
+            {colors.length > 0 && selectedColor && (
+              <span className="text-[11px] font-medium text-[#8b837b]">
+                For colour: <span className="font-semibold text-[#111111]">{selectedColor}</span>
+              </span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2.5">
             {sizes.map((size) => {
               const isAvailable = isSizeStockAvailable(size);
               const isSelected = size === selectedSize;
+
+              // Check if this size is available in another color
+              const otherColorForSize = !isAvailable
+                ? variants.find(
+                    (v) =>
+                      v.size?.toUpperCase().trim() === size.toUpperCase().trim() &&
+                      (v.availableStock ?? 0) > 0 &&
+                      v.color &&
+                      v.color.toLowerCase().trim() !== selectedColor.toLowerCase().trim()
+                  )?.color
+                : null;
 
               return (
                 <button
                   key={size}
                   type="button"
-                  onClick={() => setSelectedSize(size)}
-                  className={`relative overflow-hidden rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
+                  onClick={() => handleSizeClick(size)}
+                  className={`group relative overflow-hidden rounded-full px-5 py-2.5 text-xs font-semibold transition-all duration-200 ${
                     isSelected
                       ? "bg-[#111111] text-white shadow-md"
-                      : "border border-[#ddd5cc] bg-white text-[#6d655d] hover:bg-[#f4efe8]"
+                      : isAvailable
+                      ? "border border-[#ddd5cc] bg-white text-[#6d655d] hover:border-[#111111] hover:bg-[#f4efe8]"
+                      : "border border-[#e8e2da] bg-[#fbf9f6] text-[#b5ada5] hover:border-[#cfc7be]"
                   } ${!isAvailable ? "opacity-75" : ""}`}
+                  title={
+                    otherColorForSize
+                      ? `Click to switch to ${otherColorForSize} (Size ${size})`
+                      : !isAvailable
+                      ? `Out of stock for ${selectedColor}`
+                      : `Size ${size}`
+                  }
                 >
                   <span className={!isAvailable ? "opacity-60" : ""}>{size}</span>
                   {!isAvailable && (
@@ -369,7 +475,7 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
                         y1="90"
                         x2="90"
                         y2="10"
-                        stroke={isSelected ? "#ffffff" : "#111111"}
+                        stroke={isSelected ? "#ffffff" : "#dc2626"}
                         strokeWidth="2"
                         strokeLinecap="round"
                         vectorEffect="non-scaling-stroke"
@@ -381,6 +487,12 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
               );
             })}
           </div>
+          {/* Helper hint */}
+          {sizes.some((s) => !isSizeStockAvailable(s)) && (
+            <p className="mt-2 text-[11px] text-[#8b837b]">
+              * Struck-through sizes belong to another colour option. Click on them to view that colour and its images.
+            </p>
+          )}
         </div>
       )}
 
