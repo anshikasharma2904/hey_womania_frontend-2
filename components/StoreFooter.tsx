@@ -64,7 +64,7 @@ export function StoreFooter() {
             {/* Social Links */}
             <div className="mt-4 flex gap-3">
               <a
-                href="https://www.instagram.com/heywomaniyaa"
+                href="https://www.instagram.com/heywomaniyaaofficial"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e0d9d2] bg-[#fcf9f4] text-[#9c4049] transition hover:bg-[#9c4049] hover:text-white"
