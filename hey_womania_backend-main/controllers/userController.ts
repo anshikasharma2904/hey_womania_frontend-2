@@ -3,6 +3,10 @@ import crypto from "crypto";
 import { User } from "../models/User";
 import { Order } from "../models/Order";
 
+// Any user/partner who has no upline is placed directly under this
+// root account in the MLM tree.
+const DEFAULT_UPLINE_ID = "ac0b7976-613b-4b8a-8cf6-ead6b1bcde55";
+
 export const getMe = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
@@ -210,7 +214,19 @@ export const upgradeToPartner = async (req: Request, res: Response) => {
 
     user.role = "partner";
     user.rank = "Starter";
-    
+
+    // If the user has no upline at all (no ref code + no sponsor entered),
+    // assign the default root upline so they land in the MLM tree.
+    if (!user.uplineId) {
+      const defaultUpline = await User.findOne({ id: DEFAULT_UPLINE_ID });
+      if (defaultUpline && defaultUpline.id !== user.id) {
+        user.uplineId = defaultUpline.id;
+        user.ancestors = [...(defaultUpline.ancestors || []), defaultUpline.id];
+        if (!defaultUpline.teamIds) defaultUpline.teamIds = [];
+        defaultUpline.teamIds.push(user.id);
+        await defaultUpline.save();
+      }
+    }
     if (!user.partnerReferralCode) {
       const crypto = await import("crypto");
       user.partnerReferralCode = `HW-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;

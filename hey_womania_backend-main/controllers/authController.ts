@@ -7,6 +7,10 @@ import { createSessionToken, hashPassword, verifyPassword } from "../utils/authH
 const SESSION_COOKIE_NAME = "hey_womania_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 60;
 
+// Any user/partner who registers without a referral link is placed
+// directly under this root account in the MLM tree.
+const DEFAULT_UPLINE_ID = "ac0b7976-613b-4b8a-8cf6-ead6b1bcde55";
+
 function createReferralCode(firstName: string) {
   const prefix = firstName.replace(/[^a-z0-9]/gi, "").slice(0, 4).toUpperCase() || "HEY";
   return `${prefix}${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
@@ -93,6 +97,15 @@ export const register = async (req: Request, res: Response) => {
         ? refType
         : (userRole === "partner" ? "partner" : "customer");
       sponsorToUpdate = sponsor;
+    } else {
+      // No referral code provided — auto-assign to the default root upline
+      // so every user lands somewhere in the MLM tree.
+      const defaultUpline = await User.findOne({ id: DEFAULT_UPLINE_ID });
+      if (defaultUpline && defaultUpline.id !== newUser.id) {
+        newUser.uplineId = defaultUpline.id;
+        newUser.ancestors = [...(defaultUpline.ancestors || []), defaultUpline.id];
+        sponsorToUpdate = defaultUpline;
+      }
     }
 
     await newUser.save();
@@ -359,6 +372,152 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Phone-based password reset (for users who registered without email)
+// ---------------------------------------------------------------------------
+
+function normalizeTwilioPhone(phone: string): string {
+  const cleaned = phone.trim().replace(/[^\d+]/g, "");
+  return cleaned.startsWith("+") ? cleaned : `+91${cleaned}`;
+}
+
+export const forgotPasswordPhone = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ error: "Phone number is required." });
+    }
+
+    const normalizedPhone = normalizeTwilioPhone(phone);
+    const user = await User.findOne({ phone: phone.trim() });
+    if (!user) {
+      // Don't leak whether the phone exists
+      return res.json({ success: true, message: "If an account exists, an OTP was sent." });
+    }
+
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (accountSid && authToken && verifyServiceSid) {
+      const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+      const twilioRes = await fetch(
+        `https://verify.twilio.com/v2/Services/${verifyServiceSid}/Verifications`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: new URLSearchParams({ To: normalizedPhone, Channel: "sms" })
+        }
+      );
+      if (!twilioRes.ok) {
+        const payload = await twilioRes.json() as any;
+        return res.status(502).json({ error: payload.message || "Failed to send OTP. Try again." });
+      }
+    } else {
+      // Dev fallback — store a fixed OTP in the user record
+      const devOtp = "123456";
+      user.resetOtp = devOtp;
+      user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+      console.log(`[DEV] Phone reset OTP for ${phone}: ${devOtp}`);
+    }
+
+    res.json({ success: true, message: "If an account exists, an OTP was sent." });
+  } catch (error) {
+    console.error("forgotPasswordPhone error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const verifyOtpPhone = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ error: "Phone and OTP are required." });
+    }
+
+    const normalizedPhone = normalizeTwilioPhone(phone);
+    const user = await User.findOne({ phone: phone.trim() });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired OTP." });
+    }
+
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (accountSid && authToken && verifyServiceSid) {
+      const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+      const twilioRes = await fetch(
+        `https://verify.twilio.com/v2/Services/${verifyServiceSid}/VerificationCheck`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: new URLSearchParams({ To: normalizedPhone, Code: otp.trim() })
+        }
+      );
+      const payload = await twilioRes.json() as any;
+      if (!twilioRes.ok || !payload.valid || payload.status !== "approved") {
+        return res.status(400).json({ error: "Incorrect or expired OTP." });
+      }
+      // Store a short-lived token so the reset step can proceed without re-verifying
+      user.resetOtp = otp.trim();
+      user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+    } else {
+      // Dev fallback
+      if (
+        !user.resetOtp ||
+        user.resetOtp !== otp.trim() ||
+        !user.resetOtpExpiry ||
+        user.resetOtpExpiry < new Date()
+      ) {
+        return res.status(400).json({ error: "Incorrect or expired OTP." });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("verifyOtpPhone error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const resetPasswordPhone = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp, newPassword } = req.body;
+    if (!phone || !otp || !newPassword) {
+      return res.status(400).json({ error: "Phone, OTP and new password are required." });
+    }
+
+    const user = await User.findOne({
+      phone: phone.trim(),
+      resetOtp: otp.trim(),
+      resetOtpExpiry: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired OTP." });
+    }
+
+    user.passwordHash = await hashPassword(newPassword);
+    user.resetOtp = undefined;
+    user.resetOtpExpiry = undefined;
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("resetPasswordPhone error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

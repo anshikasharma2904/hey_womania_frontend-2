@@ -4,36 +4,57 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+// Detect if the input looks like a phone number
+function isPhone(value: string) {
+  return /^[+\d][\d\s\-()]{7,}$/.test(value.trim());
+}
+
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [email, setEmail] = useState("");
+
+  const [identifier, setIdentifier] = useState(""); // email or phone
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+
+  const usingPhone = isPhone(identifier);
 
   const handleRequestOtp = async (e: FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
       setStatus("");
-      
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/forgot-password`, {
+
+      const url = usingPhone
+        ? `${API}/api/auth/forgot-password-phone`
+        : `${API}/api/auth/forgot-password`;
+
+      const body = usingPhone
+        ? { phone: identifier.trim() }
+        : { email: identifier.trim() };
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: JSON.stringify(body),
       });
-      
+
       const data = await res.json();
       if (!res.ok) {
         setStatus(data.error || "Failed to send OTP");
         return;
       }
-      
+
       setStep(2);
-      setStatus("An OTP has been sent to your email.");
+      setStatus(
+        usingPhone
+          ? "OTP sent to your phone via SMS."
+          : "OTP sent to your email."
+      );
     } catch {
       setStatus("Network error.");
     } finally {
@@ -46,19 +67,27 @@ export default function ForgotPasswordPage() {
     try {
       setIsSubmitting(true);
       setStatus("");
-      
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`, {
+
+      const url = usingPhone
+        ? `${API}/api/auth/verify-otp-phone`
+        : `${API}/api/auth/verify-otp`;
+
+      const body = usingPhone
+        ? { phone: identifier.trim(), otp }
+        : { email: identifier.trim(), otp };
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp })
+        body: JSON.stringify(body),
       });
-      
+
       const data = await res.json();
       if (!res.ok) {
         setStatus(data.error || "Invalid OTP");
         return;
       }
-      
+
       setStep(3);
       setStatus("OTP verified. Please enter your new password.");
     } catch {
@@ -78,19 +107,27 @@ export default function ForgotPasswordPage() {
     try {
       setIsSubmitting(true);
       setStatus("");
-      
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/reset-password`, {
+
+      const url = usingPhone
+        ? `${API}/api/auth/reset-password-phone`
+        : `${API}/api/auth/reset-password`;
+
+      const body = usingPhone
+        ? { phone: identifier.trim(), otp, newPassword }
+        : { email: identifier.trim(), otp, newPassword };
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, newPassword })
+        body: JSON.stringify(body),
       });
-      
+
       const data = await res.json();
       if (!res.ok) {
         setStatus(data.error || "Failed to reset password");
         return;
       }
-      
+
       setStatus("Password reset successful! Redirecting to login...");
       setTimeout(() => router.push("/login"), 2000);
     } catch {
@@ -113,20 +150,28 @@ export default function ForgotPasswordPage() {
             </h1>
           </div>
 
+          {/* Step 1 — Enter email or phone */}
           {step === 1 && (
             <form className="space-y-4" onSubmit={handleRequestOtp}>
               <label className="flex flex-col gap-2">
                 <span className="text-xs uppercase tracking-[0.16em] text-[#5f5d3e]">
-                  Registered Email
+                  Registered Email or Phone
                 </span>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="archive@fashion.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="email@example.com or 9876543210"
                   className="w-full rounded-[0.9rem] border border-[#e8e2d9] bg-[#fcf9f4] px-4 py-3 text-sm text-[#1c1c19] outline-none transition placeholder:text-[#8b837b] focus:border-[#5f5d3e]"
                 />
+                {identifier.length > 3 && (
+                  <span className="text-[0.7rem] text-[#9c4049]/70">
+                    {usingPhone
+                      ? "📱 Will send OTP via SMS"
+                      : "✉️ Will send OTP via Email"}
+                  </span>
+                )}
               </label>
               <button
                 type="submit"
@@ -138,8 +183,13 @@ export default function ForgotPasswordPage() {
             </form>
           )}
 
+          {/* Step 2 — Enter OTP */}
           {step === 2 && (
             <form className="space-y-4" onSubmit={handleVerifyOtp}>
+              <p className="text-xs text-[#5f5d3e]">
+                OTP sent to{" "}
+                <span className="font-semibold">{identifier}</span>
+              </p>
               <label className="flex flex-col gap-2">
                 <span className="text-xs uppercase tracking-[0.16em] text-[#5f5d3e]">
                   Enter 6-Digit OTP
@@ -148,6 +198,7 @@ export default function ForgotPasswordPage() {
                   type="text"
                   required
                   maxLength={6}
+                  inputMode="numeric"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="123456"
@@ -161,9 +212,17 @@ export default function ForgotPasswordPage() {
               >
                 {isSubmitting ? "Verifying..." : "Verify OTP"}
               </button>
+              <button
+                type="button"
+                onClick={() => { setStep(1); setOtp(""); setStatus(""); }}
+                className="w-full text-center text-xs text-[#9c4049] underline underline-offset-2"
+              >
+                Try a different email / phone
+              </button>
             </form>
           )}
 
+          {/* Step 3 — New password */}
           {step === 3 && (
             <form className="space-y-4" onSubmit={handleResetPassword}>
               <label className="flex flex-col gap-2">
@@ -190,11 +249,15 @@ export default function ForgotPasswordPage() {
           )}
 
           {status && (
-            <p className={`mt-3 rounded-xl px-4 py-3 text-sm ${
-              status.includes("successful") || status.includes("sent to your email") || status.includes("verified") 
-                ? "bg-[#edf7ef] text-[#367743]" 
-                : "bg-[#fff0f1] text-[#9c4049]"
-            }`}>
+            <p
+              className={`mt-3 rounded-xl px-4 py-3 text-sm ${
+                status.includes("successful") ||
+                status.includes("sent") ||
+                status.includes("verified")
+                  ? "bg-[#edf7ef] text-[#367743]"
+                  : "bg-[#fff0f1] text-[#9c4049]"
+              }`}
+            >
               {status}
             </p>
           )}
