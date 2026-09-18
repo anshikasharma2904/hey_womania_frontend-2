@@ -26,9 +26,17 @@ export const register = async (req: Request, res: Response) => {
       }
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existing) {
-      return res.status(400).json({ error: "An account already exists with this email." });
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ error: "Phone number is required." });
+    }
+
+    const existingPhone = await User.findOne({ phone: phone.trim() });
+    if (existingPhone) {
+      return res.status(400).json({ error: "An account already exists with this phone number." });
+    }
+
+    if (email && email.trim()) {
+      // Email is no longer required to be unique
     }
 
     const passwordHash = await hashPassword(password);
@@ -39,7 +47,7 @@ export const register = async (req: Request, res: Response) => {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       name: `${firstName} ${lastName}`.trim(),
-      email: email.toLowerCase().trim(),
+      email: (email && email.trim()) ? email.toLowerCase().trim() : undefined,
       phone: phone.trim(),
       passwordHash,
       role: role || "member",
@@ -116,13 +124,13 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+    if (typeof phone !== "string" || typeof password !== "string" || !phone.trim() || !password) {
+      return res.status(400).json({ error: "Phone and password are required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ phone: phone.trim() });
     
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -132,6 +140,78 @@ export const login = async (req: Request, res: Response) => {
     if (!isValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    const token = createSessionToken({ id: user.id, role: user.role as string });
+    
+    res.cookie(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_MAX_AGE_SECONDS * 1000,
+      path: "/",
+      sameSite: "lax"
+    });
+
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const loginOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({ error: "Phone and OTP are required." });
+    }
+
+    // Reuse Twilio check logic
+    const normalizedPhone = phone.trim().replace(/[^\d+]/g, "").startsWith("+") 
+      ? phone.trim().replace(/[^\d+]/g, "")
+      : "+91" + phone.trim().replace(/[^\d+]/g, "");
+
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+    if (accountSid && authToken && verifyServiceSid) {
+      const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+      const twilioRes = await fetch(
+        `https://verify.twilio.com/v2/Services/${verifyServiceSid}/VerificationCheck`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: new URLSearchParams({
+            To: normalizedPhone,
+            Code: otp.trim()
+          })
+        }
+      );
+
+      const twilioPayload = await twilioRes.json() as any;
+
+      if (!twilioRes.ok || !twilioPayload.valid || twilioPayload.status !== "approved") {
+        return res.status(400).json({ error: "Incorrect or expired OTP." });
+      }
+    } else {
+      // For local dev, accept any OTP if Twilio is not configured
+      if (otp !== "123456") {
+        return res.status(400).json({ error: "Incorrect or expired OTP." });
+      }
+    }
+
+    const user = await User.findOne({ phone: phone.trim() });
+    
+    if (!user) {
+      return res.status(404).json({ error: "No account found with this phone number." });
+    }
+
+    const { createSessionToken } = await import("../utils/authHelpers");
+    const SESSION_COOKIE_NAME = "hey_womania_session";
+    const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 60;
 
     const token = createSessionToken({ id: user.id, role: user.role as string });
     

@@ -28,7 +28,7 @@ const customerLinks = [
   { label: "My Profile", href: "/account/profile", icon: FaUser },
   { label: "My Orders", href: "/account/orders", icon: FaBoxOpen },
   { label: "Saved Addresses", href: "/account/addresses", icon: FaHome },
-  { label: "Payment Methods", href: "/account/payments", icon: FaCreditCard },
+  { label: "Shop Now", href: "/category/all", icon: FaCreditCard },
 ];
 
 export function PartnerSidebar() {

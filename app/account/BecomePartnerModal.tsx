@@ -51,14 +51,44 @@ export default function BecomePartnerModal({ user }: { user: any }) {
     }
   };
 
+  const [showConfirm, setShowConfirm] = useState(false);
+
   return (
     <>
       <button 
-        onClick={() => setIsOpen(true)}
+        onClick={() => setShowConfirm(true)}
         className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 bg-[#7f3144]"
       >
         Become a Partner
       </button>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl text-center">
+            <h2 className="mb-4 font-[family:var(--font-display)] text-2xl text-[#1c1c19]">Are you sure?</h2>
+            <p className="mb-6 text-sm text-[#6d655d]">
+              Are you sure you want to become a partner?
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-[#6d655d] border border-[#e6dcd4] transition hover:bg-[#fcf9f4]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  setIsOpen(true);
+                }}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-white bg-[#7f3144] transition hover:bg-[#6c2939]"
+              >
+                Yes, I'm sure
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

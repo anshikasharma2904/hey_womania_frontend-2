@@ -8,7 +8,7 @@ const accountLinks = [
   { label: "Profile Details", href: "/account/profile" },
   { label: "Orders", href: "/account/orders" },
   { label: "Addresses", href: "/account/addresses" },
-  { label: "Payment Methods", href: "/account/payments" }
+  { label: "Shop Now", href: "/category/all" }
 ];
 
 export function AccountSidebar() {

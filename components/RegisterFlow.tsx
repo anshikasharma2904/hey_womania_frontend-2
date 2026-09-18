@@ -187,10 +187,9 @@ export function RegisterFlow() {
 
         <div className="grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2">
           <label className="block">
-            <RequiredLabel>Email Address</RequiredLabel>
+            <RequiredLabel optional>Email Address</RequiredLabel>
             <input
               type="email"
-              required
               value={form.email}
               onChange={(event) => updateField("email", event.target.value)}
               placeholder="example@example.com"

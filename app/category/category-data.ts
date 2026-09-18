@@ -78,9 +78,6 @@ export const slugifyProductName = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
-  { label: "MOST LOVED", href: "/category/most-loved", columns: [] },
-  { label: "JUST DROPPED", href: "/category/just-dropped", columns: [] },
-  { label: "LAST CHANCE", href: "/category/last-chance", columns: [] },
   { label: "EVERYDAY", href: "/category/everyday", columns: [] },
   { label: "Co-Ords", href: "/category/co-ords", columns: [] },
   { label: "SHIRTS STORIES", href: "/category/shirts-stories", columns: [] },

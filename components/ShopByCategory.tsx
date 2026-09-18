@@ -10,9 +10,6 @@ type ShopByCategoryProps = {
 };
 
 const categories: { title: string; items: string; image: string; href: string; isSlider?: string; video?: string }[] = [
-  { title: "MOST LOVED", items: "Trending Now", image: "", href: "/category/most-loved", isSlider: "mostLoved" },
-  { title: "JUST DROPPED", items: "New Arrivals", image: "", href: "/category/just-dropped", isSlider: "justDropped" },
-  { title: "LAST CHANCE", items: "Clearance", image: "/categoryImage/lastChance.jpeg", href: "/category/last-chance" },
   { title: "EVERYDAY", items: "Daily Wear", image: "/categoryImage/everyday.jpeg", href: "/category/everyday" },
   { title: "Co-Ords", items: "Matching Sets", image: "/categoryImage/coordSet.jpeg", href: "/category/co-ords" },
   { title: "SHIRTS STORIES", items: "Tops & Blouses", image: "/categoryImage/shirtStory.jpeg", href: "/category/shirt" },

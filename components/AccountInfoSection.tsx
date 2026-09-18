@@ -105,8 +105,6 @@ export default function AccountInfoSection({ user, renderAsCard = false }: { use
 
   const tabs = [
     { id: "personal", label: "Personal Info", icon: <FaUser className="text-xs" /> },
-    { id: "kyc",      label: "KYC Documents", icon: <FaIdCard className="text-xs" /> },
-    { id: "bank",     label: "Bank Details",  icon: <FaUniversity className="text-xs" /> },
   ] as const;
 
   const content = (
@@ -129,26 +127,10 @@ export default function AccountInfoSection({ user, renderAsCard = false }: { use
         {kycStatus && <StatusBadge status={kycStatus} />}
       </div>
 
-      {/* Tabs */}
-      <div className="mt-6 flex gap-2 rounded-xl bg-[#f4efe8] p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-all duration-200 sm:text-sm ${
-              tab === t.id ? "bg-white text-[#9c4049] shadow-sm" : "text-[#6d655d] hover:text-[#111111]"
-            }`}
-          >
-            {t.icon} <span className="hidden sm:inline">{t.label}</span>
-            <span className="sm:hidden">{t.label.split(" ")[0]}</span>
-          </button>
-        ))}
-      </div>
+
 
       {/* Personal Info */}
-      {tab === "personal" && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
             { label: "Full Name", value: userName },
             { label: "Email", value: user.email || "—" },
@@ -160,121 +142,7 @@ export default function AccountInfoSection({ user, renderAsCard = false }: { use
               <p className="mt-1 text-sm font-semibold text-[#111111]">{value}</p>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* KYC & Bank */}
-      {(tab === "kyc" || tab === "bank") && (
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          {kyc?.status === "Rejected" && kyc.rejectionReason && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-              <strong>Rejected:</strong> {kyc.rejectionReason}. Please re-submit with correct information.
-            </div>
-          )}
-
-          {tab === "kyc" && (
-            <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#6d655d]">PAN Number</label>
-                  {kyc?.status === "Approved" ? (
-                    <div className="rounded-xl border border-[#ece6df] bg-[#fcf9f4] px-4 py-3 text-sm font-semibold text-[#111111]">{maskString(form.panNumber, 4)}</div>
-                  ) : (
-                    <input
-                      className="rounded-xl border border-[#ddd5cc] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9c4049] transition-colors placeholder:text-[#aaa]"
-                      placeholder="ABCDE1234F"
-                      value={form.panNumber}
-                      onChange={(e) => setForm({ ...form, panNumber: e.target.value.toUpperCase() })}
-                    />
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#6d655d]">Aadhaar Number</label>
-                  {kyc?.status === "Approved" ? (
-                    <div className="rounded-xl border border-[#ece6df] bg-[#fcf9f4] px-4 py-3 text-sm font-semibold text-[#111111]">{maskString(form.aadhaarNumber, 4)}</div>
-                  ) : (
-                    <input
-                      className="rounded-xl border border-[#ddd5cc] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9c4049] transition-colors placeholder:text-[#aaa]"
-                      placeholder="1234 5678 9012"
-                      value={form.aadhaarNumber}
-                      onChange={(e) => setForm({ ...form, aadhaarNumber: e.target.value })}
-                    />
-                  )}
-                </div>
-              </div>
-              <p className="text-[0.68rem] text-[#8b837b]">
-                Your KYC documents are encrypted and only used for verification. 
-                {kyc?.status === "Approved" && " Documents are now locked after verification."}
-              </p>
-            </>
-          )}
-
-          {tab === "bank" && (
-            <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#6d655d]">Bank Account No.</label>
-                  {kyc?.status === "Approved" ? (
-                    <div className="rounded-xl border border-[#ece6df] bg-[#fcf9f4] px-4 py-3 text-sm font-semibold text-[#111111]">{maskString(form.bankAccount, 4)}</div>
-                  ) : (
-                    <input
-                      className="rounded-xl border border-[#ddd5cc] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9c4049] transition-colors placeholder:text-[#aaa]"
-                      placeholder="Account number"
-                      value={form.bankAccount}
-                      onChange={(e) => setForm({ ...form, bankAccount: e.target.value })}
-                    />
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#6d655d]">IFSC Code</label>
-                  {kyc?.status === "Approved" ? (
-                    <div className="rounded-xl border border-[#ece6df] bg-[#fcf9f4] px-4 py-3 text-sm font-semibold text-[#111111]">{form.ifscCode || "—"}</div>
-                  ) : (
-                    <input
-                      className="rounded-xl border border-[#ddd5cc] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9c4049] transition-colors placeholder:text-[#aaa]"
-                      placeholder="SBIN0001234"
-                      value={form.ifscCode}
-                      onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#6d655d]">
-                  <FaMobileAlt className="inline mr-1" /> UPI ID (optional)
-                </label>
-                {kyc?.status === "Approved" ? (
-                  <div className="rounded-xl border border-[#ece6df] bg-[#fcf9f4] px-4 py-3 text-sm font-semibold text-[#111111]">{form.upiId || "—"}</div>
-                ) : (
-                  <input
-                    className="rounded-xl border border-[#ddd5cc] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9c4049] transition-colors placeholder:text-[#aaa]"
-                    placeholder="name@upi"
-                    value={form.upiId}
-                    onChange={(e) => setForm({ ...form, upiId: e.target.value })}
-                  />
-                )}
-              </div>
-            </>
-          )}
-
-          {kyc?.status !== "Approved" && (
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-2 w-full rounded-xl bg-[#9c4049] py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {submitting ? "Saving..." : saved ? "✓ Saved!" : kyc ? "Update & Re-submit for Review" : "Submit for KYC Verification"}
-            </button>
-          )}
-
-          {kyc?.updatedAt && (
-            <p className="text-center text-[0.65rem] text-[#8b837b]">
-              Last updated: {new Date(kyc.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
-            </p>
-          )}
-        </form>
-      )}
+      </div>
     </div>
   );
 
