@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart, FaShareAlt } from "react-icons/fa";
 import { useWishbag } from "@/contexts/WishbagContext";
 
 interface Variant {
@@ -22,9 +22,10 @@ interface ProductOptionsClientProps {
     variants?: Variant[];
   };
   onColorChange?: (colorName: string, images?: string[]) => void;
+  customerReferralCode?: string;
 }
 
-export function ProductOptionsClient({ product, onColorChange }: ProductOptionsClientProps) {
+export function ProductOptionsClient({ product, onColorChange, customerReferralCode }: ProductOptionsClientProps) {
   const { isWishbagged, addToWishbag, removeFromWishbag } = useWishbag();
   const variants = product.variants || [];
 
@@ -230,6 +231,30 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
 
     window.dispatchEvent(new Event("cart_updated"));
     window.location.href = "/checkout";
+  };
+
+  const handleShareProduct = () => {
+    let url = window.location.href;
+    if (customerReferralCode) {
+      const separator = url.includes("?") ? "&" : "?";
+      url = `${url}${separator}ref=${customerReferralCode}&type=customer`;
+    }
+    
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: `Check out ${product.name} on Hey Womaniyaa!`,
+        url: url
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          navigator.clipboard.writeText(url);
+          alert("Link copied to clipboard!");
+        }
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
+    }
   };
 
   // Check if a specific color has stock overall
@@ -542,8 +567,8 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
         </button>
       </div>
 
-      {/* Wishlist Button */}
-      <div className="mt-4 flex">
+      {/* Secondary Actions */}
+      <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-4 border-t border-[#f0e7de] pt-5">
         <button
           type="button"
           onClick={() => {
@@ -562,13 +587,23 @@ export function ProductOptionsClient({ product, onColorChange }: ProductOptionsC
               });
             }
           }}
-          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.1em] text-[#9c4049] transition-all hover:opacity-80 active:scale-95"
+          className="group flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[0.75rem] font-bold uppercase tracking-[0.14em] text-[#9c4049] transition-all hover:bg-[#fff4f6] active:scale-95"
         >
           {isWishbagged((product as any).slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) ? (
-            <><FaHeart className="text-base" /> Remove from Wishbag</>
+            <><FaHeart className="text-base transition-transform duration-300 group-hover:scale-110" /> Remove from Wishbag</>
           ) : (
-            <><FaRegHeart className="text-base" /> Add to Wishbag</>
+            <><FaRegHeart className="text-base transition-transform duration-300 group-hover:scale-110" /> Add to Wishbag</>
           )}
+        </button>
+
+        <div className="h-4 w-px bg-[#e8e2da] hidden sm:block"></div>
+
+        <button
+          type="button"
+          onClick={handleShareProduct}
+          className="group flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[0.75rem] font-bold uppercase tracking-[0.14em] text-[#5c5346] transition-all hover:bg-[#f4efe8] hover:text-[#111111] active:scale-95"
+        >
+          <FaShareAlt className="text-base transition-transform duration-300 group-hover:scale-110" /> Share Product
         </button>
       </div>
     </div>

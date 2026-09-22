@@ -1,5 +1,6 @@
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
@@ -61,6 +62,26 @@ export default async function ProductDetailPage({
 }: ProductDetailPageProps) {
   const { slug } = await params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  let customerReferralCode = "";
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("hey_womania_session");
+    if (sessionToken) {
+      const userRes = await fetch(`${apiUrl}/api/users/me`, {
+        headers: { "Cookie": `hey_womania_session=${sessionToken.value}` },
+        cache: "no-store"
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        if (userData?.referralCode) {
+          customerReferralCode = userData.referralCode;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch user on product page:", err);
+  }
 
   let product = null;
   try {
@@ -220,7 +241,7 @@ export default async function ProductDetailPage({
           <span className="text-[#1c1c19]">{formatCoOrd(product.name)}</span>
         </div>
 
-        <ProductDetailInteractive product={product as any} />
+        <ProductDetailInteractive product={product as any} customerReferralCode={customerReferralCode} />
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
           <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
@@ -279,7 +300,7 @@ export default async function ProductDetailPage({
                   href={`/product/${item.slug || slugifyProductName(item.name)}`}
                   className="group rounded-[1.35rem] border border-[#f0e7de] bg-[#fffdfa] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-[#e1d1c6] hover:shadow-[0_18px_34px_rgba(95,93,62,0.08)]"
                 >
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.1rem] bg-[#f4efe8] flex items-center justify-center p-1">
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.1rem] bg-[#f4efe8] flex items-center justify-center">
                     <ImageWithFallback
                       src={item.image}
                       fallbackSrcs={item.gallery?.slice(1) || []}
@@ -287,7 +308,7 @@ export default async function ProductDetailPage({
                       alt={item.name}
                       width={260}
                       height={340}
-                      className="h-full w-full object-contain mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="h-full w-full object-cover mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
                     />
                   </div>
                   <div className="mt-3">

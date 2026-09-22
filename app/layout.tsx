@@ -7,6 +7,7 @@ import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
 import { PromoPopup } from "@/components/PromoPopup";
+import { ReferralTracker } from "@/components/ReferralTracker";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -70,6 +71,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
+        <ReferralTracker />
         <ExtensionErrorFilter />
         <WishbagProvider>
           <SmoothScrollProvider>

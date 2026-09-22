@@ -44,9 +44,9 @@ export function RegisterFlow() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const ref = params.get("ref");
+      const ref = params.get("ref") || localStorage.getItem("hey_womania_ref");
       const role = params.get("role");
-      const type = params.get("type"); // "customer" or "partner"
+      const type = params.get("type") || localStorage.getItem("hey_womania_ref_type"); // "customer" or "partner"
       
       if (ref || role || type) {
         let isPartnerValue = form.isPartner;

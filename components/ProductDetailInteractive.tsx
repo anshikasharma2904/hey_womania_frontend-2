@@ -25,9 +25,10 @@ interface ProductDetailInteractiveProps {
     discountPercent?: string;
     variants?: Variant[];
   };
+  customerReferralCode?: string;
 }
 
-export function ProductDetailInteractive({ product }: ProductDetailInteractiveProps) {
+export function ProductDetailInteractive({ product, customerReferralCode }: ProductDetailInteractiveProps) {
   const getInitialGallery = () => {
     const variants = product.variants || [];
     // If variants have colors, find the first color's images
@@ -155,6 +156,7 @@ export function ProductDetailInteractive({ product }: ProductDetailInteractivePr
         {/* Options Client Component */}
         <ProductOptionsClient
           product={product as any}
+          customerReferralCode={customerReferralCode}
           onColorChange={handleColorSelect}
         />
       </section>

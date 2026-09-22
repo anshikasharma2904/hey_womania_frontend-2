@@ -100,7 +100,7 @@ export function ProductImageGallery({
             images.length > 1 ? "order-1 lg:order-2" : "w-full"
           }`}
         >
-          <div className="relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f4efe8] py-3">
+          <div className="relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f4efe8]">
             <ImageWithFallback
               key={`main-desktop-${activeImage}`}
               src={activeImage}
@@ -111,7 +111,7 @@ export function ProductImageGallery({
               height={900}
               loading="eager"
               priority
-              className="h-auto max-h-[75vh] lg:max-h-[720px] w-full object-contain mx-auto transition-all duration-300"
+              className="h-auto max-h-[75vh] lg:max-h-[720px] w-full object-cover mx-auto transition-all duration-300"
             />
           </div>
         </div>
