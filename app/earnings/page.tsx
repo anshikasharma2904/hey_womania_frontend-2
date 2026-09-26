@@ -31,6 +31,7 @@ type PartnerDashboardResponse = {
     rank?: string;
     teamIds?: string[];
     referralCode?: string;
+    partnerReferralCode?: string;
   };
   dashboard?: {
     totalOrders?: number;
@@ -183,6 +184,7 @@ export default async function EarningsPage() {
   const networkWalletBalance = dashboard?.networkWalletBalance ?? 0;
   const activeDirects = dashboard?.activeDirects ?? 0;
   const referralCode = user?.referralCode || "N/A";
+  const partnerReferralCode = user?.partnerReferralCode || referralCode;
   const partnerStats = buildPartnerStats({
     totalOrders,
     partnerOrdersCount: dashboard?.partnerOrdersCount ?? 0,
@@ -510,7 +512,7 @@ export default async function EarningsPage() {
                 </p>
               </div>
               <div className="w-full md:w-auto">
-                <CopyInviteButton referralCode={referralCode} variant="secondary" />
+                <CopyInviteButton referralCode={referralCode} partnerReferralCode={partnerReferralCode} variant="secondary" />
               </div>
             </div>
           </section>

@@ -20,6 +20,7 @@ export default async function TeamPage() {
   const dashboard = partnerData?.dashboard;
   const businessPlan = partnerData?.businessPlan;
   const referralCode = partnerData?.user?.referralCode || "";
+  const partnerReferralCode = partnerData?.user?.partnerReferralCode || referralCode;
 
   const referralsData = await getPartnerReferralsList();
   const dbL1 = referralsData?.level1 || [];
@@ -177,7 +178,7 @@ export default async function TeamPage() {
                   <p className="mt-2 text-sm text-[#7c6e68]">
                     Share your referral link to add active direct partners and unlock payout qualification.
                   </p>
-                  <CopyInviteButton referralCode={referralCode} />
+                  <CopyInviteButton referralCode={referralCode} partnerReferralCode={partnerReferralCode} />
                 </div>
               </div>
             </div>
