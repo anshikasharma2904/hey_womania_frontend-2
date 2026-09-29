@@ -51,12 +51,13 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     // Critical Business Logic: Finalize Sell Points on Delivery
     if (status === "Delivered" && previousStatus !== "Delivered") {
+      order.deliveredAt = new Date().toISOString();
       console.log(`[MLM ENGINE] Order ${id} Delivered. Creating Sell Point Ledger entries...`);
       
       const now = new Date().toISOString();
       const totalNum = parseFloat(order.total?.replace(/[^0-9.]/g, "") || "0");
-      // @ts-ignore
-      const totalPoints = (order.sellPoints && order.sellPoints > 0) ? order.sellPoints : (totalNum / 5);
+      // Use the actual order value for commission calculations instead of dividing by 5
+      const totalPoints = totalNum;
 
       const ledgerEntry = new SellPointLedger({
         id: crypto.randomUUID(),

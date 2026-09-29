@@ -29,6 +29,7 @@ import {
   syncZohoItemsToProducts
 } from "./services/zohoInventoryService";
 import { lockCurrentSalesMonth, runAutomatedMonthlyClosing } from "./controllers/closingController";
+import { processReturnClawbacks } from "./controllers/returnClawbackController";
 
 dotenv.config(); // Load .env
 dotenv.config({ path: "env" }); // Load env (without dot fallback)
@@ -185,6 +186,12 @@ async function bootstrap() {
   // calendar day (28/29 February and 30/31-day months are all supported).
   cron.schedule("59 23 28-31 * *", () => {
     lockCurrentSalesMonth().catch(error => console.error("[Sales Close] Failed:", error));
+  }, { timezone: "Asia/Kolkata" });
+
+  // Run return clawbacks every day at 1:00 AM
+  cron.schedule("0 1 * * *", () => {
+    console.log("[CRON] Running daily return clawbacks...");
+    processReturnClawbacks().catch(error => console.error("[Return Clawback] Failed:", error));
   }, { timezone: "Asia/Kolkata" });
 
   app.listen(PORT, () => {

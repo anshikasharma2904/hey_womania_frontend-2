@@ -4,24 +4,12 @@ import { cookies } from "next/headers";
 import { FaCheckCircle, FaShippingFast, FaBoxOpen, FaFileInvoiceDollar, FaMapMarkerAlt, FaTimesCircle } from "react-icons/fa";
 import { slugifyProductName } from "@/app/category/category-data";
 import { CancelOrderButton } from "@/components/CancelOrderButton";
+import { ReturnOrderButton } from "@/components/ReturnOrderButton";
 import ImageWithFallback from "@/components/ImageWithFallback";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-const parseAmount = (value: number | string | undefined | null) => {
-  if (typeof value === "number") return value;
 
-  const parsed = parseFloat(String(value || "0").replace(/[^0-9.]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const calculateSP = (amount: number | string | undefined | null) => {
-  return Number((parseAmount(amount) / 5).toFixed(2));
-};
-
-const formatSP = (value: number) => {
-  return Number.isInteger(value) ? `${value}` : `${value.toFixed(2)}`;
-};
 
 async function fetchOrderById(id: string) {
   const cookieStore = await cookies();
@@ -106,13 +94,6 @@ export default async function OrderDetailsPage(props: PageProps) {
           <div className="text-right">
             <p className="text-xs uppercase tracking-[0.2em] text-[#5f5d3e]">Order Total</p>
             <p className="font-[family:var(--font-display)] text-2xl text-[#1c1c19]">{order.total}</p>
-            <p className="mt-1 text-[0.75rem] font-bold uppercase tracking-wider text-[#9c4049]">
-              +{formatSP(
-              order.sellPoints !== undefined && Number(order.sellPoints) > 0
-                ? Number(order.sellPoints)
-                : calculateSP(order.total || 0)
-            )}
-            </p>
           </div>
         </div>
 
@@ -123,6 +104,14 @@ export default async function OrderDetailsPage(props: PageProps) {
             <div>
               <h3 className="font-bold text-[#ef6f63] uppercase tracking-[0.1em] text-sm">Order Cancelled</h3>
               <p className="mt-1 text-sm text-[#ef6f63]/80">{order.statusText}</p>
+            </div>
+          </div>
+        ) : order.status === "Return Requested" || order.status === "Returned" || order.status === "Refunded" ? (
+          <div className="mb-8 flex items-start gap-4 rounded-xl border border-[#f3e8fd] bg-[#f8f5fd] p-5">
+            <FaCheckCircle className="mt-0.5 text-xl text-[#7c3aed] shrink-0" />
+            <div>
+              <h3 className="font-bold text-[#7c3aed] uppercase tracking-[0.1em] text-sm">Return Status: {order.status}</h3>
+              <p className="mt-1 text-sm text-[#7c3aed]/80">{order.statusText}</p>
             </div>
           </div>
         ) : (
@@ -137,6 +126,14 @@ export default async function OrderDetailsPage(props: PageProps) {
                   {order.status}
                 </span>
                 <CancelOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} />
+                <ReturnOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} deliveredAt={order.deliveredAt} />
+                <Link
+                  href={`/invoice/${order.id || order.orderNumber}`}
+                  target="_blank"
+                  className="rounded-full border-2 border-[#5f5d3e] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#5f5d3e] transition-colors hover:bg-[#5f5d3e] hover:text-white"
+                >
+                  Download Invoice
+                </Link>
               </div>
             </div>
             <p className="mb-8 text-center font-[family:var(--font-display)] text-xl text-[#1c1c19]">
@@ -218,13 +215,6 @@ export default async function OrderDetailsPage(props: PageProps) {
                       <p className="font-[family:var(--font-display)] text-[#1c1c19]">
                         {typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : item.price}
                       </p>
-                      <span className="text-xs font-bold text-[#9c4049]">
-                                            +{formatSP(
-                        item.sellPoints !== undefined && Number(item.sellPoints) > 0
-                          ? Number((Number(item.sellPoints) * (item.qty || item.quantity || 1)).toFixed(2))
-                          : Number((calculateSP(item.price || 0) * (item.qty || item.quantity || 1)).toFixed(2))
-                      )}
-                      </span>
                     </div>
                   </div>
                 </Link>

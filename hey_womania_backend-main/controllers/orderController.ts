@@ -448,3 +448,43 @@ export const cleanupAbandonedOrders = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error during cleanup" });
   }
 };
+
+export const returnOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // @ts-ignore
+    const userId = req.user?.id || "guest-user";
+
+    const order = await Order.findOne({ 
+      $or: [{ id: id }, { orderNumber: id }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (order.status !== "Delivered") {
+      return res.status(400).json({ error: "Only delivered orders can be returned." });
+    }
+
+    if (!order.deliveredAt) {
+      return res.status(400).json({ error: "Delivery date is missing, cannot process return." });
+    }
+
+    const deliveredDate = new Date(order.deliveredAt);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    if (deliveredDate < sevenDaysAgo) {
+      return res.status(400).json({ error: "Order was delivered more than 7 days ago. Return period has expired." });
+    }
+
+    order.status = "Return Requested";
+    order.statusText = "Return has been requested";
+    await order.save();
+
+    res.json({ success: true, message: "Return requested successfully." });
+  } catch (error) {
+    console.error("Error returning order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -5,7 +5,11 @@ export default function Blogs() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [formData, setFormData] = useState({ title: '', content: '', excerpt: '', status: 'Draft' });
+  const [formData, setFormData] = useState({ title: '', content: '', excerpt: '', status: 'Draft', coverImage: '' });
+  
+  const generateSlug = (title: string) => {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  };
 
   useEffect(() => {
     fetchBlogs();
@@ -31,7 +35,7 @@ export default function Blogs() {
     try {
       await axios.post('http://localhost:5000/api/admin/blogs', formData);
       setIsCreating(false);
-      setFormData({ title: '', content: '', excerpt: '', status: 'Draft' });
+      setFormData({ title: '', content: '', excerpt: '', status: 'Draft', coverImage: '' });
       fetchBlogs();
     } catch (err) {
       console.error(err);
@@ -69,6 +73,26 @@ export default function Blogs() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input required type="text" className="w-full border rounded-lg px-3 py-2" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Slug (Auto-generated)</label>
+            <input readOnly type="text" className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-500" value={generateSlug(formData.title)} />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
+            <input type="file" accept="image/*" className="w-full border rounded-lg px-3 py-2" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  setFormData({ ...formData, coverImage: reader.result as string });
+                };
+                reader.readAsDataURL(file);
+              }
+            }} />
+            {formData.coverImage && <img src={formData.coverImage} alt="Cover Preview" className="mt-2 h-32 object-cover rounded-lg border" />}
           </div>
           
           <div>

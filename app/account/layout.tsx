@@ -5,20 +5,6 @@ import { cookies } from "next/headers";
 import { AccountSidebar } from "./AccountSidebar";
 
 
-const parseAmount = (value: number | string | undefined | null) => {
-  if (typeof value === "number") return value;
-
-  const parsed = parseFloat(String(value || "0").replace(/[^0-9.]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const calculateSP = (amount: number | string | undefined | null) => {
-  return Number((parseAmount(amount) / 5).toFixed(2));
-};
-
-const formatSP = (value: number) => {
-  return Number.isInteger(value) ? `${value} SP` : `${value.toFixed(2)} SP`;
-};
 
 async function fetchUser() {
   const cookieStore = await cookies();
@@ -68,18 +54,6 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   const displayName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || "Customer" : "Customer";
   
   const orders = await fetchUserOrders() || [];
-  const sellPointsDisplay = orders
-  .filter((o: any) => String(o.status).toLowerCase() === "delivered")
-  .reduce((sum: number, o: any) => {
-    const savedSP = parseAmount(o.sellPoints);
-
-    const orderSP =
-      savedSP > 0
-        ? savedSP
-        : calculateSP(o.total || 0);
-
-    return Number((sum + orderSP).toFixed(2));
-  }, 0);
 
   return (
     <main className="min-h-screen bg-[#fcf9f4] px-5 pb-16 pt-10 text-[#1c1c19] md:px-16 md:pt-10 lg:pt-10">

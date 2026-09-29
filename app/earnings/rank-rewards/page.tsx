@@ -16,8 +16,8 @@ export default async function RankRewardsPage() {
   const l1SP = dbL1.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
   const l2SP = dbL2.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
   const l3SP = dbL3.reduce((sum: number, u: any) => sum + (u.totalSP || 0), 0);
-  const teamSellPoints = l1SP + l2SP + l3SP;
-  const totalTeamSp = dashboard?.sellPointsTotal ?? 0;
+  const teamSellSales = l1SP + l2SP + l3SP;
+  const totalTeamSales = dashboard?.sellPointsTotal ?? 0;
 
   const minSp = businessPlan?.minimumPayoutSellPoints ?? 500;
   const minDirects = businessPlan?.minimumActiveDirects ?? 2;
@@ -39,7 +39,7 @@ export default async function RankRewardsPage() {
 
   const rankCards = [
     { label: "Payout Status", value: payoutStatusText, icon: FaCrown },
-    { label: "Monthly Team SP", value: totalTeamSp.toLocaleString("en-IN", { maximumFractionDigits: 1 }), icon: FaStar },
+    { label: "Monthly Team Sales", value: `₹${totalTeamSales.toLocaleString("en-IN", { maximumFractionDigits: 1 })}`, icon: FaStar },
     { label: "Active Direct", value: `${dashboard?.activeDirects ?? 0}`, icon: MdLeaderboard },
     { label: "Pool Earnings", value: `₹${poolEarnings.toLocaleString("en-IN")}`, icon: MdOutlineWorkspacePremium }
   ];
@@ -47,29 +47,29 @@ export default async function RankRewardsPage() {
   const milestones = [
     { 
       title: "Payout Qualification", 
-      target: `${minSp} SP + ${minDirects} active direct`, 
+      target: `₹${minSp} Sales + ${minDirects} active direct`, 
       status: isQualified ? "Completed" : "In Progress" 
     },
     { 
       title: "Glam Score", 
-      target: "2,500 team SP", 
-      status: totalTeamSp >= 2500 ? "Completed" : (isQualified ? "In Progress" : "Locked") 
+      target: "₹2,500 team sales", 
+      status: totalTeamSales >= 2500 ? "Completed" : (isQualified ? "In Progress" : "Locked") 
     },
     { 
       title: "Style Score", 
-      target: "25,000 team SP", 
-      status: totalTeamSp >= 25000 ? "Completed" : (totalTeamSp >= 2500 ? "In Progress" : "Locked") 
+      target: "₹25,000 team sales", 
+      status: totalTeamSales >= 25000 ? "Completed" : (totalTeamSales >= 2500 ? "In Progress" : "Locked") 
     },
     { 
       title: "Gorgeous Score", 
-      target: "100,000 team SP", 
-      status: totalTeamSp >= 100000 ? "Completed" : (totalTeamSp >= 25000 ? "In Progress" : "Locked") 
+      target: "₹100,000 team sales", 
+      status: totalTeamSales >= 100000 ? "Completed" : (totalTeamSales >= 25000 ? "In Progress" : "Locked") 
     }
   ];
 
   const rewards = [
     { title: "Dream Car Fund", meta: "3 months continuous 1 Gorgeous Score", amount: "5% Pool" },
-    { title: "Dream House Fund", meta: "3 months 200,000 SP + Super Womania Score", amount: "5% Pool" },
+    { title: "Dream House Fund", meta: "3 months ₹200,000 Sales + Super Womania Score", amount: "5% Pool" },
     { title: "Annual Club Access", meta: "Super, Mega, and Luxury Life Club eligibility", amount: "Premium" }
   ];
 
@@ -173,7 +173,7 @@ export default async function RankRewardsPage() {
                     Keep climbing.
                   </p>
                   <p className="mt-1 text-sm text-[#ffd8df]">
-                    Build sell points and team scores to unlock funds, annual clubs, and higher partner pools.
+                    Build team sales and network scores to unlock funds, annual clubs, and higher partner pools.
                   </p>
                   <Link
                     href="/earnings/score-income"

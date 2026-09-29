@@ -36,7 +36,7 @@ const partnerPrograms = [
 export default async function PartnerProgramPage() {
   const partnerData = await getPartnerDashboardData();
   const dashboard = partnerData?.dashboard;
-  const sellPoints = dashboard?.sellPointsTotal ?? 0;
+  const sales = dashboard?.sellPointsTotal ?? 0;
   
   // Example current status
   const currentStatus = "Active Partner";

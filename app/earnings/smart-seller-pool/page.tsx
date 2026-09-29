@@ -6,8 +6,8 @@ export default async function SmartSellerPoolPage() {
   const partnerData = await getPartnerDashboardData();
   const dashboard = partnerData?.dashboard;
   const businessPlan = partnerData?.businessPlan;
-  const sellPoints = dashboard?.sellPointsTotal ?? 0;
-  const streak = sellPoints >= 10000 ? "Qualified" : "In progress";
+  const sales = dashboard?.sellPointsTotal ?? 0;
+  const streak = sales >= 10000 ? "Qualified" : "In progress";
 
   return (
     <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-10 text-[#1c1c19] md:pt-10 lg:pt-10">
@@ -36,7 +36,7 @@ export default async function SmartSellerPoolPage() {
             <p className="mt-6 text-[0.7rem] uppercase tracking-[0.2em] text-white/70">
               Status
             </p>
-            <p className="mt-2 text-3xl font-bold">10,000 SP x 3 Months</p>
+            <p className="mt-2 text-3xl font-bold">₹10,000 Sales x 3 Months</p>
             <p className="mt-2 text-sm text-white/75">{streak}</p>
           </div>
         </div>
@@ -45,15 +45,14 @@ export default async function SmartSellerPoolPage() {
           {businessPlan?.smartSellerPool ? (
             <p>{businessPlan.smartSellerPool}</p>
           ) : (
-            <p>
-              Complete 10,000 sell points continuously for 3 months to enter the Smart Seller Pool. Company turnover is shared across achievers for the next 12 months.
+              Complete ₹10,000 sales continuously for 3 months to enter the Smart Seller Pool. Company turnover is shared across achievers for the next 12 months.
             </p>
           )}
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {[
-            "Complete 10,000 sell points continuously for 3 months.",
+            "Complete ₹10,000 sales continuously for 3 months.",
             "Earn 1 Smart Seller Point and enter the pool.",
             "Company turnover pool of 5% is divided among achievers.",
             "Pool benefit continues for the next 12 months."

@@ -8,7 +8,7 @@ export function CancelOrderButton({ orderId, currentStatus }: { orderId: string,
   const router = useRouter();
 
   // Hide the button if the order is already cancelled, shipped, or delivered
-  const nonCancellableStatuses = ["Cancelled", "Returned", "Shipped", "Delivered", "Completed"];
+  const nonCancellableStatuses = ["Cancelled", "Returned", "Shipped", "Delivered", "Completed", "Return Requested", "Refunded"];
   if (nonCancellableStatuses.includes(currentStatus)) {
     return null;
   }

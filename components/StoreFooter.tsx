@@ -105,6 +105,7 @@ export function StoreFooter() {
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#111111]">Information</h3>
             <div className="mt-4 space-y-2 text-sm text-[#6d655d]">
               <p><Link href="/about" className="transition-colors hover:text-[#111111]">About Us</Link></p>
+              <p><Link href="/blogs" className="transition-colors hover:text-[#111111]">Blogs</Link></p>
               <p><Link href="/contact" className="transition-colors hover:text-[#111111]">Contact</Link></p>
               <p><Link href="/customer-support" className="transition-colors hover:text-[#111111]">Customer Support</Link></p>
               <p><Link href="/cancellation-refund" className="transition-colors hover:text-[#111111]">Cancellation & Refund</Link></p>

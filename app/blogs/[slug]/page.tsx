@@ -65,10 +65,10 @@ export default async function BlogDetails({ params }: { params: { slug: string }
             </p>
           )}
 
-          <div className="prose prose-lg prose-pink max-w-none text-gray-800">
-            {/* Extremely basic content rendering. For rich text, you'd use a markdown parser or dangerouslySetInnerHTML */}
-            <div className="whitespace-pre-wrap">{blog.content}</div>
-          </div>
+          <div 
+            className="prose prose-lg prose-pink max-w-none text-gray-800"
+            dangerouslySetInnerHTML={{ __html: blog.content }}
+          />
         </article>
       </main>
       <StoreFooter />

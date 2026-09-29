@@ -57,6 +57,8 @@ const orderSchema = new mongoose.Schema({
     sellPoints: { type: Number, default: 0 }
   }],
   createdAt: String,
+  deliveredAt: String,
+  commissionClawedBack: { type: Boolean, default: false },
 }, { collection: "orders" });
 
 export const Order = mongoose.model("Order", orderSchema);

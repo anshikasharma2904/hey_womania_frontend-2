@@ -61,6 +61,7 @@ async function run() {
         lastName: "Partner",
         name: "Root Partner",
         email: "root@womania.com",
+        phone: "9999999990",
         role: "partner",
         rank: "Starter",
         referralCode: "ROOT123",
@@ -105,6 +106,7 @@ async function run() {
       lastName: "Partner",
       name: "Level 1 Partner",
       email: "level1@womania.com",
+      phone: "9999999991",
       role: "partner",
       rank: "Starter",
       referralCode: "LEVEL1DU",
@@ -128,6 +130,7 @@ async function run() {
       lastName: "Partner",
       name: "Level 2 Partner",
       email: "level2@womania.com",
+      phone: "9999999992",
       role: "partner",
       rank: "Starter",
       referralCode: "LEVEL2GU",
@@ -151,6 +154,7 @@ async function run() {
       lastName: "Partner",
       name: "Level 3 Partner",
       email: "level3@womania.com",
+      phone: "9999999993",
       role: "partner",
       rank: "Starter",
       referralCode: "LEVEL3GGU",
@@ -189,7 +193,7 @@ async function run() {
         orderNumber: orderNum,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         total: "₹1,000",
-        sellPoints: 200,
+        sellPoints: 1000,
         status: "Delivered",
         statusText: "Delivered",
         paymentMethod: "cod",
@@ -206,7 +210,7 @@ async function run() {
           quantity: 1,
           qty: 1,
           price: "₹1,000",
-          sellPoints: 200,
+          sellPoints: 1000,
           sku: "SAREE-PREM",
           name: "MLM Premium Saree"
         }],
@@ -220,7 +224,7 @@ async function run() {
         userId: userId,
         orderId: orderId,
         sellPrice: 1000,
-        sellPoints: 200,
+        sellPoints: 1000,
         type: "Credit",
         status: "approved",
         remarks: `Delivered Order ${orderNum}`,
@@ -236,21 +240,21 @@ async function run() {
           $inc: {
             totalOrders: 1,
             sellPriceTotal: 1000,
-            sellPointsTotal: 200
+            sellPointsTotal: 1000
           }
         }
       );
 
       // Traversal and credit commissions up to 3 levels
       // Self: 10%
-      const selfIncome = 20; // 200 * 10%
+      const selfIncome = 100; // 1000 * 10%
       await new IncomeLedger({
         id: crypto.randomUUID(),
         userId: userId,
         month: "2026-06",
         incomeType: "Self Sell Income",
         amount: selfIncome,
-        sellPointsBasis: 200,
+        sellPointsBasis: 1000,
         status: "approved",
         remarks: `Self Sell Income (10%) for Order ${orderNum}`,
         createdAt: new Date().toISOString(),
@@ -268,7 +272,7 @@ async function run() {
 
       while (currentUplineId && level <= 3) {
         const rate = level === 1 ? 0.05 : level === 2 ? 0.03 : 0.02;
-        const levelIncome = 200 * rate; // 200 SP basis
+        const levelIncome = 1000 * rate; // 1000 Sales basis
 
         await new IncomeLedger({
           id: crypto.randomUUID(),
@@ -276,7 +280,7 @@ async function run() {
           month: "2026-06",
           incomeType: "Fast Track Income",
           amount: levelIncome,
-          sellPointsBasis: 200,
+          sellPointsBasis: 1000,
           status: "approved",
           remarks: `Level ${level} Fast Track Income (${rate * 100}%) from ${usersMap[userId].name} (Order ${orderNum})`,
           createdAt: new Date().toISOString(),
@@ -291,7 +295,7 @@ async function run() {
         // Also credit downline SP to upline's total SP
         await PartnerDashboard.updateOne(
           { userId: currentUplineId },
-          { $inc: { sellPointsTotal: 200 } }
+          { $inc: { sellPointsTotal: 1000 } }
         );
 
         const uplineUser = await User.findOne({ id: currentUplineId });
@@ -335,7 +339,7 @@ async function run() {
       const dbStats = await PartnerDashboard.findOne({ userId });
       console.log(`User: ${usersMap[userId].name}`);
       console.log(`  Wallet Balance: ₹${dbStats?.walletBalance}`);
-      console.log(`  Total SP: ${dbStats?.sellPointsTotal} SP`);
+      console.log(`  Total Sales Volume: ₹${dbStats?.sellPointsTotal}`);
       console.log(`  Referrals: ${dbStats?.totalReferrals}`);
       console.log(`  Active Directs: ${dbStats?.activeDirects}`);
     }

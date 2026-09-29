@@ -6,20 +6,7 @@ import BecomePartnerModal from "./BecomePartnerModal";
 import AccountInfoSection from "@/components/AccountInfoSection";
 
 
-const parseAmount = (value: number | string | undefined | null) => {
-  if (typeof value === "number") return value;
 
-  const parsed = parseFloat(String(value || "0").replace(/[^0-9.]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const calculateSP = (amount: number | string | undefined | null) => {
-  return Number((parseAmount(amount) / 5).toFixed(2));
-};
-
-const formatSP = (value: number) => {
-  return Number.isInteger(value) ? `${value}` : `${value.toFixed(2)}`;
-};
 
 async function fetchUser() {
   const cookieStore = await cookies();
@@ -149,13 +136,6 @@ export default async function AccountPage() {
                     <div className="flex flex-col items-end">
                       <p className="font-[family:var(--font-display)] text-xl text-[#1c1c19]">
                         {order.total}
-                      </p>
-                      <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-wider text-[#9c4049]">
-                        +{formatSP(
-    order.sellPoints !== undefined && Number(order.sellPoints) > 0
-      ? Number(order.sellPoints)
-      : calculateSP(order.total || 0)
-  )}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
