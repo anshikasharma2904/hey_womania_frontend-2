@@ -45,6 +45,7 @@ export default async function SmartSellerPoolPage() {
           {businessPlan?.smartSellerPool ? (
             <p>{businessPlan.smartSellerPool}</p>
           ) : (
+            <p>
               Complete ₹10,000 sales continuously for 3 months to enter the Smart Seller Pool. Company turnover is shared across achievers for the next 12 months.
             </p>
           )}
