@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart, FaShareAlt } from "react-icons/fa";
 import { useWishbag } from "@/contexts/WishbagContext";
+import { trackMetaEvent } from "@/lib/metaTracking";
 
 interface Variant {
   sku?: string;
@@ -28,6 +29,19 @@ interface ProductOptionsClientProps {
 export function ProductOptionsClient({ product, onColorChange, customerReferralCode }: ProductOptionsClientProps) {
   const { isWishbagged, addToWishbag, removeFromWishbag } = useWishbag();
   const variants = product.variants || [];
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const numericPrice = parseFloat(product.price.replace(/[^0-9.]/g, "") || "0");
+      trackMetaEvent("ViewContent", {
+        content_name: product.name,
+        content_ids: [product.id || ""],
+        content_type: "product",
+        value: numericPrice,
+        currency: "INR"
+      });
+    }
+  }, [product]);
 
   // Canonical size order for clothing
   const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"];
@@ -198,6 +212,15 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
 
   const handleAddToCart = () => {
     if (typeof window === "undefined" || isOutOfStock) return;
+
+    const numericPrice = parseFloat(product.price.replace(/[^0-9.]/g, "") || "0");
+    trackMetaEvent("AddToCart", {
+      content_name: product.name,
+      content_ids: [product.id || ""],
+      content_type: "product",
+      value: numericPrice,
+      currency: "INR"
+    });
 
     const currentCartRaw = localStorage.getItem("hey_womania_cart");
     const currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];

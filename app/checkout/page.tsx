@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StoreFooter } from "@/components/StoreFooter";
 import { OrderConfirmationModal } from "@/components/OrderConfirmationModal";
+import { trackMetaEvent } from "@/lib/metaTracking";
 
 import { FaTrash } from "react-icons/fa";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
@@ -86,7 +87,18 @@ export default function CheckoutPage() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("hey_womania_cart");
       if (stored) {
-        setCartItems(JSON.parse(stored));
+        const parsedItems = JSON.parse(stored);
+        setCartItems(parsedItems);
+        
+        if (parsedItems.length > 0) {
+          const totalVal = parsedItems.reduce((acc: number, item: any) => acc + (item.salePrice * item.quantity), 0);
+          trackMetaEvent("InitiateCheckout", {
+            value: totalVal,
+            currency: "INR",
+            content_ids: parsedItems.map((i: any) => i.productId),
+            num_items: parsedItems.length
+          });
+        }
       }
       setLoading(false);
     }
@@ -272,6 +284,15 @@ export default function CheckoutPage() {
   };
 
   const markOrderSuccess = () => {
+    if (typeof window !== "undefined") {
+      trackMetaEvent("Purchase", {
+        value: grandTotal,
+        currency: "INR",
+        content_ids: cartItems.map((i: any) => i.productId),
+        num_items: cartItems.length
+      });
+    }
+
     localStorage.removeItem("hey_womania_cart");
     window.dispatchEvent(new Event("cart_updated"));
     setSubmitStatus("success");
