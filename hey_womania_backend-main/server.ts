@@ -49,6 +49,7 @@ const allowedOrigins = [
   "http://localhost:5174",
   "https://heywomaniyaa.com",
   "https://www.heywomaniyaa.com",
+  "https://admin.heywomaniyaa.com",
   process.env.FRONTEND_URL,
   process.env.NEXT_PUBLIC_FRONTEND_URL
 ].filter(Boolean) as string[];
