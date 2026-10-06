@@ -13,7 +13,9 @@ function getSessionId() {
   return sessionId;
 }
 
-export function CustomAnalyticsTracker() {
+import { Suspense } from "react";
+
+function TrackerInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -33,4 +35,12 @@ export function CustomAnalyticsTracker() {
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export function CustomAnalyticsTracker() {
+  return (
+    <Suspense fallback={null}>
+      <TrackerInner />
+    </Suspense>
+  );
 }
