@@ -50,6 +50,7 @@ const allowedOrigins = [
   "https://heywomaniyaa.com",
   "https://www.heywomaniyaa.com",
   "https://admin.heywomaniyaa.com",
+  "https://heywoman-admin.duckdns.org",
   process.env.FRONTEND_URL,
   process.env.NEXT_PUBLIC_FRONTEND_URL
 ].filter(Boolean) as string[];
