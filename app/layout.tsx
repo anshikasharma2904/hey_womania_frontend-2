@@ -8,6 +8,7 @@ import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
 import { PromoPopup } from "@/components/PromoPopup";
 import { ReferralTracker } from "@/components/ReferralTracker";
+import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -92,6 +93,7 @@ export default function RootLayout({
         {/* End Meta Pixel Code */}
       </head>
       <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
+        <CustomAnalyticsTracker />
         <ReferralTracker />
         <ExtensionErrorFilter />
         <WishbagProvider>
