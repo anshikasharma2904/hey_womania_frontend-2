@@ -122,7 +122,7 @@ export const register = async (req: Request, res: Response) => {
     
     res.cookie(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
       sameSite: "none"
@@ -158,7 +158,7 @@ export const login = async (req: Request, res: Response) => {
     
     res.cookie(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
       sameSite: "none"
@@ -230,7 +230,7 @@ export const loginOtp = async (req: Request, res: Response) => {
     
     res.cookie(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
       sameSite: "none"
@@ -260,7 +260,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     
     res.cookie(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
       sameSite: "none"
@@ -273,7 +273,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-  res.clearCookie(SESSION_COOKIE_NAME, { path: "/", sameSite: "none", secure: process.env.NODE_ENV === "production" });
+  res.clearCookie(SESSION_COOKIE_NAME, { path: "/", sameSite: "none", secure: true });
   res.json({ success: true });
 };
 
