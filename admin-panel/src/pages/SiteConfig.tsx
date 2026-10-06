@@ -27,7 +27,7 @@ export default function SiteConfig() {
 
   const fetchSettings = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/settings');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
       setSettings(res.data);
       setHeroVideoDesktop(res.data.heroVideoDesktop || "https://www.youtube.com/watch?v=fAdYAOFqIC4");
       setHeroVideoMobile(res.data.heroVideoMobile || "/phoneVideo.mp4");
@@ -44,7 +44,7 @@ export default function SiteConfig() {
     setSaving(true);
     setMessage({ text: '', type: '' });
     try {
-      await axios.put('http://localhost:5000/api/settings', {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/settings`, {
         heroVideoDesktop,
         heroVideoMobile,
         categoryImages
@@ -79,7 +79,7 @@ export default function SiteConfig() {
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/upload", formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       
@@ -205,9 +205,9 @@ export default function SiteConfig() {
                   <div className="h-12 w-12 rounded bg-gray-100 flex-shrink-0 border border-gray-200 overflow-hidden">
                     {(categoryImages[cat]) ? (
                       categoryImages[cat].match(/\.(mp4|webm)$/i) ? (
-                         <video src={categoryImages[cat].startsWith('http') ? categoryImages[cat] : `http://localhost:5000${categoryImages[cat]}`} className="h-full w-full object-cover" muted />
+                         <video src={categoryImages[cat].startsWith('http') ? categoryImages[cat] : `${import.meta.env.VITE_API_URL}${categoryImages[cat]}`} className="h-full w-full object-cover" muted />
                       ) : (
-                         <img src={categoryImages[cat].startsWith('http') ? categoryImages[cat] : `http://localhost:5000${categoryImages[cat]}`} alt={cat} className="h-full w-full object-cover" />
+                         <img src={categoryImages[cat].startsWith('http') ? categoryImages[cat] : `${import.meta.env.VITE_API_URL}${categoryImages[cat]}`} alt={cat} className="h-full w-full object-cover" />
                       )
                     ) : (
                        <span className="flex items-center justify-center h-full w-full text-xs text-gray-400">Default</span>

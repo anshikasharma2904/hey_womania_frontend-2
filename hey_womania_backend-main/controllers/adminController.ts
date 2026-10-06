@@ -74,7 +74,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // Chart 3: User Growth Data
     const allUsers = await User.find({}, { createdAt: 1 });
     const userGrowthData = last6Months.map(month => {
-      const monthUsers = allUsers.filter(u => u.createdAt && (u.createdAt as any).toISOString().startsWith(month)).length;
+      const monthUsers = allUsers.filter(u => u.createdAt && String(u.createdAt).startsWith(month)).length;
       const dateObj = new Date(month + "-01");
       const monthName = dateObj.toLocaleString('default', { month: 'short' });
       return { name: monthName, users: monthUsers };

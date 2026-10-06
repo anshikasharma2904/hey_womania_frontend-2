@@ -21,6 +21,7 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
     { name: 'Users & Partners', path: '/users', icon: <UsersIcon size={20} /> },
     { name: 'Site Config', path: '/site-config', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> },
     { name: 'Payouts', path: '/payouts', icon: <BadgeIndianRupee size={20} /> },
+    { name: 'Analytics', path: '/analytics', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> },
   ];
 
   return (
@@ -69,18 +70,20 @@ function Layout({ children, onLogout }: { children: React.ReactNode, onLogout: (
 }
 
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 
 import Blogs from './pages/Blogs';
+import Payouts from './pages/Payouts';
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/auth/me')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/users/me`)
       .then(res => {
-        if (res.data.ok && (res.data.user.role === 'admin' || res.data.user.role === 'superadmin')) {
-          setUser(res.data.user);
+        if (res.data && (res.data.role === 'admin' || res.data.role === 'superadmin')) {
+          setUser(res.data);
         }
       })
       .catch(() => {})
@@ -89,7 +92,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/logout');
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
       setUser(null);
     } catch (err) {
       console.error(err);
@@ -120,7 +123,8 @@ function App() {
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/users" element={<Users />} />
           <Route path="/site-config" element={<SiteConfig />} />
-          <Route path="/payouts" element={<div>Payouts Coming Soon</div>} />
+          <Route path="/payouts" element={<Payouts />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

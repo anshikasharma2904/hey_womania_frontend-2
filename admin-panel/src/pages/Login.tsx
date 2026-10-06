@@ -16,7 +16,7 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/auth/admin-login',
+        `${import.meta.env.VITE_API_URL}/api/auth/admin-login`,
         { email, password },
         { withCredentials: true }
       );

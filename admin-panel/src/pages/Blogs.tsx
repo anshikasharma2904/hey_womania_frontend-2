@@ -17,7 +17,7 @@ export default function Blogs() {
 
   const fetchBlogs = () => {
     setLoading(true);
-    axios.get('http://localhost:5000/api/admin/blogs')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/admin/blogs`)
       .then(res => {
         if (res.data.success) {
           setBlogs(res.data.blogs);
@@ -33,7 +33,7 @@ export default function Blogs() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/admin/blogs', formData);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/blogs`, formData);
       setIsCreating(false);
       setFormData({ title: '', content: '', excerpt: '', status: 'Draft', coverImage: '' });
       fetchBlogs();
@@ -46,7 +46,7 @@ export default function Blogs() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this blog?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/blogs/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/blogs/${id}`);
       fetchBlogs();
     } catch (err) {
       console.error(err);

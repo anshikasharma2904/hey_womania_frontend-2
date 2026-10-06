@@ -10,12 +10,19 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/admin/dashboard/stats')
-      .then(res => {
-        setStats(res.data);
+    Promise.all([
+      axios.get(`${import.meta.env.VITE_API_URL}/api/admin/dashboard/stats`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/admin/orders`)
+    ])
+      .then(([statsRes, ordersRes]) => {
+        setStats(statsRes.data);
+        if (ordersRes.data && ordersRes.data.data) {
+          setRecentOrders(ordersRes.data.data.slice(0, 5));
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -23,6 +30,21 @@ export default function Dashboard() {
         setLoading(false);
       });
   }, []);
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/orders/${orderId}/status`, { status: 'Cancelled' });
+      if (res.data.success) {
+        setRecentOrders(prev => prev.map(order => 
+          (order.id === orderId || order._id === orderId) ? { ...order, status: 'Cancelled' } : order
+        ));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to cancel order');
+    }
+  };
 
   if (loading) {
     return <div className="flex h-full items-center justify-center">Loading dashboard...</div>;
@@ -152,6 +174,68 @@ export default function Dashboard() {
           </div>
         </div>
 
+
+      </div>
+
+      {/* Recent Orders Section */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mt-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-bold text-gray-800">Recent Orders</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500 uppercase tracking-wider">
+                <th className="p-4 font-semibold">Order ID</th>
+                <th className="p-4 font-semibold">Date</th>
+                <th className="p-4 font-semibold">Customer</th>
+                <th className="p-4 font-semibold">Total</th>
+                <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-500">No orders found.</td>
+                </tr>
+              ) : (
+                recentOrders.map((order) => (
+                  <tr key={order._id || order.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm font-mono text-gray-900">{order.id || order._id}</td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="p-4 text-sm text-gray-900">
+                      {order.shippingAddress?.fullName || 'N/A'}
+                    </td>
+                    <td className="p-4 text-sm font-medium text-gray-900">₹{order.total}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                        order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                        order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {order.status || 'Pending'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      {order.status !== 'Cancelled' && order.status !== 'Delivered' && (
+                        <button 
+                          onClick={() => handleCancelOrder(order.id || order._id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

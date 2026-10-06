@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import { User } from "../models/User";
+import { Admin } from "../models/Admin";
 import { Order } from "../models/Order";
 
 // Any user/partner who has no upline is placed directly under this
@@ -11,7 +12,13 @@ export const getMe = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
     const userId = req.user.id;
-    const user = await User.findOne({ id: userId }).select("-passwordHash").lean();
+    let user: any = await User.findOne({ id: userId }).select("-passwordHash").lean();
+    
+    // If not found in User, check Admin collection
+    if (!user) {
+      user = await Admin.findOne({ id: userId }).select("-passwordHash").lean();
+    }
+    
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -19,7 +26,7 @@ export const getMe = async (req: Request, res: Response) => {
     if (user.uplineId) {
       const uplineUser = await User.findOne({ id: user.uplineId }).select("firstName lastName");
       if (uplineUser) {
-        (user as any).uplineName = `${uplineUser.firstName || ""} ${uplineUser.lastName || ""}`.trim();
+        user.uplineName = `${uplineUser.firstName || ""} ${uplineUser.lastName || ""}`.trim();
       }
     }
 
@@ -27,7 +34,7 @@ export const getMe = async (req: Request, res: Response) => {
     const pastOrderCount = await Order.countDocuments({
       userId: userId
     });
-    (user as any).hasPastOrders = pastOrderCount > 0;
+    user.hasPastOrders = pastOrderCount > 0;
 
     res.json(user);
   } catch (error) {

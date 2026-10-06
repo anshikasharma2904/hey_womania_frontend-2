@@ -4,20 +4,29 @@ import axios from 'axios';
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/admin/products')
+  const fetchProducts = (pageNumber: number) => {
+    setLoading(true);
+    axios.get(`${import.meta.env.VITE_API_URL}/api/admin/products?page=${pageNumber}&limit=20`)
       .then(res => {
-        // the endpoint /api/admin/products returns a list directly or in .data
         const data = res.data.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
         setProducts(data);
+        if (res.data.pagination) {
+          setTotalPages(res.data.pagination.totalPages);
+        }
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchProducts(page);
+  }, [page]);
 
   return (
     <div>
@@ -50,7 +59,7 @@ export default function Products() {
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                           {product.images?.[0] ? (
-                            <img src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`} alt={product.title} className="h-full w-full object-cover" />
+                            <img src={product.images[0].startsWith('http') ? product.images[0] : `${import.meta.env.VITE_API_URL}${product.images[0]}`} alt={product.title} className="h-full w-full object-cover" />
                           ) : (
                             <span className="text-gray-400 text-xs">No img</span>
                           )}
@@ -62,7 +71,7 @@ export default function Products() {
                       </div>
                     </td>
                     <td className="p-4 text-sm text-gray-600 capitalize">
-                      {product.categorySlug?.replace(/-/g, ' ') || 'Uncategorized'}
+                      {product.category || product.categorySlug?.replace(/-/g, ' ') || 'Uncategorized'}
                     </td>
                     <td className="p-4 text-sm text-gray-900">
                       <div>₹{product.salePrice || product.price}</div>
@@ -85,6 +94,29 @@ export default function Products() {
               )}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination Controls */}
+        <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <div className="text-sm text-gray-500">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || loading}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

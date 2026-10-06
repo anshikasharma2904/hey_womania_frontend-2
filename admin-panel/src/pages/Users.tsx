@@ -6,7 +6,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/admin/users')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`)
       .then(res => {
         if (res.data.success) {
           setUsers(res.data.data);

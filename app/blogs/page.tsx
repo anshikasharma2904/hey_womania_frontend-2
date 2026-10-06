@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MainNavbar } from "@/components/MainNavbar";
 import { StoreFooter } from "@/components/StoreFooter";
 
 async function getBlogs() {
@@ -18,7 +17,6 @@ export default async function BlogsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <MainNavbar />
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl">Our Blog</h1>

@@ -21,6 +21,7 @@ import categoryRoutes from "./routes/categoryRoutes";
 import blogRoutes from "./routes/blogRoutes";
 import uploadRoutes from "./routes/uploadRoutes";
 import settingRoutes from "./routes/settingRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
 import { shiprocketWebhook } from "./controllers/shiprocketController";
 import {
   getZohoInventoryStatus,
@@ -217,6 +218,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", requireAdmin, uploadRoutes); // Ensure only admins can upload files
 app.use("/api/settings", settingRoutes); // Public read-only access for homepage
+app.use("/api/analytics", analyticsRoutes);
 app.post("/api/webhooks/shiprocket", shiprocketWebhook);
 
 // Root
