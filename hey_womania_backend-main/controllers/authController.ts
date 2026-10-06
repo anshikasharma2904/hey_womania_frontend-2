@@ -125,7 +125,7 @@ export const register = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
-      sameSite: "lax"
+      sameSite: "none"
     });
 
     res.json({ success: true, user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role } });
@@ -161,7 +161,7 @@ export const login = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
-      sameSite: "lax"
+      sameSite: "none"
     });
 
     res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
@@ -233,7 +233,7 @@ export const loginOtp = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
-      sameSite: "lax"
+      sameSite: "none"
     });
 
     res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
@@ -263,7 +263,7 @@ export const adminLogin = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
       path: "/",
-      sameSite: "lax"
+      sameSite: "none"
     });
 
     res.json({ success: true, user: { id: admin.id, name: admin.name, email: admin.email, role: admin.role } });
@@ -273,7 +273,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-  res.clearCookie(SESSION_COOKIE_NAME, { path: "/" });
+  res.clearCookie(SESSION_COOKIE_NAME, { path: "/", sameSite: "none", secure: process.env.NODE_ENV === "production" });
   res.json({ success: true });
 };
 
