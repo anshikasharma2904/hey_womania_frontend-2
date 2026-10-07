@@ -23,6 +23,10 @@ router.get("/users", getAllUsers);
 router.get("/orders", getAllOrders);
 router.get("/settings", getSettings);
 router.put("/settings", updateSettings);
+router.get("/me", (req, res) => {
+  // @ts-ignore
+  res.json({ success: true, user: req.user });
+});
 
 // Categories
 router.get("/categories", getCategories);

@@ -80,9 +80,19 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-    // Bypass auth check and instantly log in
-    setUser({ role: 'superadmin', name: 'Admin Bypass', email: 'admin@heywomania.com' });
-    setLoadingAuth(false);
+    const verifySession = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/me`);
+        if (response.data.success) {
+          setUser(response.data.user);
+        }
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setLoadingAuth(false);
+      }
+    };
+    verifySession();
   }, []);
 
   const handleLogout = async () => {
