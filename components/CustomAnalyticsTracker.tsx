@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-function getSessionId() {
+export function getSessionId() {
   if (typeof window === "undefined") return "";
   let sessionId = localStorage.getItem("analytics_session_id");
   if (!sessionId) {
@@ -23,7 +23,8 @@ function TrackerInner() {
     if (!pathname) return;
     const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : "");
     
-    fetch("https://api.heywomaniyaa.com/api/analytics/event", {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
+    fetch(`${baseUrl}/api/analytics/event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

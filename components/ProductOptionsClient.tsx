@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart, FaShareAlt } from "react-icons/fa";
 import { useWishbag } from "@/contexts/WishbagContext";
 import { trackMetaEvent } from "@/lib/metaTracking";
+import { getSessionId } from "@/components/CustomAnalyticsTracker";
 
 interface Variant {
   sku?: string;
@@ -222,6 +223,17 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
       currency: "INR"
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
+    fetch(`${baseUrl}/api/analytics/event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: "add_to_cart",
+        url: window.location.pathname,
+        sessionId: getSessionId(),
+      }),
+    }).catch(err => console.error("Analytics Error:", err));
+
     const currentCartRaw = localStorage.getItem("hey_womania_cart");
     const currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];
     const itemDetails = getCartDetails();
@@ -248,6 +260,26 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
 
   const handleBuyNow = () => {
     if (typeof window === "undefined" || isOutOfStock) return;
+
+    const numericPrice = parseFloat(product.price.replace(/[^0-9.]/g, "") || "0");
+    trackMetaEvent("AddToCart", {
+      content_name: product.name,
+      content_ids: [product.id || ""],
+      content_type: "product",
+      value: numericPrice,
+      currency: "INR"
+    });
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
+    fetch(`${baseUrl}/api/analytics/event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: "add_to_cart",
+        url: window.location.pathname,
+        sessionId: getSessionId(),
+      }),
+    }).catch(err => console.error("Analytics Error:", err));
 
     const itemDetails = getCartDetails();
     localStorage.setItem("hey_womania_cart", JSON.stringify([itemDetails]));

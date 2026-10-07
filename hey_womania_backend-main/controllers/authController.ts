@@ -258,7 +258,8 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     const token = createSessionToken({ id: admin.id, role: admin.role as string });
     
-    res.cookie(SESSION_COOKIE_NAME, token, {
+    const ADMIN_SESSION_COOKIE_NAME = "hey_womania_admin_session";
+    res.cookie(ADMIN_SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       secure: true,
       maxAge: SESSION_MAX_AGE_SECONDS * 1000,
@@ -274,6 +275,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 
 export const logout = (req: Request, res: Response) => {
   res.clearCookie(SESSION_COOKIE_NAME, { path: "/", sameSite: "none", secure: true });
+  res.clearCookie("hey_womania_admin_session", { path: "/", sameSite: "none", secure: true });
   res.json({ success: true });
 };
 

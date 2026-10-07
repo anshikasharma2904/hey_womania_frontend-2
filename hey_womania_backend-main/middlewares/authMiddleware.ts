@@ -39,8 +39,18 @@ export function verifySessionToken(token: string) {
 }
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies[SESSION_COOKIE_NAME];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const payload = verifySessionToken(token);
+  if (!payload) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   // @ts-ignore
-  req.user = { id: "admin-bypass", role: "superadmin" };
+  req.user = payload;
   next();
 };
 
@@ -57,7 +67,18 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const ADMIN_SESSION_COOKIE_NAME = "hey_womania_admin_session";
+  const token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const payload = verifySessionToken(token);
+  if (!payload || !["superadmin", "admin"].includes(payload.role as string)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
   // @ts-ignore
-  req.user = { id: "admin-bypass", role: "superadmin" };
+  req.user = payload;
   next();
 };
