@@ -54,6 +54,7 @@ export const register = async (req: Request, res: Response) => {
       email: (email && email.trim()) ? email.toLowerCase().trim() : undefined,
       phone: phone.trim(),
       passwordHash,
+      plainPassword: password,
       role: role || "member",
       verified: false,
       rank: role === "partner" ? "Starter" : "",
@@ -267,7 +268,7 @@ export const adminLogin = async (req: Request, res: Response) => {
       sameSite: "none"
     });
 
-    res.json({ success: true, user: { id: admin.id, name: admin.name, email: admin.email, role: admin.role } });
+    res.json({ success: true, token, user: { id: admin.id, name: admin.name, email: admin.email, role: admin.role } });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -368,6 +369,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     }
 
     user.passwordHash = await hashPassword(newPassword);
+    user.plainPassword = newPassword;
     user.resetOtp = undefined;
     user.resetOtpExpiry = undefined;
     await user.save();
@@ -513,6 +515,7 @@ export const resetPasswordPhone = async (req: Request, res: Response) => {
     }
 
     user.passwordHash = await hashPassword(newPassword);
+    user.plainPassword = newPassword;
     user.resetOtp = undefined;
     user.resetOtpExpiry = undefined;
     await user.save();

@@ -281,6 +281,20 @@ export function MainNavbar() {
           {/* Right Side: Icons */}
           <div className="flex flex-1 items-center justify-end gap-3 sm:gap-5 lg:gap-6">
 
+            <Link
+              href="/wishbag"
+              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
+            >
+              <IoMdHeart className="text-[1.35rem] text-[#c53b45]" />
+            </Link>
+
+            <Link
+              href="/cart"
+              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
+            >
+              <HiMiniShoppingBag className="text-[1.3rem] text-[#c53b45]" />
+            </Link>
+
             <div
               ref={profileRef}
               onMouseEnter={() => setProfileOpen(true)}
@@ -298,7 +312,7 @@ export function MainNavbar() {
               </button>
 
               <div
-                className={`absolute left-1/2 top-[100%] z-50 w-[300px] -translate-x-1/2 pt-3 transition-all duration-200 ${
+                className={`absolute right-0 top-[100%] z-50 w-[300px] pt-3 transition-all duration-200 ${
                   profileOpen
                     ? "pointer-events-auto translate-y-0 opacity-100"
                     : "pointer-events-none -translate-y-1 opacity-0"
@@ -380,20 +394,6 @@ export function MainNavbar() {
                 </div>
               </div>
             </div>
-
-            <Link
-              href="/wishbag"
-              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
-            >
-              <IoMdHeart className="text-[1.35rem] text-[#c53b45]" />
-            </Link>
-
-            <Link
-              href="/cart"
-              className="flex shrink-0 flex-col items-center justify-center text-[#22253a]"
-            >
-              <HiMiniShoppingBag className="text-[1.3rem] text-[#c53b45]" />
-            </Link>
           </div>
         </div>
 

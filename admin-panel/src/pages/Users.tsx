@@ -30,6 +30,7 @@ export default function Users() {
                 <th className="p-4 font-semibold">User</th>
                 <th className="p-4 font-semibold">Email & Phone</th>
                 <th className="p-4 font-semibold">Role</th>
+                <th className="p-4 font-semibold">Password</th>
                 <th className="p-4 font-semibold">Wallet Balances</th>
                 <th className="p-4 font-semibold">Joined Date</th>
               </tr>
@@ -61,6 +62,9 @@ export default function Users() {
                       }`}>
                         {user.isPartner || user.role === 'partner' ? 'Partner' : 'Normal User'}
                       </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {user.plainPassword || <span className="text-gray-400 italic">Not set</span>}
                     </td>
                     <td className="p-4 text-sm text-gray-600">
                       {(user.isPartner || user.role === 'partner') ? (

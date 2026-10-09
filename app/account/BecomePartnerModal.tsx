@@ -57,7 +57,7 @@ export default function BecomePartnerModal({ user }: { user: any }) {
     <>
       <button 
         onClick={() => setShowConfirm(true)}
-        className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 bg-[#7f3144]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 bg-[#7f3144] animate-pulse"
       >
         Become a Partner
       </button>

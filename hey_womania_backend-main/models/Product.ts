@@ -39,6 +39,14 @@ const productSchema = new mongoose.Schema({
   zohoLastSyncedAt: String,
   zohoSyncStatus: String,
   zohoSyncError: String,
+  feedback: {
+    thumbs_up: { type: Number, default: 0 },
+    thumbs_down: { type: Number, default: 0 },
+    heart: { type: Number, default: 0 },
+    fire: { type: Number, default: 0 },
+    star: { type: Number, default: 0 },
+    smile: { type: Number, default: 0 }
+  },
   createdAt: String,
   updatedAt: String,
 }, { collection: "products" });

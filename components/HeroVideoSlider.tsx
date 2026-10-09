@@ -7,6 +7,8 @@ function getYoutubeId(url: string) {
   return match ? match[1] : null;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export function HeroVideoSlider() {
   const desktopVideoRef = useRef<HTMLVideoElement | null>(null);
   const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -21,7 +23,7 @@ export function HeroVideoSlider() {
 
   useEffect(() => {
     // Fetch dynamic settings
-    fetch("http://localhost:5000/api/settings")
+    fetch(`${API_URL}/api/settings`)
       .then(res => {
         if (!res.ok) return {} as any;
         return res.json();
@@ -34,7 +36,7 @@ export function HeroVideoSlider() {
           setDesktopIsImage(!!isImg);
           
           if (isImg) {
-            setDesktopVideoUrl(url.startsWith('http') ? url : `http://localhost:5000${url}`);
+            setDesktopVideoUrl(url.startsWith('http') ? url : `${API_URL}${url}`);
             setDesktopIsYoutube(false);
             setIsDesktopReady(true);
           } else {
@@ -43,7 +45,7 @@ export function HeroVideoSlider() {
               setDesktopVideoUrl(ytId);
               setDesktopIsYoutube(true);
             } else {
-              setDesktopVideoUrl(url.startsWith('http') ? url : `http://localhost:5000${url}`);
+              setDesktopVideoUrl(url.startsWith('http') ? url : `${API_URL}${url}`);
               setDesktopIsYoutube(false);
             }
           }
@@ -54,7 +56,7 @@ export function HeroVideoSlider() {
           const mUrl = data.heroVideoMobile;
           const isImg = mUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i);
           setMobileIsImage(!!isImg);
-          setMobileVideoUrl(mUrl.startsWith('http') ? mUrl : `http://localhost:5000${mUrl}`);
+          setMobileVideoUrl(mUrl.startsWith('http') ? mUrl : `${API_URL}${mUrl}`);
         }
       })
       .catch(err => console.error("Error fetching site settings:", err));

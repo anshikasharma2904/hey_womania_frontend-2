@@ -22,13 +22,15 @@ const categories: { title: string; items: string; image: string; href: string; i
   { title: "DRESS GALLERY", items: "All Dresses", image: "/categoryImage/dressgallery.jpeg", href: "/category/dress-gallery" }
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }: ShopByCategoryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Fetch dynamic category images from site settings
-    fetch("http://localhost:5000/api/settings")
+    fetch(`${API_URL}/api/settings`)
       .then(res => {
         if (!res.ok) return {} as any;
         return res.json();
@@ -77,7 +79,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                 <div className="relative h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 overflow-hidden rounded-full border border-[#ece6df] bg-[#f8f0e8] transition-transform duration-300 group-hover:scale-105">
                   {category.video || (activeImage && activeImage.match(/\.(mp4|webm)$/i)) ? (
                     <video
-                      src={category.video || (activeImage.startsWith('http') ? activeImage : `http://localhost:5000${activeImage}`)}
+                      src={category.video || (activeImage.startsWith('http') ? activeImage : `${API_URL}${activeImage}`)}
                       autoPlay
                       loop
                       muted
@@ -87,7 +89,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                   ) : (
                     activeImage && (
                       <ImageWithFallback
-                        src={activeImage.startsWith('http') || activeImage.startsWith('/') ? activeImage : `http://localhost:5000${activeImage}`}
+                        src={activeImage.startsWith('http') || activeImage.startsWith('/') ? activeImage : `${API_URL}${activeImage}`}
                         alt={category.title}
                         fill
                         className="object-contain scale-[1.0] transition-opacity duration-1000"

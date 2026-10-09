@@ -11,7 +11,7 @@ interface CopyInviteButtonProps {
 }
 
 export default function CopyInviteButton({ referralCode, partnerReferralCode, variant = "primary", type = "both" }: CopyInviteButtonProps) {
-  const [activeShare, setActiveShare] = useState<{ url: string, title: string } | null>(null);
+  const [activeShare, setActiveShare] = useState<{ url: string, title: string, text: string } | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const getInviteUrl = (linkType: "customer" | "partner") => {
@@ -23,20 +23,23 @@ export default function CopyInviteButton({ referralCode, partnerReferralCode, va
   const handleShareClick = (linkType: "customer" | "partner") => {
     const url = getInviteUrl(linkType);
     const title = linkType === "partner" ? "Partner Invite Link" : "Customer Invite Link";
+    const text = linkType === "partner" 
+      ? "Join Hey Womaniyaa as a partner using my referral link!"
+      : "Shop now with Hey Womaniyaa using my referral link!";
     
     if (navigator.share) {
       navigator.share({
         title: "Hey Womaniyaa Invite",
-        text: `Join Hey Womaniyaa using my referral link!`,
+        text: text,
         url: url,
       }).catch((err) => {
         // Fallback to custom modal if user cancels or it fails
         if (err.name !== 'AbortError') {
-          setActiveShare({ url, title });
+          setActiveShare({ url, title, text });
         }
       });
     } else {
-      setActiveShare({ url, title });
+      setActiveShare({ url, title, text });
     }
   };
 
@@ -123,7 +126,7 @@ export default function CopyInviteButton({ referralCode, partnerReferralCode, va
               </button>
 
               <a 
-                href={`https://api.whatsapp.com/send?text=Join Hey Womaniyaa using my referral link: ${encodeURIComponent(activeShare.url)}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(activeShare.text + ': ' + activeShare.url)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center gap-2"
@@ -151,7 +154,7 @@ export default function CopyInviteButton({ referralCode, partnerReferralCode, va
               </a>
 
               <a 
-                href={`https://twitter.com/intent/tweet?text=Join Hey Womaniyaa using my referral link!&url=${encodeURIComponent(activeShare.url)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(activeShare.text)}&url=${encodeURIComponent(activeShare.url)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center gap-2"

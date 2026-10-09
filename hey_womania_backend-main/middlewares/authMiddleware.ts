@@ -68,7 +68,12 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
 
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const ADMIN_SESSION_COOKIE_NAME = "hey_womania_admin_session";
-  const token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
+  let token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
+  
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
   if (!token) {
     return res.status(401).json({ error: "Unauthorized" });
   }

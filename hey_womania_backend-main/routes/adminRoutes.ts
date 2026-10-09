@@ -2,7 +2,7 @@ import express from "express";
 import { getDashboardStats, getCentralWalletStats, getAllUsers, getAllOrders } from "../controllers/adminController";
 import { getSettings, updateSettings } from "../controllers/settingController";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "../controllers/categoryController";
-import { getProducts, createProduct, updateProduct, deleteProduct } from "../controllers/productController";
+import { getProducts, createProduct, updateProduct, deleteProduct, getFeedbacks } from "../controllers/productController";
 import { createBlog, getAdminBlogs, updateBlog, deleteBlog } from "../controllers/blogController";
 import { getCustomers, toggleCustomerBlock } from "../controllers/customerController";
 import { getOrders, updateOrderStatus } from "../controllers/adminOrderController";
@@ -39,6 +39,9 @@ router.get("/products", getProducts);
 router.post("/products", createProduct);
 router.put("/products/:id", updateProduct);
 router.delete("/products/:id", deleteProduct);
+
+// Feedbacks
+router.get("/feedbacks", getFeedbacks);
 
 router.get("/blogs", getAdminBlogs);
 router.post("/blogs", createBlog);

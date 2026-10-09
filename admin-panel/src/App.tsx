@@ -11,12 +11,24 @@ import Login from './pages/Login';
 // Enable cookies for all axios requests
 axios.defaults.withCredentials = true;
 
+// Add interceptor to send token from localStorage if third-party cookies are blocked
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("admin_token");
+  if (token) {
+    if (config.headers) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+  return config;
+});
+
 function Sidebar({ onLogout }: { onLogout: () => void }) {
   const location = useLocation();
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Orders', path: '/orders', icon: <ShoppingCart size={20} /> },
     { name: 'Products', path: '/products', icon: <Package size={20} /> },
+    { name: 'Feedbacks', path: '/feedbacks', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> },
     { name: 'Blogs', path: '/blogs', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
     { name: 'Users & Partners', path: '/users', icon: <UsersIcon size={20} /> },
     { name: 'Site Config', path: '/site-config', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> },
@@ -74,6 +86,7 @@ import Analytics from './pages/Analytics';
 
 import Blogs from './pages/Blogs';
 import Payouts from './pages/Payouts';
+import Feedbacks from './pages/Feedbacks';
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -82,11 +95,13 @@ function App() {
   useEffect(() => {
     const verifySession = async () => {
       try {
+        console.log("Verifying session, token in LS:", localStorage.getItem("admin_token"));
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/me`);
         if (response.data.success) {
           setUser(response.data.user);
         }
       } catch (err) {
+        console.error("Session verification failed:", err);
         setUser(null);
       } finally {
         setLoadingAuth(false);
@@ -98,9 +113,11 @@ function App() {
   const handleLogout = async () => {
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
-      setUser(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      localStorage.removeItem("admin_token");
+      setUser(null);
     }
   };
 
@@ -125,6 +142,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/feedbacks" element={<Feedbacks />} />
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/users" element={<Users />} />
           <Route path="/site-config" element={<SiteConfig />} />

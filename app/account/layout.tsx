@@ -72,14 +72,6 @@ export default async function AccountLayout({ children }: { children: ReactNode 
             </p>
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
-            {isPartner && (
-              <Link
-                href="/earnings"
-                className="flex items-center justify-center rounded-xl bg-[#5f5d3e] px-6 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-md transition-all hover:bg-[#48473d] hover:-translate-y-0.5"
-              >
-                Enter Earning Panel
-              </Link>
-            )}
             <div className="hidden h-16 min-w-16 px-4 flex-col items-center justify-center rounded-full bg-[#fcf9f4] text-[#5f5d3e] shadow-inner sm:flex md:h-20 md:min-w-20">
               <span className="text-[0.65rem] font-bold uppercase tracking-wider text-[#9b948d]">Wallet</span>
               <span className="font-[family:var(--font-display)] text-lg leading-none md:text-xl text-[#3a2630]">

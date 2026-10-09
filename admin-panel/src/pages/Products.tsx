@@ -40,6 +40,7 @@ export default function Products() {
                 <th className="p-4 font-semibold">Category</th>
                 <th className="p-4 font-semibold">Price</th>
                 <th className="p-4 font-semibold">Stock</th>
+                <th className="p-4 font-semibold">Feedback</th>
                 <th className="p-4 font-semibold">Status</th>
               </tr>
             </thead>
@@ -81,6 +82,20 @@ export default function Products() {
                     </td>
                     <td className="p-4 text-sm text-gray-600">
                       {product.totalStock ?? product.stock ?? 'N/A'}
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {product.feedback ? (
+                        <div className="flex gap-2 text-xs">
+                          {product.feedback.thumbs_up > 0 && <span>👍 {product.feedback.thumbs_up}</span>}
+                          {product.feedback.thumbs_down > 0 && <span>👎 {product.feedback.thumbs_down}</span>}
+                          {product.feedback.heart > 0 && <span>❤️ {product.feedback.heart}</span>}
+                          {product.feedback.fire > 0 && <span>🔥 {product.feedback.fire}</span>}
+                          {product.feedback.star > 0 && <span>⭐ {product.feedback.star}</span>}
+                          {product.feedback.smile > 0 && <span>😊 {product.feedback.smile}</span>}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">None</span>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${

@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import { Product } from "../models/Product";
+import { ProductFeedback } from "../models/ProductFeedback";
+import { User } from "../models/User";
 import { Setting } from "../models/Setting";
 import { Order } from "../models/Order";
 import { invalidateBackendCache } from "../middlewares/cacheMiddleware";
@@ -347,6 +349,98 @@ export const checkStock = async (req: Request, res: Response) => {
     res.json({ success: true, stockMap });
   } catch (error) {
     console.error("Error checking stock:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const submitFeedback = async (req: Request, res: Response) => {
+  try {
+    const { sku, rating, productTitle, productId } = req.body;
+    if (!sku || !rating) {
+      return res.status(400).json({ error: "SKU and rating are required" });
+    }
+
+    const validRatings = ["thumbs_up", "thumbs_down", "heart", "fire", "star", "smile"];
+    if (!validRatings.includes(rating)) {
+      return res.status(400).json({ error: "Invalid rating" });
+    }
+
+    const product = await Product.findOne({ "variants.sku": sku });
+    const field = `feedback.${rating}`;
+
+    let actualProductId = productId || sku;
+    let actualProductTitle = productTitle || "";
+
+    if (!product) {
+      // Try finding by id if sku fails (in case sku passed is actually product id)
+      const productById = await Product.findOne({ id: sku });
+      if (!productById) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      actualProductId = productById.id;
+      actualProductTitle = productTitle || productById.title;
+      await Product.updateOne({ id: sku }, { $inc: { [field]: 1 } });
+    } else {
+      actualProductId = product.id;
+      actualProductTitle = productTitle || product.title;
+      await Product.updateOne({ "variants.sku": sku }, { $inc: { [field]: 1 } });
+    }
+
+    // @ts-ignore
+    const userId = req.user?.id;
+    let userName = "";
+    let userEmail = "";
+
+    if (userId) {
+      const user = await User.findOne({ id: userId });
+      if (user) {
+        userName = user.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : (user.name || "");
+        userEmail = user.email || "";
+      }
+    }
+
+    await ProductFeedback.create({
+      productSku: sku,
+      productId: actualProductId,
+      productTitle: actualProductTitle,
+      userId: userId || null,
+      userName: userName,
+      userEmail: userEmail,
+      rating: rating
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getFeedbacks = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const feedbacks = await ProductFeedback.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ProductFeedback.countDocuments();
+
+    res.json({
+      success: true,
+      data: feedbacks,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching feedbacks:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

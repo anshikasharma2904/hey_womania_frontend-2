@@ -22,6 +22,9 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
       );
 
       if (response.data.success) {
+        if (response.data.token) {
+          localStorage.setItem("admin_token", response.data.token);
+        }
         onLogin(response.data.user);
         navigate('/');
       }
