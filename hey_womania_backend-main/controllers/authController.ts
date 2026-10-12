@@ -138,13 +138,19 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, email, password } = req.body;
+    const identifier = (phone || email || "").trim();
 
-    if (typeof phone !== "string" || typeof password !== "string" || !phone.trim() || !password) {
-      return res.status(400).json({ error: "Phone and password are required." });
+    if (!identifier || typeof password !== "string" || !password) {
+      return res.status(400).json({ error: "Email/Phone and password are required." });
     }
 
-    const user = await User.findOne({ phone: phone.trim() });
+    const user = await User.findOne({
+      $or: [
+        { phone: identifier },
+        { email: identifier.toLowerCase() }
+      ]
+    });
     
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: "Invalid credentials" });
