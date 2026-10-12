@@ -117,18 +117,59 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const token = localStorage.getItem("admin_token");
+    const loginTime = localStorage.getItem("admin_login_time");
+    const storedUserStr = localStorage.getItem("admin_user");
+
+    // 1. First time visitor or not logged in: immediately show Login form
+    if (!token) {
+      setUser(null);
+      setLoadingAuth(false);
+      return;
+    }
+
+    // 2. Check 30-day expiration
+    if (loginTime && Date.now() - Number(loginTime) > THIRTY_DAYS_MS) {
+      console.warn("Admin session expired after 30 days.");
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user");
+      localStorage.removeItem("admin_login_time");
+      setUser(null);
+      setLoadingAuth(false);
+      return;
+    }
+
+    // 3. Hydrate user from localStorage for instantaneous load if available
+    if (storedUserStr) {
+      try {
+        const parsedUser = JSON.parse(storedUserStr);
+        if (parsedUser && parsedUser.role) {
+          setUser(parsedUser);
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    // 4. Verify with server in background
     const verifySession = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/me`);
         if (response.data && response.data.success && response.data.user) {
           setUser(response.data.user);
+          localStorage.setItem("admin_user", JSON.stringify(response.data.user));
         } else {
           localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_user");
+          localStorage.removeItem("admin_login_time");
           setUser(null);
         }
       } catch (err) {
         console.error("Session verification failed:", err);
         localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_user");
+        localStorage.removeItem("admin_login_time");
         setUser(null);
       } finally {
         setLoadingAuth(false);
@@ -144,6 +185,8 @@ function App() {
       console.error(err);
     } finally {
       localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user");
+      localStorage.removeItem("admin_login_time");
       setUser(null);
     }
   };

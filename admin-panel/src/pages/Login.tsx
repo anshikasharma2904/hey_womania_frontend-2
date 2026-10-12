@@ -25,6 +25,10 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
         if (response.data.token) {
           localStorage.setItem("admin_token", response.data.token);
         }
+        if (response.data.user) {
+          localStorage.setItem("admin_user", JSON.stringify(response.data.user));
+        }
+        localStorage.setItem("admin_login_time", Date.now().toString());
         onLogin(response.data.user);
         navigate('/');
       }
