@@ -68,18 +68,25 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
 
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const ADMIN_SESSION_COOKIE_NAME = "hey_womania_admin_session";
-  let token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
   
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+  // 1. Check Bearer token from Authorization header first (used by admin-panel)
+  let token: string | undefined;
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
     token = req.headers.authorization.split(" ")[1];
   }
+  let payload = token ? verifySessionToken(token) : null;
 
-  if (!token) {
+  // 2. If no valid Bearer token, check the admin session cookie
+  if (!payload && req.cookies && req.cookies[ADMIN_SESSION_COOKIE_NAME]) {
+    token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
+    payload = token ? verifySessionToken(token) : null;
+  }
+
+  if (!payload) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const payload = verifySessionToken(token);
-  if (!payload || !["superadmin", "admin"].includes(payload.role as string)) {
+  if (!["superadmin", "admin"].includes(payload.role as string)) {
     return res.status(403).json({ error: "Forbidden" });
   }
 

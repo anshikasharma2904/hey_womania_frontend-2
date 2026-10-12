@@ -12,8 +12,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDashboardData = () => {
+    setLoading(true);
+    setError(null);
     Promise.all([
       axios.get(`${import.meta.env.VITE_API_URL}/api/admin/dashboard/stats`),
       axios.get(`${import.meta.env.VITE_API_URL}/api/admin/orders`)
@@ -26,9 +29,14 @@ export default function Dashboard() {
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.error("Dashboard fetch error:", err);
+        setError("Unable to load dashboard data. Please try again or re-login.");
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   const handleCancelOrder = async (orderId: string) => {
@@ -47,7 +55,25 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="flex h-full items-center justify-center">Loading dashboard...</div>;
+    return <div className="flex h-full items-center justify-center p-12 text-gray-500 font-medium">Loading dashboard...</div>;
+  }
+
+  if (error && !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-red-100 shadow-sm text-center">
+        <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
+          <Clock size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Unable to load dashboard</h3>
+        <p className="text-sm text-gray-500 max-w-md mb-6">{error}</p>
+        <button
+          onClick={fetchDashboardData}
+          className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   // Ensure data exists or use fallbacks

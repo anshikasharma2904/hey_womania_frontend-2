@@ -297,30 +297,40 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     // Configure Nodemailer
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const transporter = require("nodemailer").createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+      try {
+        const transporter = require("nodemailer").createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
 
-      const mailOptions = {
-        from: `"Hey Womania" <${process.env.EMAIL_USER}>`,
-        to: user.email,
-        subject: "Your Password Reset OTP",
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-            <h2 style="color: #9c4049;">Password Reset Request</h2>
-            <p>You requested to reset your password. Here is your 6-digit OTP:</p>
-            <h1 style="font-size: 32px; letter-spacing: 5px; color: #5f5d3e;">${otp}</h1>
-            <p>This code will expire in 10 minutes.</p>
-            <p>If you didn't request this, you can safely ignore this email.</p>
-          </div>
-        `,
-      };
+        const mailOptions = {
+          from: `"Hey Womania" <${process.env.EMAIL_USER}>`,
+          to: user.email,
+          subject: "Your Password Reset OTP",
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #9c4049;">Password Reset Request</h2>
+              <p>You requested to reset your password. Here is your 6-digit OTP:</p>
+              <h1 style="font-size: 32px; letter-spacing: 5px; color: #5f5d3e;">${otp}</h1>
+              <p>This code will expire in 10 minutes.</p>
+              <p>If you didn't request this, you can safely ignore this email.</p>
+            </div>
+          `,
+        };
 
-      await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
+      } catch (mailError: any) {
+        console.error("Nodemailer sendMail failed:", mailError?.message || mailError);
+        const maskedPhone = user.phone ? `+91 ${user.phone.slice(0, 2)}******${user.phone.slice(-2)}` : null;
+        return res.status(500).json({
+          error: maskedPhone
+            ? `Email sending failed (Gmail App Password expired). Please reset using your registered mobile number (${maskedPhone}) instead.`
+            : "Email sending failed. Please try resetting using your phone number or contact support."
+        });
+      }
     } else {
       console.log(`\n\n========== OTP EMAIL SENT ==========`);
       console.log(`To: ${user.email}`);
@@ -331,8 +341,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     }
 
     res.json({ success: true, message: "If the email exists, an OTP was sent." });
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error: any) {
+    console.error("forgotPassword error:", error?.message || error);
+    res.status(500).json({ error: error?.message || "Internal server error" });
   }
 };
 

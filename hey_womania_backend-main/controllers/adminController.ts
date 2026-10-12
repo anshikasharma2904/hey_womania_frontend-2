@@ -4,8 +4,8 @@ import { Order } from "../models/Order";
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    // Basic User counts
-    const totalCustomers = await User.countDocuments({ role: "member" });
+    // Basic User counts (count members and partners who are customers)
+    const totalCustomers = await User.countDocuments({ role: { $in: ["member", "partner"] } });
     
     // Order stats
     const orders = await Order.find({});
@@ -17,7 +17,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // Total sales calculation (removing currency symbols and converting to number)
     const totalSales = orders.reduce((sum, order) => {
       if (order.total) {
-        const num = parseFloat(order.total.replace(/[^0-9.]/g, ""));
+        const num = parseFloat(String(order.total).replace(/[^0-9.]/g, ""));
         return sum + (isNaN(num) ? 0 : num);
       }
       return sum;
@@ -48,7 +48,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       const monthOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(month));
       const monthSales = monthOrders.reduce((sum, order) => {
         if (order.total) {
-          const num = parseFloat(order.total.replace(/[^0-9.]/g, ""));
+          const num = parseFloat(String(order.total).replace(/[^0-9.]/g, ""));
           return sum + (isNaN(num) ? 0 : num);
         }
         return sum;
@@ -107,7 +107,7 @@ export const getCentralWalletStats = async (req: Request, res: Response) => {
     const orders = await Order.find({ status: { $ne: "Cancelled" } });
     const totalPlatformSales = orders.reduce((sum, order) => {
       if (order.total) {
-        const num = parseFloat(order.total.replace(/[^0-9.]/g, ""));
+        const num = parseFloat(String(order.total).replace(/[^0-9.]/g, ""));
         return sum + (isNaN(num) ? 0 : num);
       }
       return sum;

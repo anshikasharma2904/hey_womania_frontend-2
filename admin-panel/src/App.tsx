@@ -11,16 +11,32 @@ import Login from './pages/Login';
 // Enable cookies for all axios requests
 axios.defaults.withCredentials = true;
 
-// Add interceptor to send token from localStorage if third-party cookies are blocked
+// Add interceptor to send token from localStorage
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("admin_token");
   if (token) {
-    if (config.headers) {
+    if (config.headers && typeof config.headers.set === 'function') {
       config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
   }
   return config;
 });
+
+// Add response interceptor to automatically catch 401/403 and trigger re-login
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      console.warn("Session expired or unauthorized. Clearing credentials.");
+      localStorage.removeItem("admin_token");
+      window.dispatchEvent(new CustomEvent("admin:unauthorized"));
+    }
+    return Promise.reject(error);
+  }
+);
 
 function Sidebar({ onLogout }: { onLogout: () => void }) {
   const location = useLocation();
@@ -93,15 +109,26 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+    };
+    window.addEventListener("admin:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("admin:unauthorized", handleUnauthorized);
+  }, []);
+
+  useEffect(() => {
     const verifySession = async () => {
       try {
-        console.log("Verifying session, token in LS:", localStorage.getItem("admin_token"));
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/me`);
-        if (response.data.success) {
+        if (response.data && response.data.success && response.data.user) {
           setUser(response.data.user);
+        } else {
+          localStorage.removeItem("admin_token");
+          setUser(null);
         }
       } catch (err) {
         console.error("Session verification failed:", err);
+        localStorage.removeItem("admin_token");
         setUser(null);
       } finally {
         setLoadingAuth(false);
