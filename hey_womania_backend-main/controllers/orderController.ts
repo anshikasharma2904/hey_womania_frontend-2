@@ -159,6 +159,13 @@ export const createOrder = async (req: Request, res: Response) => {
       
       let subtotal = 0;
       for (const item of items) {
+        // Free surprise promotional gift bypass
+        if (item.isFreeGift || item.sku === "SURPRISE-GIFT" || item.productId === "surprise-gift") {
+          item.qty = 1;
+          item.price = 0;
+          continue;
+        }
+
         const product = await Product.findOne({ id: item.productId }).session(session);
         if (!product) {
           throw new Error(`Product not found: ${item.productId}`);
@@ -247,6 +254,11 @@ export const createOrder = async (req: Request, res: Response) => {
 
       // 1. Atomic Stock Reservation Loop with ACID Transaction
       for (const item of items) {
+        // Free surprise promotional gift bypass
+        if (item.isFreeGift || item.sku === "SURPRISE-GIFT" || item.productId === "surprise-gift") {
+          continue;
+        }
+
         const updatedProduct = await Product.findOneAndUpdate(
           { 
             id: item.productId, 

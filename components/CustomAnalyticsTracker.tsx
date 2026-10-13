@@ -27,6 +27,7 @@ function TrackerInner() {
     fetch(`${baseUrl}/api/analytics/event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         eventType: "page_view",
         url: url,

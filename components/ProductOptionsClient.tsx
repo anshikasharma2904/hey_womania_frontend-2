@@ -5,6 +5,7 @@ import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart, FaShareAlt } from 
 import { useWishbag } from "@/contexts/WishbagContext";
 import { trackMetaEvent } from "@/lib/metaTracking";
 import { getSessionId } from "@/components/CustomAnalyticsTracker";
+import { syncCartWithSurpriseGift } from "@/lib/surpriseGift";
 
 interface Variant {
   sku?: string;
@@ -17,6 +18,7 @@ interface Variant {
 interface ProductOptionsClientProps {
   product: {
     id?: string;
+    slug?: string;
     name: string;
     price: string;
     image?: string;
@@ -223,20 +225,33 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
       currency: "INR"
     });
 
+    const itemDetails = getCartDetails();
+
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
     fetch(`${baseUrl}/api/analytics/event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         eventType: "add_to_cart",
         url: window.location.pathname,
         sessionId: getSessionId(),
+        metadata: {
+          productName: product.name,
+          productId: product.id || itemDetails.productId,
+          productSlug: product.slug,
+          price: numericPrice,
+          sku: itemDetails.sku,
+          quantity: itemDetails.quantity || 1,
+          size: itemDetails.size,
+          color: itemDetails.color,
+          image: itemDetails.image
+        }
       }),
     }).catch(err => console.error("Analytics Error:", err));
 
     const currentCartRaw = localStorage.getItem("hey_womania_cart");
     const currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];
-    const itemDetails = getCartDetails();
 
     const existingIndex = currentCart.findIndex(
       (item: any) => item.sku === itemDetails.sku
@@ -253,9 +268,17 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
       currentCart.push({ ...itemDetails, maxStock: availableStock });
     }
 
-    localStorage.setItem("hey_womania_cart", JSON.stringify(currentCart));
+    // Automatically sync and add surprise gift
+    const { cart: syncedCart } = syncCartWithSurpriseGift(currentCart);
+    localStorage.setItem("hey_womania_cart", JSON.stringify(syncedCart));
     window.dispatchEvent(new Event("cart_updated"));
-    window.location.href = "/cart";
+
+    // Automatically trigger the celebratory Surprise Gift modal
+    window.dispatchEvent(
+      new CustomEvent("surprise_gift_modal_open", {
+        detail: { productName: product.name }
+      })
+    );
   };
 
   const handleBuyNow = () => {
@@ -270,19 +293,34 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
       currency: "INR"
     });
 
+    const itemDetails = getCartDetails();
+
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
     fetch(`${baseUrl}/api/analytics/event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         eventType: "add_to_cart",
         url: window.location.pathname,
         sessionId: getSessionId(),
+        metadata: {
+          productName: product.name,
+          productId: product.id || itemDetails.productId,
+          productSlug: product.slug,
+          price: numericPrice,
+          sku: itemDetails.sku,
+          quantity: itemDetails.quantity || 1,
+          size: itemDetails.size,
+          color: itemDetails.color,
+          image: itemDetails.image
+        }
       }),
     }).catch(err => console.error("Analytics Error:", err));
 
-    const itemDetails = getCartDetails();
-    localStorage.setItem("hey_womania_cart", JSON.stringify([itemDetails]));
+    // Automatically include the surprise gift in Buy Now
+    const { cart: syncedBuyNowCart } = syncCartWithSurpriseGift([itemDetails]);
+    localStorage.setItem("hey_womania_cart", JSON.stringify(syncedBuyNowCart));
 
     window.dispatchEvent(new Event("cart_updated"));
     window.location.href = "/checkout";

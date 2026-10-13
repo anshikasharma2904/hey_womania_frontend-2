@@ -11,6 +11,7 @@ import { trackMetaEvent } from "@/lib/metaTracking";
 
 import { FaTrash } from "react-icons/fa";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
+import { SURPRISE_GIFT_SKU, syncCartWithSurpriseGift } from "@/lib/surpriseGift";
 
 type RazorpayPaymentResponse = {
   razorpay_order_id: string;
@@ -87,17 +88,22 @@ export default function CheckoutPage() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("hey_womania_cart");
       if (stored) {
-        const parsedItems = JSON.parse(stored);
-        setCartItems(parsedItems);
-        
-        if (parsedItems.length > 0) {
-          const totalVal = parsedItems.reduce((acc: number, item: any) => acc + (item.salePrice * item.quantity), 0);
-          trackMetaEvent("InitiateCheckout", {
-            value: totalVal,
-            currency: "INR",
-            content_ids: parsedItems.map((i: any) => i.productId),
-            num_items: parsedItems.length
-          });
+        try {
+          const parsedItems = JSON.parse(stored);
+          const { cart: syncedItems } = syncCartWithSurpriseGift(parsedItems);
+          setCartItems(syncedItems);
+          
+          if (syncedItems.length > 0) {
+            const totalVal = syncedItems.reduce((acc: number, item: any) => acc + ((item.salePrice || 0) * item.quantity), 0);
+            trackMetaEvent("InitiateCheckout", {
+              value: totalVal,
+              currency: "INR",
+              content_ids: syncedItems.map((i: any) => i.productId),
+              num_items: syncedItems.length
+            });
+          }
+        } catch (e) {
+          console.error("Failed to parse checkout cart", e);
         }
       }
       setLoading(false);
@@ -261,10 +267,11 @@ export default function CheckoutPage() {
         productId: item.productId,
         sku: item.sku,
         qty: item.quantity,
-        price: `₹${item.salePrice.toLocaleString("en-IN")}`,
+        price: `₹${(item.salePrice || 0).toLocaleString("en-IN")}`,
         name: item.title,
         img: item.image,
-        images: item.images || []
+        images: item.images || [],
+        isFreeGift: Boolean(item.isFreeGift || item.sku === SURPRISE_GIFT_SKU)
       }))
     };
   };
@@ -858,31 +865,50 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-bold text-[#111111] border-b border-[#ece6df] pb-3 mb-4">
                 Items
               </h2>
-              <div className="space-y-4 max-h-[240px] overflow-y-auto pr-1">
-                {cartItems.map((item) => (
-                  <div key={item.sku} className="flex gap-3">
-                    <div className="h-14 w-14 shrink-0 rounded-lg bg-[#f4efe8] overflow-hidden p-1 flex items-center justify-center relative">
-                      <ImageWithFallback
-                        src={item.image}
-                        fallbackSrcs={item.images || []}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-semibold text-[#1c1c19] truncate">{item.title}</h4>
-                      <p className="text-[11px] text-[#8b837b]">
-                        Qty: {item.quantity}
-                        {item.size ? ` | Size: ${item.size}` : ""}
-                        {item.color ? ` | Color: ${item.color}` : ""}
-                      </p>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-xs font-bold">₹{item.salePrice}</span>
+              <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+                {cartItems.map((item) => {
+                  const isGift = Boolean(item.isFreeGift || item.sku === SURPRISE_GIFT_SKU);
+                  return (
+                    <div 
+                      key={item.sku} 
+                      className={`flex gap-3 p-2 rounded-xl transition-all ${
+                        isGift 
+                          ? "bg-gradient-to-r from-[#fffcf8] via-[#fff8f0] to-[#fffcf8] border border-[#f0dfce] shadow-xs" 
+                          : ""
+                      }`}
+                    >
+                      <div className="h-14 w-14 shrink-0 rounded-lg bg-[#f4efe8] overflow-hidden p-1 flex items-center justify-center relative border border-[#ece6df]">
+                        <ImageWithFallback
+                          src={item.image}
+                          fallbackSrcs={item.images || []}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-[#1c1c19] truncate">{item.title}</h4>
+                        </div>
+                        <p className="text-[11px] text-[#8b837b]">
+                          {isGift 
+                            ? "Complimentary Reward • Qty: 1" 
+                            : `Qty: ${item.quantity}${item.size ? ` | Size: ${item.size}` : ""}${item.color ? ` | Color: ${item.color}` : ""}`}
+                        </p>
+                        <div className="flex justify-between items-center mt-1">
+                          {isGift ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-gray-400 line-through">₹499</span>
+                              <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">FREE</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold">₹{item.salePrice}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-6 border-t border-[#ece6df] pt-4 space-y-3 text-sm text-[#6d655d]">
@@ -890,6 +916,14 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{subtotal}</span>
                 </div>
+                {cartItems.some(i => i.isFreeGift || i.sku === SURPRISE_GIFT_SKU) && (
+                  <div className="flex justify-between text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium">
+                    <span className="flex items-center gap-1">
+                      <span>🎁</span> Free Surprise Gift
+                    </span>
+                    <span className="font-bold">FREE (₹0)</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Delivery</span>
                   <span>

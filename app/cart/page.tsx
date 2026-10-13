@@ -5,20 +5,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { StoreFooter } from "@/components/StoreFooter";
 import ImageWithFallback from "@/components/ImageWithFallback";
-import { FaTrash, FaMinus, FaPlus, FaWhatsapp, FaThumbsUp, FaThumbsDown, FaHeart, FaStar, FaSmile, FaFire } from "react-icons/fa";
-
-interface CartItem {
-  productId: string;
-  title: string;
-  image: string;
-  images?: string[];
-  sku: string;
-  size: string;
-  color: string;
-  salePrice: number;
-  quantity: number;
-  maxStock?: number;
-}
+import { FaTrash, FaMinus, FaPlus, FaWhatsapp, FaThumbsUp, FaThumbsDown, FaHeart, FaStar, FaSmile, FaFire, FaGift } from "react-icons/fa";
+import { SURPRISE_GIFT_SKU, SURPRISE_GIFT_ITEM, syncCartWithSurpriseGift, CartItem } from "@/lib/surpriseGift";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -35,13 +23,25 @@ export default function CartPage() {
       const storedCart = localStorage.getItem("hey_womania_cart");
       let items: CartItem[] = [];
       if (storedCart) {
-        items = JSON.parse(storedCart);
-        setCartItems(items);
+        try {
+          const parsed = JSON.parse(storedCart);
+          // Automatically sync surprise gift
+          const { cart: synced } = syncCartWithSurpriseGift(parsed);
+          items = synced;
+          localStorage.setItem("hey_womania_cart", JSON.stringify(synced));
+        } catch (e) {
+          console.error("Failed to parse cart", e);
+        }
       }
+      setCartItems(items);
       setLoading(false);
 
-      if (items.length > 0) {
-        const skus = items.map(item => item.sku);
+      const checkableItems = items.filter(
+        item => item.sku !== SURPRISE_GIFT_SKU && !item.isFreeGift
+      );
+
+      if (checkableItems.length > 0) {
+        const skus = checkableItems.map(item => item.sku);
         fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/products/check-stock`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,8 +75,9 @@ export default function CartPage() {
 
   // Update localStorage when cartItems changes
   const updateCartItems = (newItems: CartItem[]) => {
-    setCartItems(newItems);
-    localStorage.setItem("hey_womania_cart", JSON.stringify(newItems));
+    const { cart: synced } = syncCartWithSurpriseGift(newItems);
+    setCartItems(synced);
+    localStorage.setItem("hey_womania_cart", JSON.stringify(synced));
     window.dispatchEvent(new Event("cart_updated"));
   };
 
@@ -210,134 +211,261 @@ export default function CartPage() {
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             {/* Items List */}
             <section className="space-y-4">
-              {cartItems.map((item) => (
-                <article
-                  key={item.sku}
-                  className="rounded-[1.2rem] border border-[#ece6df] bg-white/92 p-3 shadow-[0_10px_28px_rgba(95,93,62,0.05)] md:rounded-[1.6rem] md:p-4 flex flex-col gap-3"
-                >
-                  <div className="grid gap-3 grid-cols-[88px_1fr] md:grid-cols-[88px_1fr_auto_auto] md:items-center md:gap-6">
-                    <div className="overflow-hidden rounded-[0.95rem] bg-[#f4efe8] md:rounded-[1rem] relative w-20 h-20">
-                      <ImageWithFallback
-                        src={item.image}
-                        fallbackSrcs={item.images || []}
-                        alt={item.title}
+              {/* Surprise Gift Celebration Banner */}
+              {cartItems.some(i => i.sku === SURPRISE_GIFT_SKU || i.isFreeGift) && (
+                <div className="relative overflow-hidden rounded-[1.4rem] border-2 border-[#d4af37]/40 bg-gradient-to-r from-[#fffcf8] via-[#fdf5eb] to-[#fffcf8] p-4 sm:p-5 shadow-[0_8px_24px_rgba(212,175,55,0.12)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="relative h-13 w-13 sm:h-14 sm:w-14 rounded-2xl overflow-hidden border border-[#f0dfce] bg-white shrink-0 shadow-sm p-0.5">
+                      <Image
+                        src="/surprise-gift-box.jpg"
+                        alt="Surprise Gift Box"
                         fill
                         className="object-cover"
                       />
                     </div>
-
                     <div>
-                      <h2 className="text-sm font-semibold leading-5 text-[#111111] md:text-base">
-                        {item.title}
-                      </h2>
-                      {Boolean(item.size || item.color) && (
-                        <p className="mt-1 text-xs text-[#6d655d]">
-                          {[
-                            item.size ? `Size: ${item.size}` : null,
-                            item.color ? `Color: ${item.color}` : null
-                          ].filter(Boolean).join(" | ")}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center gap-3">
-                        <span className="text-sm font-bold text-[#1c1c19]">
-                          ₹{Math.round(item.salePrice)}
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-[#9c4049] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xs">
+                          🎁 Surprise Gift Added!
                         </span>
-                        {!loadingStock && stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0 && (
-                          <span className="text-[10px] uppercase font-bold text-[#ef6f63] tracking-widest px-2 py-0.5 bg-[#ef6f63]/10 rounded-full">
-                            Out of Stock
+                        <span className="text-xs font-bold text-[#b45309]">Worth ₹499</span>
+                      </div>
+                      <p className="mt-1 text-xs sm:text-sm font-bold text-[#111]">
+                        Complimentary Mystery Surprise Gift included with your order!
+                      </p>
+                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 text-emerald-800 border border-emerald-200 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider shrink-0 self-start sm:self-auto">
+                    <span>100% Free ✓</span>
+                  </div>
+                </div>
+              )}
+
+              {cartItems.map((item) => {
+                const isGift = item.sku === SURPRISE_GIFT_SKU || item.isFreeGift;
+
+                if (isGift) {
+                  return (
+                    <article
+                      key={item.sku}
+                      className="relative overflow-hidden rounded-[1.2rem] border-2 border-[#d4af37]/50 bg-gradient-to-r from-[#fffcf8] via-[#fff9f2] to-[#fffcf8] p-3.5 shadow-[0_10px_28px_rgba(212,175,55,0.1)] md:rounded-[1.6rem] md:p-4 flex flex-col gap-3"
+                    >
+                      <div className="flex items-center justify-between pb-1.5 border-b border-[#f3e3ce]/70">
+                        <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#b45309]">
+                          <span>🎁</span>
+                          <span>Special Complimentary Reward</span>
+                        </div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Unlocked
+                        </span>
+                      </div>
+
+                      <div className="grid gap-3 grid-cols-[88px_1fr] md:grid-cols-[88px_1fr_auto_auto] md:items-center md:gap-6 pt-1">
+                        <div className="overflow-hidden rounded-[0.95rem] bg-white border border-[#f0dfce] md:rounded-[1rem] relative w-20 h-20 shrink-0 shadow-sm">
+                          <Image
+                            src="/surprise-gift-box.jpg"
+                            alt="Complimentary Mystery Surprise Gift"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+
+                        <div>
+                          <h2 className="text-sm font-bold leading-5 text-[#111111] md:text-base">
+                            {item.title}
+                          </h2>
+                          <p className="mt-1 text-xs text-[#6d655d]">
+                            Handpicked fashion/beauty surprise treat selected by Hey Womaniyaa stylists.
+                          </p>
+                          <div className="mt-2 flex items-center gap-2.5">
+                            <span className="text-xs text-gray-400 line-through">
+                              ₹{item.originalPrice || 499}
+                            </span>
+                            <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                              FREE ₹0
+                            </span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              Gift With Order
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Quantity Badge */}
+                        <div className="flex items-center gap-1.5 mt-2 md:mt-0">
+                          <span className="px-3 py-1 rounded-full bg-white border border-[#e8ded3] text-xs font-bold text-[#6d655d] shadow-sm">
+                            Qty: 1 (Complimentary)
                           </span>
+                        </div>
+
+                        {/* Status */}
+                        <div className="text-xs font-bold text-emerald-600 md:self-center">
+                          Included ✓
+                        </div>
+                      </div>
+                    </article>
+                  );
+                }
+
+                return (
+                  <article
+                    key={item.sku}
+                    className="rounded-[1.2rem] border border-[#ece6df] bg-white/92 p-3 shadow-[0_10px_28px_rgba(95,93,62,0.05)] md:rounded-[1.6rem] md:p-4 flex flex-col gap-3"
+                  >
+                    <div className="grid gap-3 grid-cols-[88px_1fr] md:grid-cols-[88px_1fr_auto_auto] md:items-center md:gap-6">
+                      <div className="overflow-hidden rounded-[0.95rem] bg-[#f4efe8] md:rounded-[1rem] relative w-20 h-20">
+                        <ImageWithFallback
+                          src={item.image}
+                          fallbackSrcs={item.images || []}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div>
+                        <h2 className="text-sm font-semibold leading-5 text-[#111111] md:text-base">
+                          {item.title}
+                        </h2>
+                        {Boolean(item.size || item.color) && (
+                          <p className="mt-1 text-xs text-[#6d655d]">
+                            {[
+                              item.size ? `Size: ${item.size}` : null,
+                              item.color ? `Color: ${item.color}` : null
+                            ].filter(Boolean).join(" | ")}
+                          </p>
                         )}
-                        {!loadingStock && ((stockMap[item.sku] !== undefined && stockMap[item.sku] > 0 && item.quantity >= stockMap[item.sku]) || (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)) && (
-                          <span className="text-[9px] uppercase font-bold text-[#f59e0b] tracking-wider px-2 py-0.5 bg-[#f59e0b]/10 rounded-full ml-1">
-                            Max Reached
+                        <div className="mt-2 flex items-center gap-3">
+                          <span className="text-sm font-bold text-[#1c1c19]">
+                            ₹{Math.round(item.salePrice)}
                           </span>
-                        )}
+                          {!loadingStock && stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0 && (
+                            <span className="text-[10px] uppercase font-bold text-[#ef6f63] tracking-widest px-2 py-0.5 bg-[#ef6f63]/10 rounded-full">
+                              Out of Stock
+                            </span>
+                          )}
+                          {!loadingStock && ((stockMap[item.sku] !== undefined && stockMap[item.sku] > 0 && item.quantity >= stockMap[item.sku]) || (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)) && (
+                            <span className="text-[9px] uppercase font-bold text-[#f59e0b] tracking-wider px-2 py-0.5 bg-[#f59e0b]/10 rounded-full ml-1">
+                              Max Reached
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 mt-2 md:mt-0">
+                        <button
+                          onClick={() => handleDecrement(item.sku)}
+                          disabled={loadingStock || (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FaMinus className="text-[10px]" />
+                        </button>
+                        <span className="min-w-5 text-center text-xs font-semibold md:text-sm">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleIncrement(item.sku)}
+                          disabled={
+                            loadingStock || 
+                            (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) || 
+                            (stockMap[item.sku] !== undefined && item.quantity >= stockMap[item.sku]) ||
+                            (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)
+                          }
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FaPlus className="text-[10px]" />
+                        </button>
+                      </div>
+
+                      {/* Remove Action */}
+                      <button
+                        onClick={() => handleRemove(item.sku)}
+                        className="text-[#a09489] hover:text-[#9c4049] p-2 transition md:self-center"
+                        title="Remove item"
+                      >
+                        <FaTrash className="text-sm" />
+                      </button>
+                    </div>
+
+                    {/* Rating Section */}
+                    <div className="border-t border-[#f0e7de] pt-3 mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <span className="text-[10px] sm:text-xs font-bold text-[#9b948d] uppercase tracking-[0.15em]">
+                        How do you like this?
+                      </span>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        {[
+                          { id: "thumbs_up", label: "Like", icon: FaThumbsUp, activeColor: "text-blue-500 bg-blue-50", hoverColor: "hover:text-blue-500 hover:bg-blue-50" },
+                          { id: "thumbs_down", label: "Not Like", icon: FaThumbsDown, activeColor: "text-gray-500 bg-gray-100", hoverColor: "hover:text-gray-500 hover:bg-gray-100" },
+                          { id: "heart", label: "Love", icon: FaHeart, activeColor: "text-red-500 bg-red-50", hoverColor: "hover:text-red-500 hover:bg-red-50" },
+                          { id: "fire", label: "Amazing", icon: FaFire, activeColor: "text-orange-500 bg-orange-50", hoverColor: "hover:text-orange-500 hover:bg-orange-50" },
+                          { id: "star", label: "Very Nice", icon: FaStar, activeColor: "text-yellow-500 bg-yellow-50", hoverColor: "hover:text-yellow-500 hover:bg-yellow-50" },
+                          { id: "smile", label: "Good", icon: FaSmile, activeColor: "text-green-500 bg-green-50", hoverColor: "hover:text-green-500 hover:bg-green-50" },
+                        ].map(ratingOption => {
+                          const Icon = ratingOption.icon;
+                          const isActive = ratings[item.sku] === ratingOption.id;
+                          return (
+                            <button
+                              key={ratingOption.id}
+                              onClick={() => handleRating(item.sku, ratingOption.id, item.title, item.productId)}
+                              className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-all duration-300 ${
+                                isActive 
+                                  ? `${ratingOption.activeColor} scale-110 shadow-sm` 
+                                  : `text-[#c0b8b0] bg-[#fcf9f4] ${ratingOption.hoverColor}`
+                              }`}
+                              title={ratingOption.label}
+                            >
+                              <Icon className={isActive ? "text-[0.95rem] sm:text-[1.05rem]" : "text-[0.8rem] sm:text-[0.9rem]"} />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-2 mt-2 md:mt-0">
-                      <button
-                        onClick={() => handleDecrement(item.sku)}
-                        disabled={loadingStock || (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <FaMinus className="text-[10px]" />
-                      </button>
-                      <span className="min-w-5 text-center text-xs font-semibold md:text-sm">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => handleIncrement(item.sku)}
-                        disabled={
-                          loadingStock || 
-                          (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) || 
-                          (stockMap[item.sku] !== undefined && item.quantity >= stockMap[item.sku]) ||
-                          (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)
-                        }
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f4efe8] text-[#6d655d] hover:bg-[#e8e2d7] md:h-8 md:w-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <FaPlus className="text-[10px]" />
-                      </button>
-                    </div>
-
-                    {/* Remove Action */}
-                    <button
-                      onClick={() => handleRemove(item.sku)}
-                      className="text-[#a09489] hover:text-[#9c4049] p-2 transition md:self-center"
-                      title="Remove item"
-                    >
-                      <FaTrash className="text-sm" />
-                    </button>
-                  </div>
-
-                  {/* Rating Section */}
-                  <div className="border-t border-[#f0e7de] pt-3 mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span className="text-[10px] sm:text-xs font-bold text-[#9b948d] uppercase tracking-[0.15em]">
-                      How do you like this?
-                    </span>
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      {[
-                        { id: "thumbs_up", label: "Like", icon: FaThumbsUp, activeColor: "text-blue-500 bg-blue-50", hoverColor: "hover:text-blue-500 hover:bg-blue-50" },
-                        { id: "thumbs_down", label: "Not Like", icon: FaThumbsDown, activeColor: "text-gray-500 bg-gray-100", hoverColor: "hover:text-gray-500 hover:bg-gray-100" },
-                        { id: "heart", label: "Love", icon: FaHeart, activeColor: "text-red-500 bg-red-50", hoverColor: "hover:text-red-500 hover:bg-red-50" },
-                        { id: "fire", label: "Amazing", icon: FaFire, activeColor: "text-orange-500 bg-orange-50", hoverColor: "hover:text-orange-500 hover:bg-orange-50" },
-                        { id: "star", label: "Very Nice", icon: FaStar, activeColor: "text-yellow-500 bg-yellow-50", hoverColor: "hover:text-yellow-500 hover:bg-yellow-50" },
-                        { id: "smile", label: "Good", icon: FaSmile, activeColor: "text-green-500 bg-green-50", hoverColor: "hover:text-green-500 hover:bg-green-50" },
-                      ].map(ratingOption => {
-                        const Icon = ratingOption.icon;
-                        const isActive = ratings[item.sku] === ratingOption.id;
-                        return (
-                          <button
-                            key={ratingOption.id}
-                            onClick={() => handleRating(item.sku, ratingOption.id, item.title, item.productId)}
-                            className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-all duration-300 ${
-                              isActive 
-                                ? `${ratingOption.activeColor} scale-110 shadow-sm` 
-                                : `text-[#c0b8b0] bg-[#fcf9f4] ${ratingOption.hoverColor}`
-                            }`}
-                            title={ratingOption.label}
-                          >
-                            <Icon className={isActive ? "text-[0.95rem] sm:text-[1.05rem]" : "text-[0.8rem] sm:text-[0.9rem]"} />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </section>
 
             {/* Checkout panel */}
             <div className="flex flex-col gap-5">
               <aside className="rounded-[1.6rem] border border-[#ece6df] bg-white/92 p-5 shadow-[0_10px_28px_rgba(95,93,62,0.05)] text-[#111111] h-fit">
-                <div className="mt-2 flex gap-3">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#9c4049] mb-4">
+                  Order Summary
+                </h3>
+
+                {/* Pricing Summary Breakdown */}
+                <div className="space-y-2.5 pb-4 border-b border-[#ece6df] text-sm">
+                  <div className="flex justify-between text-[#6d655d]">
+                    <span>Items Subtotal</span>
+                    <span className="font-semibold text-[#111]">₹{subtotal.toLocaleString("en-IN")}</span>
+                  </div>
+
+                  {cartItems.some(i => i.sku === SURPRISE_GIFT_SKU || i.isFreeGift) && (
+                    <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium text-xs">
+                      <span className="flex items-center gap-1">
+                        <span>🎁</span> Free Surprise Gift
+                      </span>
+                      <span className="font-bold">FREE (₹0)</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-[#6d655d]">
+                    <span>Estimated Shipping</span>
+                    <span className="text-emerald-600 font-semibold">FREE</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 pb-2 flex justify-between items-baseline">
+                  <span className="text-sm font-bold uppercase tracking-wider text-[#111]">Grand Total</span>
+                  <span className="text-xl font-black text-[#111]">₹{grandTotal.toLocaleString("en-IN")}</span>
+                </div>
+
+                <div className="mt-4 flex gap-3">
                   <input
                     type="text"
                     placeholder="Add promo code"
                     className="min-w-0 flex-1 rounded-full border border-[#ddd5cc] bg-[#fcf9f4] px-4 py-3 text-sm outline-none placeholder:text-[#9b948d]"
                   />
-                  <button className="rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white">
+                  <button className="rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white hover:bg-[#333] transition-colors">
                     Apply
                   </button>
                 </div>
@@ -352,7 +480,7 @@ export default function CartPage() {
                 ) : (
                   <Link
                     href="/checkout"
-                    className="mt-6 block w-full rounded-full bg-[#111111] px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white hover:opacity-90 transition-opacity"
+                    className="mt-6 block w-full rounded-full bg-[#111111] hover:bg-[#9c4049] px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white transition-colors shadow-md"
                   >
                     Go to Checkout →
                   </Link>

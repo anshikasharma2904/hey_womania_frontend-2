@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IAnalyticsEvent extends Document {
   eventType: string; // 'page_view', 'add_to_cart', 'checkout', etc.
   url: string;
-  userId?: mongoose.Types.ObjectId;
+  userId?: any;
   sessionId: string;
   metadata?: any;
   createdAt: Date;
@@ -12,7 +12,7 @@ export interface IAnalyticsEvent extends Document {
 const analyticsEventSchema = new Schema<IAnalyticsEvent>({
   eventType: { type: String, required: true },
   url: { type: String, required: true },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  userId: { type: Schema.Types.Mixed },
   sessionId: { type: String, required: true },
   metadata: { type: Schema.Types.Mixed },
   createdAt: { type: Date, default: Date.now }
