@@ -56,7 +56,14 @@ export function HeroVideoSlider() {
           const mUrl = data.heroVideoMobile;
           const isImg = mUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i);
           setMobileIsImage(!!isImg);
-          setMobileVideoUrl(mUrl.startsWith('http') ? mUrl : `${API_URL}${mUrl}`);
+          if (mUrl.startsWith("http")) {
+            setMobileVideoUrl(mUrl);
+          } else if (mUrl.startsWith("/uploads")) {
+            setMobileVideoUrl(`${API_URL}${mUrl}`);
+          } else {
+            // Static public frontend asset (e.g. /phoneVideo.mp4)
+            setMobileVideoUrl(mUrl);
+          }
         }
       })
       .catch(err => console.error("Error fetching site settings:", err));

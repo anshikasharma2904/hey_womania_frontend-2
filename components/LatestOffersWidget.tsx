@@ -56,7 +56,7 @@ export function LatestOffersWidget() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-0 z-[70] flex items-end gap-3 md:bottom-8">
+      <div className="fixed bottom-6 right-3 z-[70] flex items-end gap-3 md:bottom-8 md:right-6">
         {/* <button
           type="button"
           aria-label="Open latest offers tab"
@@ -73,7 +73,7 @@ export function LatestOffersWidget() {
           </div>
         </button> */}
 
-        <div className="group mr-5 flex items-center gap-3 md:mr-6">
+        <div className="group flex items-center gap-3">
           <div className="hidden rounded-xl bg-[#25D366] px-4 py-2 text-sm font-medium text-white opacity-0 shadow-[0_12px_24px_rgba(0,0,0,0.24)] transition-opacity duration-200 group-hover:opacity-100 md:block">
             Chat with us
           </div>

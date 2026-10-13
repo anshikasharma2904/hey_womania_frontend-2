@@ -7,6 +7,7 @@ import { StoreFooter } from "@/components/StoreFooter";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { FaTrash, FaMinus, FaPlus, FaWhatsapp, FaThumbsUp, FaThumbsDown, FaHeart, FaStar, FaSmile, FaFire, FaGift } from "react-icons/fa";
 import { SURPRISE_GIFT_SKU, SURPRISE_GIFT_ITEM, syncCartWithSurpriseGift, CartItem } from "@/lib/surpriseGift";
+import { formatItemSize } from "@/lib/format-utils";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -228,7 +229,6 @@ export default function CartPage() {
                         <span className="rounded-full bg-[#9c4049] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xs">
                           🎁 Surprise Gift Added!
                         </span>
-                        <span className="text-xs font-bold text-[#b45309]">Worth ₹499</span>
                       </div>
                       <p className="mt-1 text-xs sm:text-sm font-bold text-[#111]">
                         Complimentary Mystery Surprise Gift included with your order!
@@ -277,11 +277,8 @@ export default function CartPage() {
                           <p className="mt-1 text-xs text-[#6d655d]">
                             Handpicked fashion/beauty surprise treat selected by Hey Womaniyaa stylists.
                           </p>
-                          <div className="mt-2 flex items-center gap-2.5">
-                            <span className="text-xs text-gray-400 line-through">
-                              ₹{item.originalPrice || 499}
-                            </span>
-                            <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
                               FREE ₹0
                             </span>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -290,16 +287,17 @@ export default function CartPage() {
                           </div>
                         </div>
 
-                        {/* Quantity Badge */}
-                        <div className="flex items-center gap-1.5 mt-2 md:mt-0">
-                          <span className="px-3 py-1 rounded-full bg-white border border-[#e8ded3] text-xs font-bold text-[#6d655d] shadow-sm">
-                            Qty: 1 (Complimentary)
-                          </span>
-                        </div>
+                        {/* Mobile bottom row / Desktop columns for Quantity & Status */}
+                        <div className="col-span-2 flex items-center justify-between pt-2 border-t border-[#f3e3ce]/60 md:border-0 md:pt-0 md:col-span-2 md:flex md:items-center md:gap-6">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-full bg-white border border-[#e8ded3] text-[11px] sm:text-xs font-bold text-[#6d655d] shadow-sm">
+                              Qty: 1 (Complimentary)
+                            </span>
+                          </div>
 
-                        {/* Status */}
-                        <div className="text-xs font-bold text-emerald-600 md:self-center">
-                          Included ✓
+                          <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                            Included ✓
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -326,14 +324,12 @@ export default function CartPage() {
                         <h2 className="text-sm font-semibold leading-5 text-[#111111] md:text-base">
                           {item.title}
                         </h2>
-                        {Boolean(item.size || item.color) && (
-                          <p className="mt-1 text-xs text-[#6d655d]">
-                            {[
-                              item.size ? `Size: ${item.size}` : null,
-                              item.color ? `Color: ${item.color}` : null
-                            ].filter(Boolean).join(" | ")}
-                          </p>
-                        )}
+                        <p className="mt-1 text-xs text-[#6d655d]">
+                          {[
+                            formatItemSize(item.size, item.title) ? `Size: ${formatItemSize(item.size, item.title)}` : null,
+                            item.color && !["DEFAULT", "STANDARD"].includes(item.color.toUpperCase()) ? `Color: ${item.color}` : null
+                          ].filter(Boolean).join(" | ")}
+                        </p>
                         <div className="mt-2 flex items-center gap-3">
                           <span className="text-sm font-bold text-[#1c1c19]">
                             ₹{Math.round(item.salePrice)}

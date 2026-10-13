@@ -25,7 +25,22 @@ export default function AddressesPage() {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
-        if (data.ok) setUser(data.user);
+        if (data.ok && data.user) {
+          setUser(data.user);
+          const u = data.user;
+          const uName = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.name || "";
+          const uPhone = u.phone ? u.phone.replace(/^\+91/, "").replace(/^91/, "") : "";
+          setForm(prev => ({
+            ...prev,
+            fullName: prev.fullName || uName,
+            phone: prev.phone || uPhone,
+            streetAddress: prev.streetAddress || u.address?.streetAddress || "",
+            streetAddressLine2: prev.streetAddressLine2 || u.address?.streetAddressLine2 || "",
+            city: prev.city || u.address?.city || "",
+            state: prev.state || u.address?.state || "",
+            pincode: prev.pincode || u.address?.pincode || ""
+          }));
+        }
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));

@@ -51,7 +51,7 @@ export function ProductImageGallery({
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full aspect-[3/4] h-[65vh] max-h-[580px] overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-[#f4efe8] shadow-[0_14px_36px_rgba(95,93,62,0.06)] flex items-center justify-center"
+          className="relative w-full aspect-[3/4] sm:aspect-[4/5] overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-[#f4efe8] shadow-[0_14px_36px_rgba(95,93,62,0.06)] flex items-center justify-center"
         >
           <ImageWithFallback
             key={`mobile-active-${activeIndex}`}
@@ -62,7 +62,7 @@ export function ProductImageGallery({
             fill
             loading="eager"
             priority
-            className="w-full h-full object-cover object-center transition-all duration-300"
+            className="w-full h-full object-contain object-center transition-all duration-300"
           />
         </div>
 

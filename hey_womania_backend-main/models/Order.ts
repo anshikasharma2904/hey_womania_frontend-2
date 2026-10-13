@@ -32,6 +32,7 @@ const orderSchema = new mongoose.Schema({
   shipmentStatus: String,
   activeStep: Number,
   paymentMethod: String,
+  paymentMode: String,
   paymentStatus: String,
   razorpayOrderId: String,
   razorpayPaymentId: String,
@@ -54,6 +55,8 @@ const orderSchema = new mongoose.Schema({
     price: String,
     img: String,
     images: [String],
+    size: String,
+    color: String,
     sellPoints: { type: Number, default: 0 }
   }],
   createdAt: String,

@@ -145,9 +145,13 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Email/Phone and password are required." });
     }
 
+    const rawDigits = identifier.replace(/[^0-9]/g, "");
+    const last10 = rawDigits.length >= 10 ? rawDigits.slice(-10) : "";
+
     const user = await User.findOne({
       $or: [
         { phone: identifier },
+        ...(last10 ? [{ phone: last10 }, { phone: `+91${last10}` }, { phone: `91${last10}` }] : []),
         { email: identifier.toLowerCase() }
       ]
     });
@@ -223,7 +227,17 @@ export const loginOtp = async (req: Request, res: Response) => {
       }
     }
 
-    const user = await User.findOne({ phone: phone.trim() });
+    const rawDigits = phone.trim().replace(/[^0-9]/g, "");
+    const last10 = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
+
+    const user = await User.findOne({
+      $or: [
+        { phone: phone.trim() },
+        { phone: last10 },
+        { phone: `+91${last10}` },
+        { phone: `91${last10}` }
+      ]
+    });
     
     if (!user) {
       return res.status(404).json({ error: "No account found with this phone number." });

@@ -6,6 +6,7 @@ import { useWishbag } from "@/contexts/WishbagContext";
 import { trackMetaEvent } from "@/lib/metaTracking";
 import { getSessionId } from "@/components/CustomAnalyticsTracker";
 import { syncCartWithSurpriseGift } from "@/lib/surpriseGift";
+import { formatItemSize, isSizeValue, isNoSizeCategory } from "@/lib/format-utils";
 
 interface Variant {
   sku?: string;
@@ -21,6 +22,7 @@ interface ProductOptionsClientProps {
     slug?: string;
     name: string;
     price: string;
+    categoryTitle?: string;
     image?: string;
     gallery?: string[];
     variants?: Variant[];
@@ -31,7 +33,28 @@ interface ProductOptionsClientProps {
 
 export function ProductOptionsClient({ product, onColorChange, customerReferralCode }: ProductOptionsClientProps) {
   const { isWishbagged, addToWishbag, removeFromWishbag } = useWishbag();
-  const variants = product.variants || [];
+  const rawVariants = product.variants || [];
+
+  // Normalize variants to guarantee clothing sizes (XXXL, XXL, XL, L, M, S, etc.) are never mistaken for colors
+  const variants = React.useMemo(() => {
+    return rawVariants.map((v) => {
+      let sizeVal = (v.size || "").trim();
+      let colorVal = (v.color || "").trim();
+
+      if (isSizeValue(colorVal)) {
+        if (!sizeVal || ["DEFAULT", "ONE SIZE", "FREE SIZE"].includes(sizeVal.toUpperCase())) {
+          sizeVal = colorVal.toUpperCase();
+        }
+        colorVal = "";
+      }
+
+      return {
+        ...v,
+        size: sizeVal || "Default",
+        color: colorVal || "Default"
+      };
+    });
+  }, [rawVariants]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -53,8 +76,18 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
   const sizes = Array.from(
     new Set(
       variants
-        .map((v) => (v.size || "").trim())
-        .filter((s) => s && !["DEFAULT", "QTY", "BOX", "PCS", "PIECES"].includes(s.toUpperCase()))
+        .map((v) => {
+          const s = (v.size || "").trim();
+          if (s && !["DEFAULT", "QTY", "BOX", "PCS", "PIECES"].includes(s.toUpperCase())) {
+            return s;
+          }
+          const c = (v.color || "").trim();
+          if (isSizeValue(c)) {
+            return c.toUpperCase();
+          }
+          return "";
+        })
+        .filter(Boolean)
     )
   ).sort((a, b) => {
     const ai = SIZE_ORDER.indexOf(a.toUpperCase());
@@ -71,7 +104,7 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
     if (
       c &&
       !["DEFAULT", "QTY", "BOX", "PCS"].includes(c.toUpperCase()) &&
-      !SIZE_ORDER.includes(c.toUpperCase())
+      !isSizeValue(c)
     ) {
       const lowerKey = c.toLowerCase();
       if (!uniqueColorsMap.has(lowerKey)) {
@@ -197,6 +230,8 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
     const variantImage =
       matchedVariant?.images?.[0] || product.image || "/products/product-placeholder.png";
 
+    const itemSize = formatItemSize(selectedSize || matchedVariant?.size, product.categoryTitle || product.name);
+
     return {
       productId,
       title: product.name,
@@ -206,7 +241,7 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
           ? matchedVariant.images
           : product.gallery || [],
       sku,
-      size: selectedSize || matchedVariant?.size || "One Size",
+      size: itemSize,
       color: colorName || matchedVariant?.color || "Standard",
       salePrice: numericPrice,
       quantity: Math.max(1, currentQuantity)
@@ -532,11 +567,11 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
       )}
 
       {/* Sizes */}
-      {sizes.length > 0 && (
+      {sizes.length > 0 ? (
         <div className="mt-7">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-              Size: <span className="font-bold text-[#111111]">{selectedSize}</span>
+              Size: <span className="font-bold text-[#111111]">{formatItemSize(selectedSize, product.categoryTitle || product.name)}</span>
             </p>
             {colors.length > 0 && selectedColor && (
               <span className="text-[11px] font-medium text-[#8b837b]">
@@ -580,7 +615,7 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
                       : `Size ${size}`
                   }
                 >
-                  <span className={!isAvailable ? "opacity-60" : ""}>{size}</span>
+                  <span className={!isAvailable ? "opacity-60" : ""}>{formatItemSize(size, product.categoryTitle || product.name)}</span>
                   {!isAvailable && (
                     <svg
                       className="pointer-events-none absolute inset-0 h-full w-full"
@@ -611,6 +646,17 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
               * Struck-through sizes belong to another colour option. Click on them to view that colour and its images.
             </p>
           )}
+        </div>
+      ) : isNoSizeCategory(product.categoryTitle || product.name) ? null : (
+        <div className="mt-7">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+              Size:
+            </span>
+            <span className="inline-flex items-center rounded-full border border-[#ddd5cc] bg-[#fcf9f4] px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1c1c19]">
+              Free Size
+            </span>
+          </div>
         </div>
       )}
 

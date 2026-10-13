@@ -164,10 +164,30 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const orders = await Order.find().sort({ createdAt: -1 }).lean();
+    
+    // Fetch users for orders to display user details if order has a registered userId
+    const userIds = orders.map(o => o.userId).filter(id => id && id !== "guest-user");
+    const users = await User.find({ id: { $in: userIds } }, { id: 1, name: 1, email: 1, phone: 1 }).lean();
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const enrichedOrders = orders.map((order: any) => {
+      const address = order.address || {};
+      const customerFromUser = order.userId ? userMap.get(order.userId) : null;
+
+      return {
+        ...order,
+        customer: customerFromUser || {
+          name: address.fullName || address.name || "Guest Customer",
+          email: address.email || "",
+          phone: address.phone || ""
+        }
+      };
+    });
+
     res.json({
       success: true,
-      data: orders
+      data: enrichedOrders
     });
   } catch (error) {
     console.error("Error fetching admin orders:", error);

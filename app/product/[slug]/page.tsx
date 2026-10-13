@@ -6,7 +6,7 @@ import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductOptionsClient } from "@/components/ProductOptionsClient";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
-import { formatCoOrd } from "@/lib/format-utils";
+import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
 import {
   catalogProducts,
   slugifyProductName
@@ -107,16 +107,32 @@ export default async function ProductDetailPage({
         .map((part: string) => part.trim())
         .filter(Boolean);
 
-      const normalizedVariants = (p.variants || []).map((v: any) => ({
-        ...v,
-        images: (v.images || [])
-          .map((img: string) => {
-            if (!img) return "";
-            if (img.startsWith("http")) return img;
-            return `${apiUrl}${img}`;
-          })
-          .filter(Boolean)
-      }));
+      const normalizedVariants = (p.variants || []).map((v: any) => {
+        let sizeVal = (v.size || "").trim();
+        let colorVal = (v.color || "").trim();
+
+        // If color contains a known size (e.g. "XXXL", "XXL", "M") and size is empty or "Default"
+        if (isSizeValue(colorVal) && (!sizeVal || ["DEFAULT", "ONE SIZE", "FREE SIZE"].includes(sizeVal.toUpperCase()))) {
+          sizeVal = colorVal.toUpperCase();
+          colorVal = "";
+        } else if (isSizeValue(colorVal) && isSizeValue(sizeVal)) {
+          // If both are sizes (e.g. size: "Default" or both set to sizes), color is not a real color
+          colorVal = "";
+        }
+
+        return {
+          ...v,
+          size: sizeVal || "Default",
+          color: colorVal || "Default",
+          images: (v.images || [])
+            .map((img: string) => {
+              if (!img) return "";
+              if (img.startsWith("http")) return img;
+              return `${apiUrl}${img}`;
+            })
+            .filter(Boolean)
+        };
+      });
 
       product = {
         id: p.id,
@@ -175,10 +191,12 @@ export default async function ProductDetailPage({
             if (img.startsWith("http")) return img;
             return `${apiUrl}${img}`;
           });
+        const hasDiscount = p.salePrice && p.price && p.salePrice < p.price;
         return {
           name: p.title,
           slug: p.slug,
           price: `₹${p.salePrice || p.price}`,
+          originalPrice: hasDiscount ? `₹${p.price}` : null,
           image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
           gallery: gallery
         };
@@ -210,10 +228,12 @@ export default async function ProductDetailPage({
                 if (img.startsWith("http")) return img;
                 return `${apiUrl}${img}`;
               });
+            const hasDiscount = p.salePrice && p.price && p.salePrice < p.price;
             return {
               name: p.title,
               slug: p.slug,
               price: `₹${p.salePrice || p.price}`,
+              originalPrice: hasDiscount ? `₹${p.price}` : null,
               image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
               gallery: gallery
             };
@@ -308,20 +328,22 @@ export default async function ProductDetailPage({
                       alt={item.name}
                       width={260}
                       height={340}
-                      className="h-full w-full object-cover mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="h-full w-full object-contain mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
                     />
                   </div>
                   <div className="mt-3">
-                    <p className="line-clamp-2 min-h-[2.8rem] text-[0.92rem] font-semibold leading-[1.35rem] text-[#111111]">
+                    <p className="line-clamp-2 min-h-[2.8rem] text-xs sm:text-[0.92rem] font-semibold leading-[1.35rem] text-[#111111]">
                       {item.name}
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[1rem] font-bold text-[#111111]">
-                      {item.price}
+                    <div className="mt-2 flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+                      <span className="text-sm sm:text-[1rem] font-bold text-[#111111]">
+                        {item.price}
                       </span>
-                      <span className="text-[0.75rem] text-[#a7a09a] line-through">
-                        ₹242
-                      </span>
+                      {(item as any).originalPrice && (
+                        <span className="text-[0.7rem] sm:text-[0.75rem] text-[#a7a09a] line-through">
+                          {(item as any).originalPrice}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

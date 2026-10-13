@@ -47,7 +47,7 @@ export function ReturnOrderButton({ orderId, currentStatus, deliveredAt }: { ord
     <button
       onClick={handleReturn}
       disabled={isReturning}
-      className="mt-4 sm:mt-0 sm:ml-4 inline-flex items-center justify-center rounded-full border-2 border-[#5c2530] bg-transparent px-5 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#5c2530] transition-all hover:bg-[#5c2530] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center justify-center rounded-full border-2 border-[#5c2530] bg-transparent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-[#5c2530] transition-all hover:bg-[#5c2530] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
     >
       {isReturning ? "Requesting..." : "Return Order"}
     </button>

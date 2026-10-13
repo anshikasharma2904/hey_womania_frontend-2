@@ -12,6 +12,7 @@ import { trackMetaEvent } from "@/lib/metaTracking";
 import { FaTrash } from "react-icons/fa";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
 import { SURPRISE_GIFT_SKU, syncCartWithSurpriseGift } from "@/lib/surpriseGift";
+import { formatItemSize } from "@/lib/format-utils";
 
 type RazorpayPaymentResponse = {
   razorpay_order_id: string;
@@ -114,6 +115,11 @@ export default function CheckoutPage() {
       .then(data => {
         if (data.ok && data.user) {
           setIsLoggedIn(true);
+          const u = data.user;
+          const uName = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.name || "";
+          const uPhone = u.phone ? u.phone.replace(/^\+91/, "").replace(/^91/, "") : "";
+          const defaultAddr = u.addresses?.find((a: any) => a.isDefault) || u.addresses?.[0] || u.address;
+
           if (data.user.partnerProfile?.walletBalance) {
             setWalletBalance(data.user.partnerProfile.walletBalance);
           }
@@ -127,6 +133,18 @@ export default function CheckoutPage() {
             setSavedAddresses(data.user.addresses);
             setSelectedAddressId(data.user.addresses[0]._id || data.user.addresses[0].id || "new");
           }
+
+          // Pre-populate formData with known name, phone, and address details
+          setFormData(prev => ({
+            ...prev,
+            fullName: prev.fullName || defaultAddr?.fullName || uName || "",
+            phone: prev.phone || defaultAddr?.phone || uPhone || "",
+            streetAddress: prev.streetAddress || defaultAddr?.streetAddress || "",
+            streetAddressLine2: prev.streetAddressLine2 || defaultAddr?.streetAddressLine2 || "",
+            city: prev.city || defaultAddr?.city || "",
+            state: prev.state || defaultAddr?.state || "",
+            pincode: prev.pincode || defaultAddr?.pincode || "",
+          }));
         } else {
           setIsLoggedIn(false);
         }
@@ -271,6 +289,8 @@ export default function CheckoutPage() {
         name: item.title,
         img: item.image,
         images: item.images || [],
+        size: item.size || "",
+        color: item.color || "",
         isFreeGift: Boolean(item.isFreeGift || item.sku === SURPRISE_GIFT_SKU)
       }))
     };
@@ -463,9 +483,9 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[#fcf9f4] px-4 pb-16 pt-8 text-[#1c1c19] md:px-10 md:pt-12 lg:pt-16 lg:px-16">
-        <section className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
+      <main className="min-h-screen w-full max-w-full min-w-0 overflow-x-hidden bg-[#fcf9f4] px-3 sm:px-4 pb-16 pt-5 text-[#1c1c19] md:px-10 md:pt-12 lg:pt-16 lg:px-16 box-border">
+        <section className="mx-auto max-w-7xl w-full min-w-0 box-border">
+          <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
             <Link href="/">Home</Link>
             <span>&gt;</span>
             <Link href="/cart">Cart</Link>
@@ -473,12 +493,12 @@ export default function CheckoutPage() {
             <span className="text-[#1c1c19]">Checkout</span>
           </div>
 
-          <h1 className="mb-8 font-sans text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
+          <h1 className="mb-6 sm:mb-8 font-sans text-2xl sm:text-3xl font-black uppercase tracking-[-0.05em] text-[#111111] md:text-5xl">
             Checkout
           </h1>
 
-          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-            <form onSubmit={handleInitiateCheckout} className="space-y-6 rounded-[1.6rem] border border-[#ece6df] bg-white p-6 shadow-[0_10px_28px_rgba(95,93,62,0.04)]">
+          <div className="grid gap-6 lg:gap-8 lg:grid-cols-[1fr_380px] w-full min-w-0">
+            <form onSubmit={handleInitiateCheckout} className="space-y-6 rounded-[1.3rem] sm:rounded-[1.6rem] border border-[#ece6df] bg-white p-3 sm:p-6 shadow-[0_10px_28px_rgba(95,93,62,0.04)] w-full max-w-full min-w-0 box-border overflow-hidden">
               <div>
                 <h2 className="text-lg font-bold text-[#111111] border-b border-[#ece6df] pb-3 mb-4">
                   Shipping Address
@@ -486,34 +506,33 @@ export default function CheckoutPage() {
               </div>
 
               {savedAddresses.length > 0 && (
-                <div className="space-y-4 mb-6">
+                <div className="space-y-3 mb-6 w-full min-w-0">
                   {savedAddresses.map((addr) => {
                     const id = addr._id || addr.id;
                     return (
-                      <div key={id} className={`flex items-start justify-between border p-4 rounded-xl transition ${
+                      <div key={id} className={`flex items-start justify-between gap-2.5 sm:gap-3 border p-3 sm:p-4 rounded-xl transition w-full min-w-0 box-border ${
                         selectedAddressId === id
                           ? "border-[#5f5d3e] bg-[#fcf9f4]"
                           : "border-[#e8e2d9]"
                       }`}>
-                        <label className="flex items-start gap-4 cursor-pointer flex-1">
+                        <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer flex-1 min-w-0">
                           <input
                             type="radio"
                             name="selectedAddress"
                             value={id}
                             checked={selectedAddressId === id}
                             onChange={() => setSelectedAddressId(id)}
-                            className="mt-1 h-4 w-4 border-[#e8e2d9] text-[#5f5d3e] focus:ring-[#5f5d3e]"
+                            className="mt-1 h-4 w-4 shrink-0 border-[#e8e2d9] text-[#5f5d3e] focus:ring-[#5f5d3e]"
                           />
-                          <div>
-                            <p className="font-semibold text-sm text-[#111111]">{addr.fullName}</p>
-                            <p className="text-sm text-[#5e5a54] mt-1">
-                              {addr.streetAddress}, {addr.streetAddressLine2 && `${addr.streetAddressLine2}, `}
-                              {addr.city}, {addr.state} - {addr.pincode}
+                          <div className="min-w-0 flex-1 pr-1">
+                            <p className="font-semibold text-sm text-[#111111] break-words">{addr.fullName}</p>
+                            <p className="text-xs sm:text-sm text-[#5e5a54] mt-1 break-words leading-relaxed">
+                              {addr.streetAddress}{addr.streetAddressLine2 ? `, ${addr.streetAddressLine2}` : ""}, {addr.city}, {addr.state} - {addr.pincode}
                             </p>
-                            <p className="text-sm text-[#5e5a54] mt-1">Phone: {addr.phone}</p>
+                            <p className="text-xs sm:text-sm text-[#5e5a54] mt-1 break-words font-medium">Phone: {addr.phone}</p>
                           </div>
                         </label>
-                        <div className="flex flex-col gap-3 justify-start items-end">
+                        <div className="flex flex-col gap-2 shrink-0 justify-start items-end pt-0.5">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -532,7 +551,7 @@ export default function CheckoutPage() {
                                 paymentMethod: formData.paymentMethod,
                               });
                             }}
-                            className="text-xs font-semibold text-[#5f5d3e] hover:underline"
+                            className="text-xs font-semibold text-[#5f5d3e] hover:underline px-1 py-0.5"
                           >
                             Edit
                           </button>
@@ -561,13 +580,13 @@ export default function CheckoutPage() {
                                 setDeletingAddressId(null);
                               }
                             }}
-                            className="text-xs font-semibold text-[#9c4049] hover:text-red-700 disabled:opacity-50 flex items-center justify-center p-2"
+                            className="text-xs font-semibold text-[#9c4049] hover:text-red-700 disabled:opacity-50 flex items-center justify-center p-1.5"
                             title="Delete address"
                           >
                             {deletingAddressId === id ? (
                               <span className="animate-spin h-3 w-3 border-2 border-[#9c4049] border-t-transparent rounded-full"></span>
                             ) : (
-                              <FaTrash className="text-sm" />
+                              <FaTrash className="text-xs sm:text-sm" />
                             )}
                           </button>
                         </div>
@@ -575,7 +594,7 @@ export default function CheckoutPage() {
                     );
                   })}
                   <label
-                    className={`flex items-center gap-4 border p-4 rounded-xl cursor-pointer transition ${
+                    className={`flex items-center gap-3 border p-3.5 sm:p-4 rounded-xl cursor-pointer transition ${
                       selectedAddressId === "new" && !editingAddressId
                         ? "border-[#5f5d3e] bg-[#fcf9f4]"
                         : "border-[#e8e2d9] hover:border-[#5f5d3e]"
@@ -804,8 +823,8 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-bold text-[#111111] border-b border-[#ece6df] pb-3 mb-4 mt-8">
                   Payment Method
                 </h2>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition ${
+                <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${
                     formData.paymentMethod === "cod" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
                   }`}>
                     <input
@@ -816,13 +835,13 @@ export default function CheckoutPage() {
                       onChange={(e) => updateField("paymentMethod", e.target.value)}
                       className="accent-[#9c4049]"
                     />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-[#1c1c19]">Cash on Delivery (COD)</p>
                       <p className="text-[11px] text-[#8b837b]">Pay in cash at delivery time</p>
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition ${
+                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${
                     formData.paymentMethod === "online" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
                   }`}>
                     <input
@@ -833,7 +852,7 @@ export default function CheckoutPage() {
                       onChange={(e) => updateField("paymentMethod", e.target.value)}
                       className="accent-[#9c4049]"
                     />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-[#1c1c19]">UPI / Cards / Net Banking</p>
                       <p className="text-[11px] text-[#8b837b]">Secure online payment</p>
                     </div>
@@ -861,7 +880,7 @@ export default function CheckoutPage() {
             </form>
 
             {/* Cart summary side panel */}
-            <aside className="rounded-[1.6rem] border border-[#ece6df] bg-white/92 p-5 shadow-[0_10px_28px_rgba(95,93,62,0.05)] h-fit">
+            <aside className="rounded-[1.3rem] sm:rounded-[1.6rem] border border-[#ece6df] bg-white/92 p-4 sm:p-5 shadow-[0_10px_28px_rgba(95,93,62,0.05)] h-fit w-full min-w-0 max-w-full box-border">
               <h2 className="text-lg font-bold text-[#111111] border-b border-[#ece6df] pb-3 mb-4">
                 Items
               </h2>
@@ -893,12 +912,15 @@ export default function CheckoutPage() {
                         <p className="text-[11px] text-[#8b837b]">
                           {isGift 
                             ? "Complimentary Reward • Qty: 1" 
-                            : `Qty: ${item.quantity}${item.size ? ` | Size: ${item.size}` : ""}${item.color ? ` | Color: ${item.color}` : ""}`}
+                            : [
+                                `Qty: ${item.quantity}`,
+                                formatItemSize(item.size, item.title) ? `Size: ${formatItemSize(item.size, item.title)}` : null,
+                                item.color && !["DEFAULT", "STANDARD"].includes(item.color.toUpperCase()) ? `Color: ${item.color}` : null
+                              ].filter(Boolean).join(" | ")}
                         </p>
                         <div className="flex justify-between items-center mt-1">
                           {isGift ? (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] text-gray-400 line-through">₹499</span>
                               <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">FREE</span>
                             </div>
                           ) : (

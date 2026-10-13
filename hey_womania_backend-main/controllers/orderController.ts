@@ -16,91 +16,6 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const totalItems = await Order.countDocuments({ userId });
     let orders = await Order.find({ userId }).sort({ createdAt: -1 }).skip(skip).limit(limit);
     
-    // Auto-mocking logic if no orders exist
-    if (orders.length === 0 && page === 1) {
-      const now = new Date().toISOString();
-      const mockOrders = [
-        {
-          id: crypto.randomUUID(),
-          userId,
-          orderNumber: "1",
-          date: "May 28, 2026",
-          total: "₹1,299",
-          status: "Delivered",
-          statusText: "Delivered on May 30, 2026",
-          activeStep: 4,
-          paymentMethod: "Credit Card ending in 4242",
-          address: {
-            name: "Priya Sharma",
-            street: "Spaze Itech Tower, Sector 49",
-            city: "Gurgaon, Haryana 122018",
-            phone: "+91 98765 43210"
-          },
-          items: [{ name: "Ceremonial Light Saree", qty: 1, price: "₹1,299", img: "/products/product-traditional-1.png" }],
-          createdAt: now
-        },
-        {
-          id: crypto.randomUUID(),
-          userId,
-          orderNumber: "2",
-          date: "Jun 10, 2026",
-          total: "₹4,500",
-          status: "Ongoing",
-          statusText: "Arriving by Jun 15, 2026",
-          activeStep: 2,
-          paymentMethod: "Credit Card ending in 4242",
-          address: {
-            name: "Priya Sharma",
-            street: "Spaze Itech Tower, Sector 49",
-            city: "Gurgaon, Haryana 122018",
-            phone: "+91 98765 43210"
-          },
-          items: [{ name: "Studio Evening Dress", qty: 1, price: "₹4,500", img: "/products/product-couture-1.png" }],
-          createdAt: now
-        },
-        {
-          id: crypto.randomUUID(),
-          userId,
-          orderNumber: "3",
-          date: "Jun 14, 2026",
-          total: "₹2,150",
-          status: "Pending",
-          statusText: "Preparing your order",
-          activeStep: 1,
-          paymentMethod: "UPI",
-          address: {
-            name: "Priya Sharma",
-            street: "Spaze Itech Tower, Sector 49",
-            city: "Gurgaon, Haryana 122018",
-            phone: "+91 98765 43210"
-          },
-          items: [{ name: "Clean Line Co-Ord", qty: 2, price: "₹2,150", img: "/products/product-western-1.png" }],
-          createdAt: now
-        },
-        {
-          id: crypto.randomUUID(),
-          userId,
-          orderNumber: "4",
-          date: "Jan 12, 2026",
-          total: "₹8,990",
-          status: "Delivered",
-          statusText: "Delivered on Jan 15, 2026",
-          activeStep: 4,
-          paymentMethod: "Credit Card ending in 4242",
-          address: {
-            name: "Priya Sharma",
-            street: "Spaze Itech Tower, Sector 49",
-            city: "Gurgaon, Haryana 122018",
-            phone: "+91 98765 43210"
-          },
-          items: [{ name: "Arah Festive Lehenga", qty: 1, price: "₹8,990", img: "/products/product-traditional-2.png" }],
-          createdAt: now
-        }
-      ];
-      await Order.insertMany(mockOrders);
-      orders = mockOrders as any;
-    }
-
     res.json({
       data: orders,
       pagination: {
@@ -135,6 +50,8 @@ export const getOrderById = async (req: Request, res: Response) => {
 import mongoose from "mongoose";
 import { InventoryLedger } from "../models/InventoryLedger";
 import { createShiprocketShipmentForOrder } from "../services/shiprocketService";
+import { findOrCreateUserFromShipping } from "./userController";
+import { createSessionToken } from "../utils/authHelpers";
 
 export const createOrder = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
@@ -143,11 +60,41 @@ export const createOrder = async (req: Request, res: Response) => {
 
   try {
     // @ts-ignore
-    const userId = req.user?.id || "guest-user";
+    let userId = req.user?.id || "guest-user";
     const { items, address, paymentMethod, total, useWallet, useNetworkWallet } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Order items cannot be empty" });
+    }
+
+    // Auto-create or link user from shipping details if ordering without signup/login
+    let autoCreatedOrLinkedUser: any = null;
+    if (userId === "guest-user" && address && address.phone) {
+      try {
+        autoCreatedOrLinkedUser = await findOrCreateUserFromShipping(address);
+        if (autoCreatedOrLinkedUser) {
+          userId = autoCreatedOrLinkedUser.id;
+          
+          // Issue session cookie so the user is immediately logged in with their profile
+          try {
+            const token = createSessionToken({
+              id: autoCreatedOrLinkedUser.id,
+              role: (autoCreatedOrLinkedUser.role || "member") as string
+            });
+            res.cookie("hey_womania_session", token, {
+              httpOnly: true,
+              secure: true,
+              maxAge: 60 * 60 * 24 * 60 * 1000,
+              path: "/",
+              sameSite: "none"
+            });
+          } catch (cookieErr) {
+            console.warn("Could not set session cookie for guest user:", cookieErr);
+          }
+        }
+      } catch (guestUserErr) {
+        console.error("Error creating guest user profile:", guestUserErr);
+      }
     }
 
     const now = new Date().toISOString();
@@ -309,7 +256,8 @@ export const createOrder = async (req: Request, res: Response) => {
         status: "Pending",
         statusText: "We are processing your order",
         activeStep: 1,
-        paymentMethod,
+        paymentMethod: paymentMethod || "cod",
+        paymentMode: paymentMethod ? paymentMethod.toUpperCase() : "COD",
         paymentStatus: String(paymentMethod || "").toUpperCase() === "COD" ? "Pending" : (res.locals.isVerifiedRazorpay ? "Paid" : "Pending"),
         razorpayOrderId: req.body.razorpayOrderId,
         razorpayPaymentId: req.body.razorpayPaymentId,
@@ -322,6 +270,8 @@ export const createOrder = async (req: Request, res: Response) => {
           price: typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : String(item.price),
           img: item.img || item.image || "",
           images: item.images || [],
+          size: item.size || "",
+          color: item.color || "",
           sellPoints: item.sellPoints || 0
         })),
         createdAt: now

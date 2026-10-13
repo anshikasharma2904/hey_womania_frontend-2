@@ -672,11 +672,24 @@ function parseVariantSizeAndColor(itemName: string, groupName: string) {
   }
 
   if (!foundSize) {
-    foundSize = parts.find((p) => /^(S|M|L|XL|XXL|3XL|4XL)$/i.test(p))?.toUpperCase() || "Default";
+    foundSize = parts.find((p) => /^(S|M|L|XL|XXL|XXXL|3XL|4XL|5XL)$/i.test(p))?.toUpperCase() || "Default";
   }
 
   if (!foundColor) {
-    foundColor = parts[parts.length - 1] || "Default";
+    const candidate = parts[parts.length - 1];
+    if (candidate && !sizes.includes(candidate.toUpperCase()) && !/^(S|M|L|XL|XXL|XXXL|3XL|4XL|5XL)$/i.test(candidate)) {
+      foundColor = candidate;
+    } else {
+      foundColor = "Default";
+    }
+  }
+
+  // Double check: if foundColor is actually a size, reset it
+  if (sizes.includes(foundColor.toUpperCase()) || /^(S|M|L|XL|XXL|XXXL|3XL|4XL|5XL)$/i.test(foundColor)) {
+    if (foundSize === "Default") {
+      foundSize = foundColor.toUpperCase();
+    }
+    foundColor = "Default";
   }
 
   return {

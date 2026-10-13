@@ -5,7 +5,7 @@ export function StoreFooter() {
   return (
     <footer className="mt-10 md:mt-16">
       {/* Newsletter Banner */}
-      <section className="mx-4 md:mx-8 xl:mx-auto max-w-7xl rounded-[1.5rem] bg-[#111111] px-4 py-5 text-white md:rounded-[1.8rem] md:px-8 md:py-6">
+      <section className="mx-2 sm:mx-4 md:mx-8 xl:mx-auto max-w-7xl rounded-[1.5rem] bg-[#111111] px-4 py-5 text-white md:rounded-[1.8rem] md:px-8 md:py-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-[1.55rem] font-black uppercase leading-[0.95] tracking-[-0.04em] md:text-4xl">
@@ -30,7 +30,7 @@ export function StoreFooter() {
       </section>
 
       {/* Main Footer Links */}
-      <section className="mx-4 md:mx-8 xl:mx-auto mt-8 max-w-7xl px-4 pb-4 md:mt-10 md:px-8">
+      <section className="mx-0 sm:mx-4 md:mx-8 xl:mx-auto mt-8 max-w-7xl px-2 sm:px-4 pb-4 md:mt-10 md:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-[1.6fr_1fr_1fr_1fr] md:gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 md:pr-4">

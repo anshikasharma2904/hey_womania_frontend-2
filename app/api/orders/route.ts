@@ -35,7 +35,12 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
-    return NextResponse.json(data, { status: res.status });
+    const nextRes = NextResponse.json(data, { status: res.status });
+    const setCookie = res.headers.get("set-cookie");
+    if (setCookie) {
+      nextRes.headers.set("set-cookie", setCookie);
+    }
+    return nextRes;
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

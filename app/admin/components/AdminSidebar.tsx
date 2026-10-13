@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const adminLinks = [
+  { label: "Orders Management", href: "/admin/orders" },
   { label: "Central Wallet", href: "/admin/central-wallet" },
   { label: "Zoho Inventory", href: "/admin/zoho-inventory" }
 ];

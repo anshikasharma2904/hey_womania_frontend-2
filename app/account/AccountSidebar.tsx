@@ -14,8 +14,10 @@ const accountLinks = [
 export function AccountSidebar() {
   const pathname = usePathname();
 
+  const isMainDashboard = pathname === "/account";
+
   return (
-    <section className="flex flex-col gap-6">
+    <section className={`flex flex-col gap-6 ${isMainDashboard ? "block" : "hidden md:flex"}`}>
       <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)]">
         <p className="text-xs uppercase tracking-[0.24em] text-[#5f5d3e]">
           My Account

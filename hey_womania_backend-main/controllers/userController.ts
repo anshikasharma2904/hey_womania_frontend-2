@@ -268,3 +268,160 @@ export const upgradeToPartner = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const addWalletBalance = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Please log in to add wallet balance." });
+    }
+
+    const { amount, paymentId } = req.body;
+    const addAmount = Number(amount);
+    if (!addAmount || addAmount <= 0) {
+      return res.status(400).json({ error: "Invalid amount. Must be greater than 0." });
+    }
+
+    const user = await User.findOne({ id: userId });
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (!user.partnerProfile) {
+      user.partnerProfile = {};
+    }
+    const currentBalance = Number(user.partnerProfile.walletBalance || 0);
+    user.partnerProfile.walletBalance = currentBalance + addAmount;
+    user.markModified("partnerProfile");
+    user.updatedAt = new Date().toISOString();
+    await user.save();
+
+    const { WalletTransaction } = await import("../models/WalletTransaction");
+    await WalletTransaction.create({
+      id: crypto.randomUUID(),
+      userId,
+      amount: addAmount,
+      type: "CREDIT",
+      source: "Other",
+      description: `Added ₹${addAmount} to shopping wallet ${paymentId ? `(Ref: ${paymentId})` : ""}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      walletBalance: user.partnerProfile.walletBalance,
+      message: `₹${addAmount.toLocaleString("en-IN")} added successfully to your shopping wallet!`
+    });
+  } catch (error) {
+    console.error("Add wallet balance error:", error);
+    return res.status(500).json({ error: "Failed to add wallet balance." });
+  }
+};
+
+export async function findOrCreateUserFromShipping(address: any, session?: any) {
+  if (!address || !address.phone) return null;
+
+  const rawPhone = String(address.phone || "").trim().replace(/[^0-9]/g, "");
+  const normalizedPhone = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+
+  if (!normalizedPhone || normalizedPhone.length < 10) return null;
+
+  let user = await User.findOne({
+    $or: [{ phone: normalizedPhone }, { phone: `+91${normalizedPhone}` }, { phone: address.phone }]
+  }).session(session || null);
+
+  const fullName = String(address.fullName || address.name || "").trim();
+  const nameParts = fullName.split(" ");
+  const firstName = nameParts[0] || "Customer";
+  const lastName = nameParts.slice(1).join(" ") || "";
+  const now = new Date().toISOString();
+
+  const userAddressObj = {
+    id: crypto.randomUUID(),
+    fullName: fullName || "Valued Customer",
+    phone: normalizedPhone,
+    streetAddress: address.streetAddress || address.street || "",
+    streetAddressLine2: address.streetAddressLine2 || "",
+    city: address.city || "",
+    state: address.state || "",
+    pincode: address.pincode || "",
+    isDefault: true,
+    createdAt: now
+  };
+
+  if (!user) {
+    const { hashPassword } = await import("../utils/authHelpers");
+    // Generate secure default customer password from phone
+    const defaultPassword = `HW@${normalizedPhone.slice(-4)}${crypto.randomBytes(2).toString("hex")}`;
+    const passwordHash = await hashPassword(defaultPassword);
+
+    const prefix = firstName.replace(/[^a-z0-9]/gi, "").slice(0, 4).toUpperCase() || "HEY";
+    const referralCode = `${prefix}${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+
+    user = new User({
+      id: crypto.randomUUID(),
+      firstName,
+      lastName,
+      name: fullName || `${firstName} ${lastName}`.trim(),
+      email: address.email ? String(address.email).toLowerCase().trim() : undefined,
+      phone: normalizedPhone,
+      passwordHash,
+      plainPassword: defaultPassword,
+      role: "member",
+      verified: true,
+      rank: "",
+      referralCode,
+      teamIds: [],
+      address: {
+        streetAddress: userAddressObj.streetAddress,
+        streetAddressLine2: userAddressObj.streetAddressLine2,
+        city: userAddressObj.city,
+        state: userAddressObj.state,
+        pincode: userAddressObj.pincode
+      },
+      addresses: [userAddressObj],
+      createdAt: now,
+      updatedAt: now,
+      partnerProfile: {
+        walletBalance: 100,
+        networkWalletBalance: 0
+      }
+    });
+
+    const defaultUpline = await User.findOne({ id: DEFAULT_UPLINE_ID }).session(session || null);
+    if (defaultUpline && defaultUpline.id !== user.id) {
+      user.uplineId = defaultUpline.id;
+      user.ancestors = [...(defaultUpline.ancestors || []), defaultUpline.id];
+      if (!defaultUpline.teamIds) defaultUpline.teamIds = [];
+      defaultUpline.teamIds.push(user.id);
+      await defaultUpline.save({ session: session || undefined });
+    }
+
+    await user.save({ session: session || undefined });
+  } else {
+    if (!user.addresses) {
+      (user as any).addresses = [];
+    }
+
+    const hasMatchingAddress = user.addresses.some(
+      (a: any) =>
+        a.pincode === userAddressObj.pincode &&
+        (a.streetAddress || "").toLowerCase().trim() === (userAddressObj.streetAddress || "").toLowerCase().trim()
+    );
+
+    if (!hasMatchingAddress) {
+      user.addresses.push(userAddressObj as any);
+      user.address = {
+        streetAddress: userAddressObj.streetAddress,
+        streetAddressLine2: userAddressObj.streetAddressLine2,
+        city: userAddressObj.city,
+        state: userAddressObj.state,
+        pincode: userAddressObj.pincode
+      };
+      user.updatedAt = now;
+      await user.save({ session: session || undefined });
+    }
+  }
+
+  return user;
+}

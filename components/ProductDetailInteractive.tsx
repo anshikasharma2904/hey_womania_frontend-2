@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { ProductOptionsClient } from "./ProductOptionsClient";
-import { formatCoOrd } from "@/lib/format-utils";
+import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
 
 interface Variant {
   sku?: string;
@@ -36,6 +36,7 @@ export function ProductDetailInteractive({ product, customerReferralCode }: Prod
       (v) =>
         v.color &&
         !["DEFAULT", "QTY", "BOX", "PCS"].includes(v.color.toUpperCase()) &&
+        !isSizeValue(v.color) &&
         v.images &&
         v.images.length > 0
     );
@@ -138,20 +139,6 @@ export function ProductDetailInteractive({ product, customerReferralCode }: Prod
           occasion styling.
         </p>
 
-        <div className="mt-7 flex flex-wrap gap-2">
-          {["Dress", "Slim", "Layer", "Curve"].map((tag) => (
-            <span
-              key={tag}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] ${
-                tag === "Layer"
-                  ? "bg-[#111111] text-white"
-                  : "bg-[#f4efe8] text-[#6d655d]"
-              }`}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
 
         {/* Options Client Component */}
         <ProductOptionsClient

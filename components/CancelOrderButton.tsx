@@ -42,7 +42,7 @@ export function CancelOrderButton({ orderId, currentStatus }: { orderId: string,
     <button
       onClick={handleCancel}
       disabled={isCancelling}
-      className="mt-4 sm:mt-0 sm:ml-4 inline-flex items-center justify-center rounded-full border-2 border-[#ef6f63] bg-transparent px-5 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#ef6f63] transition-all hover:bg-[#ef6f63] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center justify-center rounded-full border-2 border-[#ef6f63] bg-transparent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-[#ef6f63] transition-all hover:bg-[#ef6f63] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
     >
       {isCancelling ? "Cancelling..." : "Cancel Order"}
     </button>

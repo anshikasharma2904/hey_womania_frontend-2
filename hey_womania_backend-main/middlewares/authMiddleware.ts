@@ -76,9 +76,9 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
   }
   let payload = token ? verifySessionToken(token) : null;
 
-  // 2. If no valid Bearer token, check the admin session cookie
-  if (!payload && req.cookies && req.cookies[ADMIN_SESSION_COOKIE_NAME]) {
-    token = req.cookies[ADMIN_SESSION_COOKIE_NAME];
+  // 2. If no valid Bearer token, check the admin session cookie or main session cookie
+  if (!payload && req.cookies && (req.cookies[ADMIN_SESSION_COOKIE_NAME] || req.cookies[SESSION_COOKIE_NAME])) {
+    token = req.cookies[ADMIN_SESSION_COOKIE_NAME] || req.cookies[SESSION_COOKIE_NAME];
     payload = token ? verifySessionToken(token) : null;
   }
 

@@ -38,8 +38,8 @@ export default async function OrdersPage() {
   const allOrders = await fetchOrders() || [];
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-6 shadow-[0_18px_40px_rgba(91,77,57,0.06)] md:p-8">
+    <section className="flex flex-col gap-6 w-full">
+      <div className="rounded-[1.5rem] md:rounded-[2rem] border border-[#cac7b9]/50 bg-white/70 p-4 sm:p-6 md:p-8 shadow-[0_18px_40px_rgba(91,77,57,0.06)]">
         <p className="text-xs uppercase tracking-[0.22em] text-[#5f5d3e]">
           Order History
         </p>
@@ -68,16 +68,40 @@ export default async function OrdersPage() {
                   key={order.id}
                   className="group flex flex-col gap-4 rounded-[1.5rem] border border-[#e8e2d9] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#cfae9d] hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-bold text-[#1c1c19] transition-colors group-hover:text-[#9c4049]">{productTitle}</p>
-                      <span className="rounded-md bg-[#f6f3ee] px-2 py-0.5 text-[10px] font-semibold text-[#8b837b]">
-                        Qty: {totalQuantity}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between border-b border-[#f2ede7] pb-3 mb-3">
+                      <div>
+                        <p className="text-xs font-semibold text-[#8b837b]">
+                          Order <span className="font-bold text-[#1c1c19]">#{order.orderNumber}</span> • {order.date}
+                        </p>
+                      </div>
+                      <span className="rounded-md bg-[#f6f3ee] px-2.5 py-0.5 text-[11px] font-bold text-[#5f5d3e]">
+                        {totalQuantity} {totalQuantity === 1 ? "Item" : "Items"}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-[#6d655d]">
-                      Order {order.orderNumber} • Placed on {order.date}
-                    </p>
+
+                    {/* All Products in Order */}
+                    <div className="flex flex-col gap-2.5">
+                      {orderItems.map((item: any, i: number) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-lg bg-[#f0ede8] overflow-hidden shrink-0 border border-[#e8e2d9]/60">
+                            <img
+                              src={item.img || item.image || "/products/product-traditional-1.png"}
+                              alt={item.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-bold text-[#1c1c19] truncate group-hover:text-[#9c4049] transition-colors">
+                              {item.name}
+                            </p>
+                            <p className="text-[11px] text-[#6d655d]">
+                              Qty: {item.qty || item.quantity || 1} • <span className="font-semibold text-[#1c1c19]">{typeof item.price === "number" ? `₹${item.price.toLocaleString("en-IN")}` : item.price}</span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   
                   <div className="flex flex-row-reverse items-center justify-between gap-6 sm:flex-col sm:items-end sm:gap-2">
