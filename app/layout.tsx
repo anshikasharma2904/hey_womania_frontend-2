@@ -6,7 +6,6 @@ import { MainNavbar } from "@/components/MainNavbar";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
-import { PromoPopup } from "@/components/PromoPopup";
 import { SurpriseGiftModal } from "@/components/SurpriseGiftModal";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
@@ -105,7 +104,6 @@ export default function RootLayout({
               <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
             </footer>
             <LatestOffersWidget />
-            <PromoPopup />
             <SurpriseGiftModal />
             <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:scale-110 transition-transform">
               <span className="sr-only">Talk to stylist on WhatsApp</span>
