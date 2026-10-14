@@ -84,6 +84,8 @@ export default function CheckoutPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [hasPastOrders, setHasPastOrders] = useState<boolean>(false);
   const [appliedCoupon, setAppliedCoupon] = useState<string>("");
+  const [promoInput, setPromoInput] = useState<string>("");
+  const [promoStatusMsg, setPromoStatusMsg] = useState<{ text: string; isError: boolean } | null>(null);
 
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
@@ -273,6 +275,47 @@ export default function CheckoutPage() {
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleApplyCheckoutPromo = async (codeToUse?: string) => {
+    const code = (codeToUse || promoInput).trim().toUpperCase();
+    if (!code) {
+      setPromoStatusMsg({ text: "Please enter a promo code", isError: true });
+      return;
+    }
+
+    if (code !== "WELCOME100") {
+      setPromoStatusMsg({ text: "Invalid promo code.", isError: true });
+      return;
+    }
+
+    if (hasPastOrders) {
+      setPromoStatusMsg({ text: "WELCOME100 is valid only on your first order.", isError: true });
+      return;
+    }
+
+    const normalized = activePhone.length > 10 ? activePhone.slice(-10) : activePhone;
+    if (normalized.length === 10) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`);
+        const data = await res.json();
+        if (data && data.eligible === false) {
+          setPhoneHasPastOrders(true);
+          setPromoStatusMsg({ text: data.message || "WELCOME100 is valid only on your first purchase.", isError: true });
+          setAppliedCoupon("");
+          localStorage.removeItem("hey_womania_promo");
+          return;
+        }
+      } catch (err) {
+        console.error("Promo eligibility error:", err);
+      }
+    }
+
+    setAppliedCoupon("WELCOME100");
+    setPromoInput("WELCOME100");
+    setPromoStatusMsg({ text: "WELCOME100 applied! ₹100 discount applied to order.", isError: false });
+    localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
   };
 
   const loadRazorpayCheckout = () => {
@@ -989,12 +1032,77 @@ export default function CheckoutPage() {
                     <span className="font-bold">FREE (₹0)</span>
                   </div>
                 )}
+                {/* Checkout Promo Code Input */}
+                <div className="pt-2 pb-1 border-t border-[#ece6df]">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleApplyCheckoutPromo();
+                        }
+                      }}
+                      placeholder="Promo code (e.g. WELCOME100)"
+                      className="min-w-0 flex-1 rounded-xl border border-[#ddd5cc] bg-[#fcf9f4] px-3.5 py-2 text-xs outline-none placeholder:text-[#9b948d] font-mono tracking-wider focus:border-[#9c4049]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCheckoutPromo}
+                      className="rounded-xl bg-[#111111] px-4 py-2 text-xs font-semibold text-white hover:bg-[#9c4049] transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+
+                  {/* Quick-apply helper button for first purchase */}
+                  {isEligibleForWelcome && appliedCoupon !== "WELCOME100" && (
+                    <button
+                      type="button"
+                      onClick={() => handleApplyCheckoutPromo("WELCOME100")}
+                      className="mt-2 w-full text-left rounded-xl border border-dashed border-[#9c4049]/40 bg-[#fdf5f5] p-2 flex items-center justify-between gap-2 hover:bg-[#fcebeb] transition-colors group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs">🎉</span>
+                        <span className="text-[11px] leading-tight text-[#1c1c19] truncate">
+                          <span className="font-bold text-[#9c4049]">WELCOME100</span>: Flat ₹100 OFF for first purchase
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#9c4049] group-hover:underline">
+                        Apply
+                      </span>
+                    </button>
+                  )}
+
+                  {promoStatusMsg && (
+                    <p className={`mt-1.5 text-[11px] font-medium ${promoStatusMsg.isError ? "text-red-600" : "text-emerald-700"}`}>
+                      {promoStatusMsg.text}
+                    </p>
+                  )}
+                </div>
+
                 {couponDiscount > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium">
+                  <div className="flex justify-between items-center text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium">
                     <span className="flex items-center gap-1">
                       <span>🏷️</span> Promo Discount ({appliedCoupon})
                     </span>
-                    <span className="font-bold">-₹{couponDiscount.toLocaleString("en-IN")}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">-₹{couponDiscount.toLocaleString("en-IN")}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppliedCoupon("");
+                          setPromoStatusMsg(null);
+                          setPromoInput("");
+                          localStorage.removeItem("hey_womania_promo");
+                        }}
+                        className="text-[10px] text-red-600 hover:underline font-bold ml-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-between">
