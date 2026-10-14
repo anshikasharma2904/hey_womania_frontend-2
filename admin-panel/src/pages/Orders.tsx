@@ -150,8 +150,15 @@ export default function Orders() {
                     <td className="p-4">
                       <div className="flex flex-col gap-1.5 max-w-[280px]">
                         {(order.items || []).map((item: any, idx: number) => {
-                          const img = item.img || (item.images && item.images[0]);
-                          const isGift = Boolean(item.isFreeGift || item.sku === 'SURPRISE-GIFT' || item.productId === 'surprise-gift');
+                          const isGift = Boolean(
+                            item.isFreeGift ||
+                            item.sku === 'SURPRISE-GIFT' ||
+                            item.productId === 'surprise-gift' ||
+                            String(item.name || item.title || '').toLowerCase().includes('surprise gift')
+                          );
+                          const img = isGift
+                            ? (item.img && !item.img.startsWith('/') ? item.img : '/surprise-gift-box.jpg')
+                            : (item.img || (item.images && item.images[0]));
                           return (
                             <div key={idx} className="flex items-center gap-2 text-xs">
                               {img ? (
@@ -159,6 +166,22 @@ export default function Orders() {
                                   src={img}
                                   alt={item.name || 'Product'}
                                   className="w-9 h-9 object-cover rounded-md border border-gray-200 shrink-0 bg-gray-50"
+                                  onError={(e: any) => {
+                                    if (isGift) {
+                                      e.currentTarget.src = 'https://raw.githubusercontent.com/anshikasharma2904/hey_womania_frontend-2/main/public/surprise-gift-box.jpg';
+                                    } else {
+                                      e.currentTarget.style.display = 'none';
+                                    }
+                                  }}
+                                />
+                              ) : isGift ? (
+                                <img
+                                  src="/surprise-gift-box.jpg"
+                                  alt="Surprise Gift"
+                                  className="w-9 h-9 object-cover rounded-md border border-gray-200 shrink-0 bg-gray-50"
+                                  onError={(e: any) => {
+                                    e.currentTarget.src = 'https://raw.githubusercontent.com/anshikasharma2904/hey_womania_frontend-2/main/public/surprise-gift-box.jpg';
+                                  }}
                                 />
                               ) : (
                                 <div className="w-9 h-9 bg-gray-100 rounded-md flex items-center justify-center text-[9px] text-gray-400 shrink-0">
@@ -365,8 +388,15 @@ export default function Orders() {
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {viewOrder.items.map((item: any, i: number) => {
-                          const itemImg = item.img || (item.images && item.images[0]) || '';
-                          const isGift = Boolean(item.isFreeGift || item.sku === 'SURPRISE-GIFT' || item.productId === 'surprise-gift');
+                          const isGift = Boolean(
+                            item.isFreeGift ||
+                            item.sku === 'SURPRISE-GIFT' ||
+                            item.productId === 'surprise-gift' ||
+                            String(item.name || item.title || '').toLowerCase().includes('surprise gift')
+                          );
+                          const itemImg = isGift
+                            ? (item.img && !item.img.startsWith('/') ? item.img : '/surprise-gift-box.jpg')
+                            : (item.img || (item.images && item.images[0]) || '');
                           return (
                             <tr key={i} className="hover:bg-gray-50 transition-colors">
                               <td className="p-3">
@@ -376,6 +406,22 @@ export default function Orders() {
                                       src={itemImg}
                                       alt={item.name || 'Product'}
                                       className="w-14 h-14 object-cover rounded-lg border border-gray-200 shrink-0 bg-gray-50"
+                                      onError={(e: any) => {
+                                        if (isGift) {
+                                          e.currentTarget.src = 'https://raw.githubusercontent.com/anshikasharma2904/hey_womania_frontend-2/main/public/surprise-gift-box.jpg';
+                                        } else {
+                                          e.currentTarget.style.display = 'none';
+                                        }
+                                      }}
+                                    />
+                                  ) : isGift ? (
+                                    <img
+                                      src="/surprise-gift-box.jpg"
+                                      alt="Surprise Gift"
+                                      className="w-14 h-14 object-cover rounded-lg border border-gray-200 shrink-0 bg-gray-50"
+                                      onError={(e: any) => {
+                                        e.currentTarget.src = 'https://raw.githubusercontent.com/anshikasharma2904/hey_womania_frontend-2/main/public/surprise-gift-box.jpg';
+                                      }}
                                     />
                                   ) : (
                                     <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs font-semibold shrink-0">
