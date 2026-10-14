@@ -205,7 +205,9 @@ export default function Orders() {
                         })}
                       </div>
                     </td>
-                    <td className="p-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{order.total}</td>
+                    <td className="p-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      {order.total ? (order.total.toString().startsWith('₹') ? order.total : `₹${order.total}`) : '₹0'}
+                    </td>
                     <td className="p-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
