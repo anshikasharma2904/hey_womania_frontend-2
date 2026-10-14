@@ -90,17 +90,8 @@ export default function CheckoutPage() {
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedPromo = localStorage.getItem("hey_womania_promo");
-      if (savedPromo) {
-        try {
-          const parsed = JSON.parse(savedPromo);
-          if (parsed.code === "WELCOME100") {
-            setAppliedCoupon("WELCOME100");
-          }
-        } catch (e) {
-          console.error("Failed to parse saved promo", e);
-        }
-      }
+      // Clear any legacy auto-applied promos from localStorage so phone verification is required
+      localStorage.removeItem("hey_womania_promo");
 
       const stored = localStorage.getItem("hey_womania_cart");
       if (stored) {
@@ -264,7 +255,8 @@ export default function CheckoutPage() {
     }
   }, [activePhone, appliedCoupon]);
 
-  const isEligibleForWelcome = !hasPastOrders && !phoneHasPastOrders;
+  const isPhoneValid = activePhone.length >= 10;
+  const isEligibleForWelcome = isPhoneValid && !hasPastOrders && !phoneHasPastOrders;
   const walletDiscount = (isEligibleForWelcome && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
   const couponDiscount = (isEligibleForWelcome && appliedCoupon === "WELCOME100") ? Math.min(100, subtotal) : 0;
 
@@ -289,27 +281,30 @@ export default function CheckoutPage() {
       return;
     }
 
+    const normalized = activePhone.length > 10 ? activePhone.slice(-10) : activePhone;
+    if (!normalized || normalized.length < 10) {
+      setPromoStatusMsg({ text: "Please enter your 10-digit phone number in the shipping address first to verify eligibility.", isError: true });
+      return;
+    }
+
     if (hasPastOrders) {
       setPromoStatusMsg({ text: "WELCOME100 is valid only on your first order.", isError: true });
       return;
     }
 
-    const normalized = activePhone.length > 10 ? activePhone.slice(-10) : activePhone;
-    if (normalized.length === 10) {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`);
-        const data = await res.json();
-        if (data && data.eligible === false) {
-          setPhoneHasPastOrders(true);
-          setPromoStatusMsg({ text: data.message || "WELCOME100 is valid only on your first purchase.", isError: true });
-          setAppliedCoupon("");
-          localStorage.removeItem("hey_womania_promo");
-          return;
-        }
-      } catch (err) {
-        console.error("Promo eligibility error:", err);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`);
+      const data = await res.json();
+      if (data && data.eligible === false) {
+        setPhoneHasPastOrders(true);
+        setPromoStatusMsg({ text: data.message || "WELCOME100 is valid only on your first purchase.", isError: true });
+        setAppliedCoupon("");
+        localStorage.removeItem("hey_womania_promo");
+        return;
       }
+    } catch (err) {
+      console.error("Promo eligibility error:", err);
     }
 
     setAppliedCoupon("WELCOME100");
