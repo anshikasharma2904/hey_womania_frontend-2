@@ -473,14 +473,6 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-xl border border-dashed border-[#9c4049]/30 bg-[#fdfaf7] p-3 text-xs text-[#6d655d]">
-                  <p className="flex items-center gap-1.5 font-semibold text-[#9c4049] text-[11px]">
-                    <span>🏷️</span> Have a Coupon or WELCOME100?
-                  </p>
-                  <p className="text-[10px] text-[#8b837b] mt-1 leading-relaxed">
-                    Coupons and first-order offers will be verified and applied during checkout with your shipping details.
-                  </p>
-                </div>
 
                 {cartItems.some(item => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) ? (
                   <button
