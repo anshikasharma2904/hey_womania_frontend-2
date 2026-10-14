@@ -269,8 +269,9 @@ export default function CheckoutPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleApplyCheckoutPromo = async (codeToUse?: string) => {
-    const code = (codeToUse || promoInput).trim().toUpperCase();
+  const handleApplyCheckoutPromo = async (codeToUse?: string | any) => {
+    const rawVal = typeof codeToUse === "string" ? codeToUse : promoInput;
+    const code = String(rawVal || "").trim().toUpperCase();
     if (!code) {
       setPromoStatusMsg({ text: "Please enter a promo code", isError: true });
       return;
@@ -1045,7 +1046,7 @@ export default function CheckoutPage() {
                     />
                     <button
                       type="button"
-                      onClick={handleApplyCheckoutPromo}
+                      onClick={() => handleApplyCheckoutPromo()}
                       className="rounded-xl bg-[#111111] px-4 py-2 text-xs font-semibold text-white hover:bg-[#9c4049] transition-colors"
                     >
                       Apply
