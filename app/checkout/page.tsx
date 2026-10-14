@@ -234,9 +234,37 @@ export default function CheckoutPage() {
   const subtotal = Math.round(cartItems.reduce((acc, item) => acc + (Math.round(item.salePrice) * item.quantity), 0));
   const isFreeDelivery = subtotal >= 999;
   const shippingAmount = subtotal > 0 ? (isFreeDelivery ? 0 : shiprocketRate) : 0;
-  const walletDiscount = (!hasPastOrders && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
+  const activePhone = (selectedAddressId === "new"
+    ? formData.phone
+    : savedAddresses.find((a) => a._id === selectedAddressId || a.id === selectedAddressId)?.phone || formData.phone || ""
+  ).replace(/[^0-9]/g, "");
 
-  const couponDiscount = (!hasPastOrders && appliedCoupon === "WELCOME100") ? Math.min(100, subtotal) : 0;
+  const [phoneHasPastOrders, setPhoneHasPastOrders] = useState(false);
+
+  useEffect(() => {
+    const normalized = activePhone.length > 10 ? activePhone.slice(-10) : activePhone;
+    if (normalized.length === 10) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.eligible === false) {
+            setPhoneHasPastOrders(true);
+            if (appliedCoupon === "WELCOME100") {
+              setAppliedCoupon("");
+              localStorage.removeItem("hey_womania_promo");
+            }
+          } else {
+            setPhoneHasPastOrders(false);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activePhone, appliedCoupon]);
+
+  const isEligibleForWelcome = !hasPastOrders && !phoneHasPastOrders;
+  const walletDiscount = (isEligibleForWelcome && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
+  const couponDiscount = (isEligibleForWelcome && appliedCoupon === "WELCOME100") ? Math.min(100, subtotal) : 0;
 
   const remainingTotalBeforeNetwork = Math.max(0, subtotal + shippingAmount - walletDiscount - couponDiscount);
   const networkWalletDiscount = useNetworkWallet ? Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork)) : 0;
@@ -363,7 +391,8 @@ export default function CheckoutPage() {
         useNetworkWallet: useNetworkWallet,
         deliveryFee: payload.deliveryFee,
         couponCode: payload.couponCode,
-        paymentMethod: payload.paymentMethod
+        paymentMethod: payload.paymentMethod,
+        address: payload.address
       })
     });
 

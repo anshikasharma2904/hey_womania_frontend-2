@@ -76,11 +76,40 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     const rawCouponCode = String(req.body.couponCode || "").trim().toUpperCase();
     if (rawCouponCode === "WELCOME100") {
       let isFirstTime = true;
-      if (userId !== "guest-user") {
+      const recipientPhone = String(req.body.address?.phone || req.body.phone || "").trim().replace(/[^0-9]/g, "");
+      const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
+
+      const pastOrderFilters: any[] = [];
+      if (userId && userId !== "guest-user") {
+        pastOrderFilters.push({ userId });
+      }
+      if (normalizedPhone && normalizedPhone.length >= 10) {
+        pastOrderFilters.push({ "address.phone": normalizedPhone });
+        pastOrderFilters.push({ "address.phone": `+91${normalizedPhone}` });
+        pastOrderFilters.push({ "address.phone": `91${normalizedPhone}` });
+
+        const existingUserWithPhone = await User.findOne({
+          $or: [
+            { phone: normalizedPhone },
+            { phone: `+91${normalizedPhone}` },
+            { phone: `91${normalizedPhone}` }
+          ]
+        });
+
+        if (existingUserWithPhone) {
+          pastOrderFilters.push({ userId: existingUserWithPhone.id });
+        }
+      }
+
+      if (pastOrderFilters.length > 0) {
         const { Order } = await import("../models/Order");
-        const pastOrderCount = await Order.countDocuments({ userId: userId });
+        const pastOrderCount = await Order.countDocuments({
+          $or: pastOrderFilters,
+          status: { $ne: "Cancelled" }
+        });
         isFirstTime = pastOrderCount === 0;
       }
+
       if (isFirstTime) {
         couponDiscount = Math.min(100, subtotal);
       }

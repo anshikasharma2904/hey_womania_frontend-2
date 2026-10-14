@@ -247,8 +247,36 @@ export const createOrder = async (req: Request, res: Response) => {
 
       if (rawCouponCode === "WELCOME100") {
         let isFirstTimeCustomer = true;
-        if (userId !== "guest-user") {
-          const pastOrderCount = await Order.countDocuments({ userId: userId }).session(session);
+        const recipientPhone = String(address?.phone || "").trim().replace(/[^0-9]/g, "");
+        const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
+
+        const pastOrderFilters: any[] = [];
+        if (userId && userId !== "guest-user") {
+          pastOrderFilters.push({ userId });
+        }
+        if (normalizedPhone && normalizedPhone.length >= 10) {
+          pastOrderFilters.push({ "address.phone": normalizedPhone });
+          pastOrderFilters.push({ "address.phone": `+91${normalizedPhone}` });
+          pastOrderFilters.push({ "address.phone": `91${normalizedPhone}` });
+
+          const existingUserWithPhone = await User.findOne({
+            $or: [
+              { phone: normalizedPhone },
+              { phone: `+91${normalizedPhone}` },
+              { phone: `91${normalizedPhone}` }
+            ]
+          }).session(session);
+
+          if (existingUserWithPhone) {
+            pastOrderFilters.push({ userId: existingUserWithPhone.id });
+          }
+        }
+
+        if (pastOrderFilters.length > 0) {
+          const pastOrderCount = await Order.countDocuments({
+            $or: pastOrderFilters,
+            status: { $ne: "Cancelled" }
+          }).session(session);
           isFirstTimeCustomer = pastOrderCount === 0;
         }
 
@@ -514,6 +542,80 @@ export const returnOrder = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error returning order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Check if a promo code (like WELCOME100) is eligible for a given user or shipping phone.
+ * Prevents guest and repeat users from abusing the first-time welcome coupon.
+ */
+export const checkPromoEligibility = async (req: Request, res: Response) => {
+  try {
+    const rawCoupon = String(req.query.code || req.body.code || "").trim().toUpperCase();
+    const phone = String(req.query.phone || req.body.phone || "").trim().replace(/[^0-9]/g, "");
+    // @ts-ignore
+    const userId = req.user?.id;
+
+    if (!rawCoupon) {
+      return res.status(400).json({ eligible: false, message: "Promo code is required." });
+    }
+
+    if (rawCoupon !== "WELCOME100") {
+      return res.status(400).json({ eligible: false, message: "Invalid promo code." });
+    }
+
+    const normalizedPhone = phone.length > 10 ? phone.slice(-10) : phone;
+
+    // Build query conditions to detect existing orders
+    const pastOrderConditions: any[] = [];
+
+    if (userId && userId !== "guest-user") {
+      pastOrderConditions.push({ userId });
+    }
+
+    if (normalizedPhone && normalizedPhone.length >= 10) {
+      pastOrderConditions.push({ "address.phone": normalizedPhone });
+      pastOrderConditions.push({ "address.phone": `+91${normalizedPhone}` });
+      pastOrderConditions.push({ "address.phone": `91${normalizedPhone}` });
+
+      const existingUser = await User.findOne({
+        $or: [
+          { phone: normalizedPhone },
+          { phone: `+91${normalizedPhone}` },
+          { phone: `91${normalizedPhone}` }
+        ]
+      });
+
+      if (existingUser) {
+        pastOrderConditions.push({ userId: existingUser.id });
+      }
+    }
+
+    if (pastOrderConditions.length > 0) {
+      const pastOrdersCount = await Order.countDocuments({
+        $or: pastOrderConditions,
+        status: { $ne: "Cancelled" }
+      });
+
+      if (pastOrdersCount > 0) {
+        return res.json({
+          eligible: false,
+          code: "WELCOME100",
+          discount: 0,
+          message: "WELCOME100 is valid only on your first purchase."
+        });
+      }
+    }
+
+    return res.json({
+      eligible: true,
+      code: "WELCOME100",
+      discount: 100,
+      message: "Coupon WELCOME100 applied successfully! ₹100 saved."
+    });
+  } catch (error) {
+    console.error("Error checking promo eligibility:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

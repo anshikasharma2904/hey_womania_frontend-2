@@ -225,13 +225,35 @@ export default function CartPage() {
         setPromoMessage({ text: "WELCOME100 is valid only on your first order", isError: true });
         return;
       }
-      setAppliedPromo("WELCOME100");
-      setPromoDiscount(100);
-      setPromoInput("WELCOME100");
-      setPromoMessage({ text: "Coupon WELCOME100 applied successfully! ₹100 saved.", isError: false });
-      localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
-      localStorage.setItem("hey_womania_welcome100_seen", "true");
-      setShowWelcomeModal(false);
+
+      // Check server eligibility if user session exists
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.eligible === false) {
+            setPromoMessage({ text: data.message || "WELCOME100 is valid only on your first order.", isError: true });
+            setAppliedPromo("");
+            localStorage.removeItem("hey_womania_promo");
+            return;
+          }
+          setAppliedPromo("WELCOME100");
+          setPromoDiscount(100);
+          setPromoInput("WELCOME100");
+          setPromoMessage({ text: "Coupon WELCOME100 applied successfully! ₹100 saved.", isError: false });
+          localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
+          localStorage.setItem("hey_womania_welcome100_seen", "true");
+          setShowWelcomeModal(false);
+        })
+        .catch(() => {
+          setAppliedPromo("WELCOME100");
+          setPromoDiscount(100);
+          setPromoInput("WELCOME100");
+          setPromoMessage({ text: "Coupon WELCOME100 applied successfully! ₹100 saved.", isError: false });
+          localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
+          localStorage.setItem("hey_womania_welcome100_seen", "true");
+          setShowWelcomeModal(false);
+        });
     } else {
       setPromoMessage({ text: "Invalid promo code. Use WELCOME100 for your first order.", isError: true });
     }
