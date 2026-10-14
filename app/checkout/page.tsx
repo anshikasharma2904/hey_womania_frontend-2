@@ -73,7 +73,7 @@ export default function CheckoutPage() {
   const [submitStatus, setSubmitStatus] = useState<string | "success">("");
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
-  
+
   const [shiprocketRate, setShiprocketRate] = useState(99);
   const [shippingError, setShippingError] = useState("");
 
@@ -83,17 +83,30 @@ export default function CheckoutPage() {
   const [useNetworkWallet, setUseNetworkWallet] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [hasPastOrders, setHasPastOrders] = useState<boolean>(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<string>("");
 
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const savedPromo = localStorage.getItem("hey_womania_promo");
+      if (savedPromo) {
+        try {
+          const parsed = JSON.parse(savedPromo);
+          if (parsed.code === "WELCOME100") {
+            setAppliedCoupon("WELCOME100");
+          }
+        } catch (e) {
+          console.error("Failed to parse saved promo", e);
+        }
+      }
+
       const stored = localStorage.getItem("hey_womania_cart");
       if (stored) {
         try {
           const parsedItems = JSON.parse(stored);
           const { cart: syncedItems } = syncCartWithSurpriseGift(parsedItems);
           setCartItems(syncedItems);
-          
+
           if (syncedItems.length > 0) {
             const totalVal = syncedItems.reduce((acc: number, item: any) => acc + ((item.salePrice || 0) * item.quantity), 0);
             trackMetaEvent("InitiateCheckout", {
@@ -175,16 +188,16 @@ export default function CheckoutPage() {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const res = await fetch(`${baseUrl}/api/shiprocket/serviceability?delivery_postcode=${activePincode}&weight=0.5`);
         const result = await res.json();
-        
+
         if (result.success && result.data?.data?.available_courier_companies) {
           const companies = result.data.data.available_courier_companies;
           if (companies.length > 0) {
             // Find the company with the lowest rate
-            const cheapestCompany = companies.reduce((prev: any, curr: any) => 
+            const cheapestCompany = companies.reduce((prev: any, curr: any) =>
               (prev.rate < curr.rate) ? prev : curr
             );
             setShiprocketRate(Math.round(cheapestCompany.rate));
-            
+
             if (cheapestCompany.estimated_delivery_days) {
               setDeliveryDays(`${cheapestCompany.estimated_delivery_days} days`);
             } else if (cheapestCompany.etd) {
@@ -222,11 +235,13 @@ export default function CheckoutPage() {
   const isFreeDelivery = subtotal >= 999;
   const shippingAmount = subtotal > 0 ? (isFreeDelivery ? 0 : shiprocketRate) : 0;
   const walletDiscount = (!hasPastOrders && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
-  
-  const remainingTotalBeforeNetwork = subtotal + shippingAmount - walletDiscount;
+
+  const couponDiscount = (!hasPastOrders && appliedCoupon === "WELCOME100") ? Math.min(100, subtotal) : 0;
+
+  const remainingTotalBeforeNetwork = Math.max(0, subtotal + shippingAmount - walletDiscount - couponDiscount);
   const networkWalletDiscount = useNetworkWallet ? Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork)) : 0;
-  
-  const grandTotal = remainingTotalBeforeNetwork - networkWalletDiscount;
+
+  const grandTotal = Math.max(0, remainingTotalBeforeNetwork - networkWalletDiscount);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -280,6 +295,8 @@ export default function CheckoutPage() {
       useWallet,
       useNetworkWallet,
       deliveryFee: shippingAmount,
+      couponCode: couponDiscount > 0 ? "WELCOME100" : "",
+      couponDiscount,
       total: `₹${grandTotal.toLocaleString("en-IN")}`,
       items: cartItems.map(item => ({
         productId: item.productId,
@@ -321,6 +338,7 @@ export default function CheckoutPage() {
     }
 
     localStorage.removeItem("hey_womania_cart");
+    localStorage.removeItem("hey_womania_promo");
     window.dispatchEvent(new Event("cart_updated"));
     setSubmitStatus("success");
     setTimeout(() => {
@@ -338,12 +356,13 @@ export default function CheckoutPage() {
     const orderResponse = await fetch("/api/razorpay/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         amount: grandTotal, // kept as fallback
         items: payload.items,
         useWallet: useWallet,
         useNetworkWallet: useNetworkWallet,
         deliveryFee: payload.deliveryFee,
+        couponCode: payload.couponCode,
         paymentMethod: payload.paymentMethod
       })
     });
@@ -429,7 +448,7 @@ export default function CheckoutPage() {
     try {
       setIsSubmitting(true);
       setSubmitStatus("");
-      
+
       const payload = modalPayload || buildOrderPayload();
 
       if (selectedAddressId === "new") {
@@ -510,11 +529,10 @@ export default function CheckoutPage() {
                   {savedAddresses.map((addr) => {
                     const id = addr._id || addr.id;
                     return (
-                      <div key={id} className={`flex items-start justify-between gap-2.5 sm:gap-3 border p-3 sm:p-4 rounded-xl transition w-full min-w-0 box-border ${
-                        selectedAddressId === id
+                      <div key={id} className={`flex items-start justify-between gap-2.5 sm:gap-3 border p-3 sm:p-4 rounded-xl transition w-full min-w-0 box-border ${selectedAddressId === id
                           ? "border-[#5f5d3e] bg-[#fcf9f4]"
                           : "border-[#e8e2d9]"
-                      }`}>
+                        }`}>
                         <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer flex-1 min-w-0">
                           <input
                             type="radio"
@@ -594,11 +612,10 @@ export default function CheckoutPage() {
                     );
                   })}
                   <label
-                    className={`flex items-center gap-3 border p-3.5 sm:p-4 rounded-xl cursor-pointer transition ${
-                      selectedAddressId === "new" && !editingAddressId
+                    className={`flex items-center gap-3 border p-3.5 sm:p-4 rounded-xl cursor-pointer transition ${selectedAddressId === "new" && !editingAddressId
                         ? "border-[#5f5d3e] bg-[#fcf9f4]"
                         : "border-[#e8e2d9] hover:border-[#5f5d3e]"
-                    }`}
+                      }`}
                     onClick={() => {
                       setEditingAddressId(null);
                       setFormData({
@@ -785,7 +802,7 @@ export default function CheckoutPage() {
                                 country: "India"
                               })
                             });
-                            
+
                             if (res.ok) {
                               const data = await res.json();
                               setSavedAddresses(data.user?.addresses || []);
@@ -803,7 +820,7 @@ export default function CheckoutPage() {
                       >
                         {isSavingAddress ? "Saving..." : "Save Address"}
                       </button>
-                      
+
                       <button
                         type="button"
                         onClick={() => {
@@ -824,9 +841,8 @@ export default function CheckoutPage() {
                   Payment Method
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
-                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${
-                    formData.paymentMethod === "cod" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
-                  }`}>
+                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${formData.paymentMethod === "cod" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
+                    }`}>
                     <input
                       type="radio"
                       name="payment"
@@ -841,9 +857,8 @@ export default function CheckoutPage() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${
-                    formData.paymentMethod === "online" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
-                  }`}>
+                  <label className={`flex items-center gap-3 border rounded-xl p-3.5 sm:p-4 cursor-pointer transition w-full min-w-0 box-border ${formData.paymentMethod === "online" ? "border-[#9c4049] bg-[#fff0f1]/20" : "border-[#e8e2d9]"
+                    }`}>
                     <input
                       type="radio"
                       name="payment"
@@ -868,8 +883,8 @@ export default function CheckoutPage() {
                 {isSubmitting
                   ? formData.paymentMethod === "online" ? "Opening Payment..." : "Placing Order..."
                   : shippingError
-                  ? "Address Not Serviceable"
-                  : formData.paymentMethod === "online" ? "Pay Securely" : "Place Order"}
+                    ? "Address Not Serviceable"
+                    : formData.paymentMethod === "online" ? "Pay Securely" : "Place Order"}
               </button>
 
               {submitStatus && submitStatus !== "success" && (
@@ -888,13 +903,12 @@ export default function CheckoutPage() {
                 {cartItems.map((item) => {
                   const isGift = Boolean(item.isFreeGift || item.sku === SURPRISE_GIFT_SKU);
                   return (
-                    <div 
-                      key={item.sku} 
-                      className={`flex gap-3 p-2 rounded-xl transition-all ${
-                        isGift 
-                          ? "bg-gradient-to-r from-[#fffcf8] via-[#fff8f0] to-[#fffcf8] border border-[#f0dfce] shadow-xs" 
+                    <div
+                      key={item.sku}
+                      className={`flex gap-3 p-2 rounded-xl transition-all ${isGift
+                          ? "bg-gradient-to-r from-[#fffcf8] via-[#fff8f0] to-[#fffcf8] border border-[#f0dfce] shadow-xs"
                           : ""
-                      }`}
+                        }`}
                     >
                       <div className="h-14 w-14 shrink-0 rounded-lg bg-[#f4efe8] overflow-hidden p-1 flex items-center justify-center relative border border-[#ece6df]">
                         <ImageWithFallback
@@ -910,13 +924,13 @@ export default function CheckoutPage() {
                           <h4 className="text-xs font-semibold text-[#1c1c19] truncate">{item.title}</h4>
                         </div>
                         <p className="text-[11px] text-[#8b837b]">
-                          {isGift 
-                            ? "Complimentary Reward • Qty: 1" 
+                          {isGift
+                            ? "Complimentary Reward • Qty: 1"
                             : [
-                                `Qty: ${item.quantity}`,
-                                formatItemSize(item.size, item.title) ? `Size: ${formatItemSize(item.size, item.title)}` : null,
-                                item.color && !["DEFAULT", "STANDARD"].includes(item.color.toUpperCase()) ? `Color: ${item.color}` : null
-                              ].filter(Boolean).join(" | ")}
+                              `Qty: ${item.quantity}`,
+                              formatItemSize(item.size, item.title) ? `Size: ${formatItemSize(item.size, item.title)}` : null,
+                              item.color && !["DEFAULT", "STANDARD"].includes(item.color.toUpperCase()) ? `Color: ${item.color}` : null
+                            ].filter(Boolean).join(" | ")}
                         </p>
                         <div className="flex justify-between items-center mt-1">
                           {isGift ? (
@@ -946,6 +960,14 @@ export default function CheckoutPage() {
                     <span className="font-bold">FREE (₹0)</span>
                   </div>
                 )}
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium">
+                    <span className="flex items-center gap-1">
+                      <span>🏷️</span> Promo Discount ({appliedCoupon})
+                    </span>
+                    <span className="font-bold">-₹{couponDiscount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Delivery</span>
                   <span>
@@ -972,7 +994,7 @@ export default function CheckoutPage() {
                     {shippingError}
                   </div>
                 )}
-                
+
                 {walletBalance > 0 && !hasPastOrders && (
                   <div className="flex flex-col py-2 border-t border-[#ece6df] mt-2">
                     <div className="flex justify-between items-center">
@@ -989,7 +1011,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {useWallet && walletDiscount > 0 && (
                   <div className="flex justify-between text-[#367743] font-semibold text-xs">
                     <span>Shopping Wallet Discount (max 5% of order value only for first purchase)</span>
@@ -1011,7 +1033,7 @@ export default function CheckoutPage() {
                     <span className="text-xs font-bold text-[#8b837b]">Available: ₹{networkWalletBalance}</span>
                   </div>
                 )}
-                
+
                 {useNetworkWallet && networkWalletDiscount > 0 && (
                   <div className="flex justify-between text-[#367743] font-semibold text-xs">
                     <span>Network Wallet Applied</span>
@@ -1029,7 +1051,7 @@ export default function CheckoutPage() {
         </section>
         <StoreFooter />
       </main>
-      
+
 
       <OrderConfirmationModal
         isOpen={isConfirmModalOpen}

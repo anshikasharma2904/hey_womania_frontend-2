@@ -10,6 +10,8 @@ export default function Orders() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState<any>(null);
 
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -46,9 +48,63 @@ export default function Orders() {
       .finally(() => setCancelLoading(false));
   };
 
+  const filteredOrders = orders.filter((order) => {
+    if (statusFilter === "ALL") return true;
+    if (statusFilter === "RETURNS") {
+      return order.status === "Return Requested" || order.status === "Returned" || order.status === "Refunded";
+    }
+    return (order.status || "Pending").toUpperCase() === statusFilter;
+  });
+
+  const returnCount = orders.filter(
+    (o) => o.status === "Return Requested" || o.status === "Returned" || o.status === "Refunded"
+  ).length;
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Order Management</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Order Management</h2>
+          <p className="text-sm text-gray-500">Track and manage all customer orders and returns</p>
+        </div>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
+        {[
+          { id: "ALL", label: "All Orders", count: orders.length },
+          { id: "RETURNS", label: "Returned / Return Requests", count: returnCount, highlight: true },
+          { id: "PENDING", label: "Pending", count: orders.filter(o => !o.status || o.status === "Pending").length },
+          { id: "SHIPPED", label: "Shipped", count: orders.filter(o => o.status === "Shipped").length },
+          { id: "DELIVERED", label: "Delivered", count: orders.filter(o => o.status === "Delivered").length },
+          { id: "CANCELLED", label: "Cancelled", count: orders.filter(o => o.status === "Cancelled").length },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setStatusFilter(tab.id)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-2 ${
+              statusFilter === tab.id
+                ? tab.highlight 
+                  ? 'bg-rose-600 text-white shadow-sm'
+                  : 'bg-gray-900 text-white shadow-sm'
+                : tab.highlight
+                  ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <span>{tab.label}</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              statusFilter === tab.id
+                ? 'bg-white/20 text-white'
+                : tab.highlight
+                  ? 'bg-rose-200 text-rose-800'
+                  : 'bg-gray-100 text-gray-600'
+            }`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -68,12 +124,12 @@ export default function Orders() {
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-500">Loading orders...</td>
                 </tr>
-              ) : orders.length === 0 ? (
+              ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">No orders found.</td>
+                  <td colSpan={7} className="p-8 text-center text-gray-500">No orders found for this status.</td>
                 </tr>
               ) : (
-                orders.map((order) => (
+                filteredOrders.map((order) => (
                   <tr key={order._id || order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 text-sm font-mono text-gray-900">
                       <div className="font-bold text-gray-900">#{order.orderNumber || (order.id ? order.id.slice(0, 8) : 'N/A')}</div>
@@ -132,6 +188,9 @@ export default function Orders() {
                         order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                         order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
                         order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                        order.status === 'Return Requested' ? 'bg-rose-100 text-rose-700 font-bold border border-rose-300' :
+                        order.status === 'Returned' ? 'bg-purple-100 text-purple-700 font-bold' :
+                        order.status === 'Refunded' ? 'bg-teal-100 text-teal-700 font-bold' :
                         'bg-amber-100 text-amber-700'
                       }`}>
                         {order.status || 'Pending'}
@@ -206,12 +265,53 @@ export default function Orders() {
             </div>
             
             <div className="p-6 space-y-6">
+              {/* Return Information Banner if returned */}
+              {(viewOrder.status === 'Return Requested' || viewOrder.status === 'Returned' || viewOrder.status === 'Refunded' || viewOrder.returnRequestedAt) && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-950">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-rose-800 flex items-center gap-1.5 uppercase text-xs tracking-wider">
+                      <span>🔄</span> Return Information
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-200 text-rose-900">
+                      {viewOrder.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {viewOrder.returnRequestedAt && (
+                      <p><span className="text-rose-700 font-semibold">Requested At:</span> {new Date(viewOrder.returnRequestedAt).toLocaleString()}</p>
+                    )}
+                    {viewOrder.returnReason && (
+                      <p><span className="text-rose-700 font-semibold">Reason:</span> {viewOrder.returnReason}</p>
+                    )}
+                    {viewOrder.returnShiprocketOrderId && (
+                      <p><span className="text-rose-700 font-semibold">Shiprocket Return Order ID:</span> <span className="font-mono">{viewOrder.returnShiprocketOrderId}</span></p>
+                    )}
+                    {viewOrder.returnAwb && (
+                      <p>
+                        <span className="text-rose-700 font-semibold">Return AWB:</span>{' '}
+                        <a 
+                          href={viewOrder.returnTrackingUrl || `https://shiprocket.co/tracking/${viewOrder.returnAwb}`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="font-mono font-bold text-rose-800 underline hover:text-rose-950"
+                        >
+                          {viewOrder.returnAwb} ↗
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">Order Information</h4>
                   <div className="space-y-1.5 text-sm">
                     <p className="break-all"><span className="text-gray-500">Order ID:</span> <span className="font-mono text-xs">{viewOrder.id || viewOrder._id}</span></p>
                     <p><span className="text-gray-500">Date:</span> {new Date(viewOrder.createdAt).toLocaleString()}</p>
+                    {viewOrder.deliveredAt && (
+                      <p><span className="text-emerald-700 font-semibold">Delivered At:</span> {new Date(viewOrder.deliveredAt).toLocaleString()}</p>
+                    )}
                     <p><span className="text-gray-500">Total Amount:</span> <span className="font-bold text-gray-900">{viewOrder.total}</span></p>
                     <p><span className="text-gray-500">Payment:</span> <span className="font-semibold uppercase">{viewOrder.paymentMode || viewOrder.paymentMethod || 'COD'}</span> ({viewOrder.paymentStatus || 'Pending'})</p>
                     <p>
@@ -220,6 +320,9 @@ export default function Orders() {
                         viewOrder.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                         viewOrder.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
                         viewOrder.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                        viewOrder.status === 'Return Requested' ? 'bg-rose-100 text-rose-700 font-bold border border-rose-300' :
+                        viewOrder.status === 'Returned' ? 'bg-purple-100 text-purple-700 font-bold' :
+                        viewOrder.status === 'Refunded' ? 'bg-teal-100 text-teal-700 font-bold' :
                         'bg-amber-100 text-amber-700'
                       }`}>
                         {viewOrder.status || 'Pending'}

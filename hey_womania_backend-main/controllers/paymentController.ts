@@ -54,17 +54,17 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     if (userId !== "guest-user") {
       const user = await User.findOne({ id: userId });
       if (user && user.partnerProfile) {
-        
+
         if (useWallet && user.partnerProfile.walletBalance > 0) {
           const { Order } = await import("../models/Order");
           const pastOrderCount = await Order.countDocuments({ userId: userId });
-          
+
           if (pastOrderCount === 0) {
             const maxDiscount = subtotal * 0.05;
             walletDiscount = Math.floor(Math.min(user.partnerProfile.walletBalance, maxDiscount));
           }
         }
-        
+
         if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
           const remainingTotal = subtotal + deliveryFee - walletDiscount;
           networkWalletDiscount = Math.floor(Math.min(user.partnerProfile.networkWalletBalance, remainingTotal));
@@ -72,7 +72,21 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
       }
     }
 
-    let amount = subtotal + deliveryFee - walletDiscount - networkWalletDiscount;
+    let couponDiscount = 0;
+    const rawCouponCode = String(req.body.couponCode || "").trim().toUpperCase();
+    if (rawCouponCode === "WELCOME100") {
+      let isFirstTime = true;
+      if (userId !== "guest-user") {
+        const { Order } = await import("../models/Order");
+        const pastOrderCount = await Order.countDocuments({ userId: userId });
+        isFirstTime = pastOrderCount === 0;
+      }
+      if (isFirstTime) {
+        couponDiscount = Math.min(100, subtotal);
+      }
+    }
+
+    let amount = Math.max(0, subtotal + deliveryFee - walletDiscount - networkWalletDiscount - couponDiscount);
 
     // COD orders require a mandatory Rs 100 upfront payment online
     if (String(req.body.paymentMethod || "").toLowerCase() === "cod") {

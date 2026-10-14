@@ -8,11 +8,13 @@ const orderSchema = new mongoose.Schema({
   total: String,
   walletDiscount: { type: Number, default: 0 },
   networkWalletDiscount: { type: Number, default: 0 },
+  couponCode: { type: String, default: "" },
+  couponDiscount: { type: Number, default: 0 },
   sellPoints: { type: Number, default: 0 },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: [
-      "Pending", "Confirmed", "Packed", "Shipped", "Out for Delivery", 
+      "Pending", "Confirmed", "Packed", "Shipped", "Out for Delivery",
       "Delivered", "Cancelled", "Return Requested", "Returned", "Refunded"
     ],
     default: "Pending"
@@ -61,6 +63,14 @@ const orderSchema = new mongoose.Schema({
   }],
   createdAt: String,
   deliveredAt: String,
+  returnRequestedAt: String,
+  returnReason: String,
+  returnShiprocketOrderId: String,
+  returnShiprocketShipmentId: String,
+  returnAwb: String,
+  returnTrackingUrl: String,
+  firstOrderBonusCredited: { type: Boolean, default: false },
+  firstOrderBonusAmount: { type: Number, default: 0 },
   commissionClawedBack: { type: Boolean, default: false },
 }, { collection: "orders" });
 

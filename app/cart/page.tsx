@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { StoreFooter } from "@/components/StoreFooter";
 import ImageWithFallback from "@/components/ImageWithFallback";
-import { FaTrash, FaMinus, FaPlus, FaWhatsapp, FaThumbsUp, FaThumbsDown, FaHeart, FaStar, FaSmile, FaFire, FaGift } from "react-icons/fa";
+import { FaTrash, FaMinus, FaPlus, FaWhatsapp, FaThumbsUp, FaThumbsDown, FaHeart, FaStar, FaSmile, FaFire, FaGift, FaTag, FaCheckCircle } from "react-icons/fa";
 import { SURPRISE_GIFT_SKU, SURPRISE_GIFT_ITEM, syncCartWithSurpriseGift, CartItem } from "@/lib/surpriseGift";
 import { formatItemSize } from "@/lib/format-utils";
+import { WelcomePromoModal } from "@/components/WelcomePromoModal";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -18,9 +19,56 @@ export default function CartPage() {
   const [loadingCrossSell, setLoadingCrossSell] = useState(true);
   const [ratings, setRatings] = useState<Record<string, string>>({});
 
-  // Load cart items from localStorage on mount
+  // Promo Code State
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<string>("");
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
+  const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [hasPastOrders, setHasPastOrders] = useState(false);
+
+  // Load cart items, user status, and promo from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Restore previously applied promo
+      const savedPromo = localStorage.getItem("hey_womania_promo");
+      if (savedPromo) {
+        try {
+          const parsed = JSON.parse(savedPromo);
+          if (parsed.code === "WELCOME100") {
+            setAppliedPromo("WELCOME100");
+            setPromoDiscount(100);
+          }
+        } catch (e) {
+          console.error("Failed to parse saved promo", e);
+        }
+      }
+
+      // Check if user has past orders or is first time user
+      fetch("/api/auth/me")
+        .then(res => res.json())
+        .then(data => {
+          const userHasPastOrders = Boolean(data?.user?.hasPastOrders);
+          setHasPastOrders(userHasPastOrders);
+
+          if (!userHasPastOrders) {
+            const modalDismissed = localStorage.getItem("hey_womania_welcome100_seen");
+            if (!modalDismissed) {
+              setTimeout(() => {
+                setShowWelcomeModal(true);
+              }, 600);
+            }
+          }
+        })
+        .catch(() => {
+          const modalDismissed = localStorage.getItem("hey_womania_welcome100_seen");
+          if (!modalDismissed) {
+            setTimeout(() => {
+              setShowWelcomeModal(true);
+            }, 600);
+          }
+        });
+
       const storedCart = localStorage.getItem("hey_womania_cart");
       let items: CartItem[] = [];
       if (storedCart) {
@@ -48,14 +96,14 @@ export default function CartPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ skus })
         })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setStockMap(data.stockMap || {});
-          }
-        })
-        .catch(err => console.error("Failed to check stock", err))
-        .finally(() => setLoadingStock(false));
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setStockMap(data.stockMap || {});
+            }
+          })
+          .catch(err => console.error("Failed to check stock", err))
+          .finally(() => setLoadingStock(false));
       } else {
         setLoadingStock(false);
       }
@@ -111,10 +159,10 @@ export default function CartPage() {
   const handleQuickAdd = (e: React.MouseEvent, product: any) => {
     e.preventDefault();
     const mainImg = (product.images && product.images.length > 0) ? product.images[0] : "/products/product-placeholder.png";
-    const sku = product.variants && product.variants.length > 0 
-      ? product.variants[0].sku 
+    const sku = product.variants && product.variants.length > 0
+      ? product.variants[0].sku
       : `sku-${product._id || product.id}`;
-      
+
     // Check if already in cart
     const existing = cartItems.find(i => i.sku === sku);
     if (existing) {
@@ -140,7 +188,7 @@ export default function CartPage() {
   const handleRating = async (sku: string, rating: string, productTitle: string, productId: string) => {
     // Only allow submitting once per product to avoid spamming
     if (ratings[sku]) return;
-    
+
     setRatings(prev => ({ ...prev, [sku]: rating }));
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/products/feedback`, {
@@ -159,9 +207,48 @@ export default function CartPage() {
     (acc, item) => acc + item.salePrice * item.quantity,
     0
   ));
-  
-  // Calculate final grand total
-  const grandTotal = subtotal;
+
+  // Calculate final grand total with promo discount
+  const effectivePromoDiscount = appliedPromo === "WELCOME100" ? Math.min(100, subtotal) : 0;
+  const grandTotal = Math.max(0, subtotal - effectivePromoDiscount);
+
+  // Apply promo code logic
+  const handleApplyPromo = (codeToApply?: string) => {
+    const code = (codeToApply || promoInput).trim().toUpperCase();
+    if (!code) {
+      setPromoMessage({ text: "Please enter a promo code", isError: true });
+      return;
+    }
+
+    if (code === "WELCOME100") {
+      if (hasPastOrders) {
+        setPromoMessage({ text: "WELCOME100 is valid only on your first order", isError: true });
+        return;
+      }
+      setAppliedPromo("WELCOME100");
+      setPromoDiscount(100);
+      setPromoInput("WELCOME100");
+      setPromoMessage({ text: "Coupon WELCOME100 applied successfully! ₹100 saved.", isError: false });
+      localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
+      localStorage.setItem("hey_womania_welcome100_seen", "true");
+      setShowWelcomeModal(false);
+    } else {
+      setPromoMessage({ text: "Invalid promo code. Use WELCOME100 for your first order.", isError: true });
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo("");
+    setPromoDiscount(0);
+    setPromoInput("");
+    setPromoMessage(null);
+    localStorage.removeItem("hey_womania_promo");
+  };
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    localStorage.setItem("hey_womania_welcome100_seen", "true");
+  };
 
   if (loading) {
     return (
@@ -362,8 +449,8 @@ export default function CartPage() {
                         <button
                           onClick={() => handleIncrement(item.sku)}
                           disabled={
-                            loadingStock || 
-                            (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) || 
+                            loadingStock ||
+                            (stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) ||
                             (stockMap[item.sku] !== undefined && item.quantity >= stockMap[item.sku]) ||
                             (stockMap[item.sku] === undefined && item.maxStock !== undefined && item.quantity >= item.maxStock)
                           }
@@ -403,11 +490,10 @@ export default function CartPage() {
                             <button
                               key={ratingOption.id}
                               onClick={() => handleRating(item.sku, ratingOption.id, item.title, item.productId)}
-                              className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-all duration-300 ${
-                                isActive 
-                                  ? `${ratingOption.activeColor} scale-110 shadow-sm` 
+                              className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-all duration-300 ${isActive
+                                  ? `${ratingOption.activeColor} scale-110 shadow-sm`
                                   : `text-[#c0b8b0] bg-[#fcf9f4] ${ratingOption.hoverColor}`
-                              }`}
+                                }`}
                               title={ratingOption.label}
                             >
                               <Icon className={isActive ? "text-[0.95rem] sm:text-[1.05rem]" : "text-[0.8rem] sm:text-[0.9rem]"} />
@@ -444,26 +530,91 @@ export default function CartPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-between text-[#6d655d]">
-                    <span>Estimated Shipping</span>
-                    <span className="text-emerald-600 font-semibold">FREE</span>
-                  </div>
+                  {effectivePromoDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 font-medium text-xs">
+                      <span className="flex items-center gap-1">
+                        <FaTag className="text-[10px]" /> Promo Discount ({appliedPromo})
+                      </span>
+                      <span className="font-bold">-₹{effectivePromoDiscount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 pb-2 flex justify-between items-baseline">
                   <span className="text-sm font-bold uppercase tracking-wider text-[#111]">Grand Total</span>
-                  <span className="text-xl font-black text-[#111]">₹{grandTotal.toLocaleString("en-IN")}</span>
+                  <div className="text-right">
+                    {effectivePromoDiscount > 0 && (
+                      <span className="text-xs text-[#8b837b] line-through mr-2">
+                        ₹{subtotal.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                    <span className="text-xl font-black text-[#111]">₹{grandTotal.toLocaleString("en-IN")}</span>
+                  </div>
                 </div>
 
-                <div className="mt-4 flex gap-3">
-                  <input
-                    type="text"
-                    placeholder="Add promo code"
-                    className="min-w-0 flex-1 rounded-full border border-[#ddd5cc] bg-[#fcf9f4] px-4 py-3 text-sm outline-none placeholder:text-[#9b948d]"
-                  />
-                  <button className="rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white hover:bg-[#333] transition-colors">
-                    Apply
-                  </button>
+                {/* Promo Code Input & Applied State */}
+                <div className="mt-4">
+                  {appliedPromo ? (
+                    <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-600 text-sm" />
+                        <div>
+                          <p className="font-bold text-emerald-900 tracking-wide">{appliedPromo} Applied</p>
+                          <p className="text-[10px] text-emerald-700">₹{effectivePromoDiscount} discount applied to your order</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemovePromo}
+                        className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 border border-red-200 hover:bg-red-50 transition-colors shadow-xs"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                          placeholder="Add promo code (e.g. WELCOME100)"
+                          className="min-w-0 flex-1 rounded-full border border-[#ddd5cc] bg-[#fcf9f4] px-4 py-2.5 text-xs outline-none placeholder:text-[#9b948d] font-mono tracking-wider focus:border-[#9c4049]"
+                        />
+                        <button 
+                          onClick={() => handleApplyPromo()}
+                          className="rounded-full bg-[#111111] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#9c4049] transition-colors shadow-xs"
+                        >
+                          Apply
+                        </button>
+                      </div>
+
+                      {/* First time user helper banner */}
+                      {!hasPastOrders && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPromo("WELCOME100")}
+                          className="w-full text-left rounded-xl border border-dashed border-[#9c4049]/40 bg-[#fdf5f5] p-2.5 flex items-center justify-between gap-2 hover:bg-[#fcebeb] transition-colors group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs">🎉</span>
+                            <div className="text-[11px] leading-tight text-[#1c1c19] truncate">
+                              <span className="font-bold text-[#9c4049]">WELCOME100</span>: Flat ₹100 OFF for first purchase
+                            </div>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#9c4049] group-hover:underline">
+                            Apply
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {promoMessage && (
+                    <p className={`mt-2 text-[11px] font-medium ${promoMessage.isError ? "text-red-600" : "text-emerald-700"}`}>
+                      {promoMessage.text}
+                    </p>
+                  )}
                 </div>
 
                 {cartItems.some(item => stockMap[item.sku] !== undefined && stockMap[item.sku] <= 0) ? (
@@ -483,10 +634,10 @@ export default function CartPage() {
                 )}
               </aside>
 
-              <a 
-                href="https://wa.me/919876543210" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://wa.me/919876543210"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-3 w-full border border-[#d2cec3] bg-transparent p-4 justify-center text-[#4a3b42] hover:bg-[#f4efe8] transition-colors"
               >
                 <FaWhatsapp className="text-[1.35rem]" />
@@ -564,6 +715,13 @@ export default function CartPage() {
         </div>
 
       </section>
+
+      <WelcomePromoModal
+        isOpen={showWelcomeModal}
+        onClose={handleCloseWelcomeModal}
+        onApply={() => handleApplyPromo("WELCOME100")}
+        isApplied={appliedPromo === "WELCOME100"}
+      />
 
       <StoreFooter />
     </main>

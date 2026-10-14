@@ -73,7 +73,32 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         updatedAt: now
       });
 
-      await ledgerEntry.save();
+      // First Order Reward: Add 10% of the first order value into the shopping wallet for subsequent orders
+      if (order.userId && order.userId !== "guest-user" && !order.firstOrderBonusCredited) {
+        try {
+          const priorDeliveredCount = await Order.countDocuments({
+            userId: order.userId,
+            status: "Delivered",
+            id: { $ne: order.id }
+          });
+
+          if (priorDeliveredCount === 0) {
+            // First order delivered! Calculate 10% of order value
+            const bonus = Math.round(totalNum * 0.10);
+            if (bonus > 0) {
+              await User.findOneAndUpdate(
+                { id: order.userId },
+                { $inc: { "partnerProfile.walletBalance": bonus } }
+              );
+              order.firstOrderBonusCredited = true;
+              order.firstOrderBonusAmount = bonus;
+              console.log(`[FIRST ORDER REWARD] Credited 10% (₹${bonus}) to shopping wallet of user ${order.userId}`);
+            }
+          }
+        } catch (bonusErr) {
+          console.error("Error crediting first order bonus to shopping wallet:", bonusErr);
+        }
+      }
 
       // Instant incomes are removed. They are now calculated during monthly closing.
     }

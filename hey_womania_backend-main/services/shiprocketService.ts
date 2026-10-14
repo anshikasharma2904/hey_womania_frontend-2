@@ -446,6 +446,56 @@ export async function cancelShiprocketOrders(orderIds: Array<string | number>) {
   return data;
 }
 
+export async function createShiprocketReturnOrder(order: any, reason?: string) {
+  const address = normalizeAddress(order);
+  const items = buildOrderItems(order.items || []);
+  const subTotal = parseAmount(order.total) || items.reduce((sum, item) => sum + item.selling_price * item.units, 0);
+
+  const payload: any = {
+    order_id: `RET-${order.orderNumber || order.orderId || order.id}`,
+    order_date: new Date().toISOString().slice(0, 10),
+    channel_id: process.env.SHIPROCKET_CHANNEL_ID ? Number(process.env.SHIPROCKET_CHANNEL_ID) : undefined,
+    pickup_customer_name: address.firstName,
+    pickup_last_name: address.lastName,
+    pickup_address: address.street,
+    pickup_address_2: address.line2 || "",
+    pickup_city: address.city,
+    pickup_state: address.state,
+    pickup_country: "India",
+    pickup_pincode: address.pincode,
+    pickup_email: address.email,
+    pickup_phone: address.phone,
+    shipping_customer_name: "Hey Womaniyaa Returns",
+    shipping_last_name: "Warehouse",
+    shipping_address: process.env.RETURN_WAREHOUSE_ADDRESS || "Hey Womaniyaa Returns, Plot 12, Industrial Area",
+    shipping_city: process.env.RETURN_WAREHOUSE_CITY || "Delhi",
+    shipping_state: process.env.RETURN_WAREHOUSE_STATE || "Delhi",
+    shipping_country: "India",
+    shipping_pincode: process.env.RETURN_WAREHOUSE_PINCODE || process.env.SHIPROCKET_PICKUP_PINCODE || "110001",
+    shipping_phone: process.env.RETURN_WAREHOUSE_PHONE || "9876543210",
+    order_items: items,
+    payment_method: "Prepaid",
+    total_discount: 0,
+    sub_total: subTotal,
+    length: Number(order.length || process.env.SHIPROCKET_PARCEL_LENGTH_CM || 10),
+    breadth: Number(order.breadth || process.env.SHIPROCKET_PARCEL_BREADTH_CM || 10),
+    height: Number(order.height || process.env.SHIPROCKET_PARCEL_HEIGHT_CM || 5),
+    weight: Number(order.weight || process.env.SHIPROCKET_PARCEL_WEIGHT_KG || 0.5)
+  };
+
+  console.log("🚀 CALLING SHIPROCKET CREATE RETURN ORDER", payload.order_id);
+  console.log("RETURN PAYLOAD:", JSON.stringify(payload, null, 2));
+
+  const data = await shiprocketRequest("/orders/create/return", {
+    method: "POST",
+    body: payload
+  });
+
+  console.log("SHIPROCKET RETURN SUCCESS:", JSON.stringify(data, null, 2));
+  return data;
+}
+
+
 export async function applyShiprocketWebhook(payload: any) {
   const awb = payload.awb || payload.awb_code || payload.awbNumber;
   const shipmentId = payload.shipment_id || payload.shipmentId;
@@ -470,14 +520,52 @@ export async function applyShiprocketWebhook(payload: any) {
     { new: true }
   );
 
-  await Order.findOneAndUpdate(
+  const isDelivered = String(status).toUpperCase() === "DELIVERED";
+  const updateData: any = {
+    shippingStatus: status,
+    shipmentStatus: status,
+    trackingUrl
+  };
+
+  if (isDelivered) {
+    updateData.status = "Delivered";
+    updateData.statusText = "Delivered";
+    updateData.deliveredAt = new Date().toISOString();
+  }
+
+  const updatedOrder = await Order.findOneAndUpdate(
     awb ? { awb: String(awb) } : shipmentId ? { shiprocketShipmentId: String(shipmentId) } : { shiprocketOrderId: String(orderId) },
-    {
-      shippingStatus: status,
-      shipmentStatus: status,
-      trackingUrl
-    }
+    updateData,
+    { new: true }
   );
+
+  if (updatedOrder && isDelivered && updatedOrder.userId && updatedOrder.userId !== "guest-user" && !updatedOrder.firstOrderBonusCredited) {
+    try {
+      const priorDeliveredCount = await Order.countDocuments({
+        userId: updatedOrder.userId,
+        status: "Delivered",
+        id: { $ne: updatedOrder.id }
+      });
+
+      if (priorDeliveredCount === 0) {
+        const totalNum = parseFloat(updatedOrder.total?.replace(/[^0-9.]/g, "") || "0");
+        const bonus = Math.round(totalNum * 0.10);
+        if (bonus > 0) {
+          const { User } = await import("../models/User");
+          await User.findOneAndUpdate(
+            { id: updatedOrder.userId },
+            { $inc: { "partnerProfile.walletBalance": bonus } }
+          );
+          updatedOrder.firstOrderBonusCredited = true;
+          updatedOrder.firstOrderBonusAmount = bonus;
+          await updatedOrder.save();
+          console.log(`[SHIPROCKET WEBHOOK] Credited 10% (₹${bonus}) to shopping wallet of user ${updatedOrder.userId}`);
+        }
+      }
+    } catch (err) {
+      console.error("Error in webhook first order bonus crediting:", err);
+    }
+  }
 
   return shipment;
 }

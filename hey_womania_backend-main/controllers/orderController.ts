@@ -8,14 +8,14 @@ export const getUserOrders = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
     const userId = req.user.id;
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
     const totalItems = await Order.countDocuments({ userId });
     let orders = await Order.find({ userId }).sort({ createdAt: -1 }).skip(skip).limit(limit);
-    
+
     res.json({
       data: orders,
       pagination: {
@@ -35,7 +35,7 @@ export const getOrderById = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.user.id;
     const { id } = req.params;
-    
+
     const order = await Order.findOne({ orderNumber: id, userId });
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -74,7 +74,7 @@ export const createOrder = async (req: Request, res: Response) => {
         autoCreatedOrLinkedUser = await findOrCreateUserFromShipping(address);
         if (autoCreatedOrLinkedUser) {
           userId = autoCreatedOrLinkedUser.id;
-          
+
           // Issue session cookie so the user is immediately logged in with their profile
           try {
             const token = createSessionToken({
@@ -103,7 +103,7 @@ export const createOrder = async (req: Request, res: Response) => {
     await session.withTransaction(async () => {
       let walletDiscount = 0;
       let networkWalletDiscount = 0;
-      
+
       let subtotal = 0;
       for (const item of items) {
         // Free surprise promotional gift bypass
@@ -121,10 +121,10 @@ export const createOrder = async (req: Request, res: Response) => {
         if (isNaN(qty) || qty <= 0) {
           throw new Error(`Invalid quantity for item ${item.sku}`);
         }
-        
+
         const actualPrice = product.salePrice > 0 ? product.salePrice : product.price;
         subtotal += actualPrice * qty;
-        
+
         // Overwrite the frontend data with clean backend data
         item.qty = qty;
         item.price = actualPrice;
@@ -149,20 +149,20 @@ export const createOrder = async (req: Request, res: Response) => {
             const maxDiscount = subtotal * 0.05;
             walletDiscount = Math.floor(Math.min(walletBalance, maxDiscount));
           }
-          
+
           if (useNetworkWallet && user.partnerProfile.networkWalletBalance > 0) {
             const networkWalletBalance = user.partnerProfile.networkWalletBalance;
             // Network wallet discounts can be applied to the remaining total
             const remainingTotalBeforeNetwork = subtotal + deliveryFee - walletDiscount;
             networkWalletDiscount = Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork));
           }
-          
+
           const clearShippingWallet = isFirstOrder && user.partnerProfile.walletBalance > 0;
 
           if (walletDiscount > 0 || networkWalletDiscount > 0 || clearShippingWallet) {
             const updateSetQuery: any = {};
             const updateIncQuery: any = {};
-            
+
             if (clearShippingWallet) {
               // Entirely wipe the shipping wallet balance on the first order
               updateSetQuery["partnerProfile.walletBalance"] = 0;
@@ -173,11 +173,11 @@ export const createOrder = async (req: Request, res: Response) => {
             if (networkWalletDiscount > 0) {
               updateIncQuery["partnerProfile.networkWalletBalance"] = -networkWalletDiscount;
             }
-            
+
             const updateOp: any = {};
             if (Object.keys(updateSetQuery).length > 0) updateOp.$set = updateSetQuery;
             if (Object.keys(updateIncQuery).length > 0) updateOp.$inc = updateIncQuery;
-            
+
             const findQuery: any = { id: userId };
             if (!clearShippingWallet && walletDiscount > 0) findQuery["partnerProfile.walletBalance"] = { $gte: walletDiscount };
             if (networkWalletDiscount > 0) findQuery["partnerProfile.networkWalletBalance"] = { $gte: networkWalletDiscount };
@@ -192,7 +192,7 @@ export const createOrder = async (req: Request, res: Response) => {
               throw new Error("Failed to apply wallet discount. Insufficient balance.");
             }
           }
-          
+
           // Referral commission is deliberately not credited during checkout.
           // It is calculated from paid, delivered orders by the monthly closing
           // job on the 10th, after the order is no longer merely pending.
@@ -207,16 +207,16 @@ export const createOrder = async (req: Request, res: Response) => {
         }
 
         const updatedProduct = await Product.findOneAndUpdate(
-          { 
-            id: item.productId, 
+          {
+            id: item.productId,
             "variants.sku": item.sku,
             "variants.availableStock": { $gte: item.qty } // Atomic safety check
           },
-          { 
-            $inc: { 
-              "variants.$.availableStock": -item.qty, 
-              "variants.$.reservedStock": item.qty 
-            } 
+          {
+            $inc: {
+              "variants.$.availableStock": -item.qty,
+              "variants.$.reservedStock": item.qty
+            }
           },
           { new: true, session }
         );
@@ -225,7 +225,7 @@ export const createOrder = async (req: Request, res: Response) => {
           // Throwing an error aborts the entire transaction automatically
           throw new Error(`Order failed. Item out of stock or unavailable: ${item.sku}`);
         }
-        
+
         // Log to Inventory Ledger
         const ledgerEntry = new InventoryLedger({
           id: crypto.randomUUID(),
@@ -240,7 +240,40 @@ export const createOrder = async (req: Request, res: Response) => {
         await ledgerEntry.save({ session });
       }
 
-      const secureTotalAmount = subtotal + deliveryFee - walletDiscount - networkWalletDiscount;
+      // Promo Code Validation: WELCOME100 (₹100 flat off for first-time orders)
+      const rawCouponCode = String(req.body.couponCode || "").trim().toUpperCase();
+      let couponDiscount = 0;
+      let couponCode = "";
+
+      if (rawCouponCode === "WELCOME100") {
+        let isFirstTimeCustomer = true;
+        if (userId !== "guest-user") {
+          const pastOrderCount = await Order.countDocuments({ userId: userId }).session(session);
+          isFirstTimeCustomer = pastOrderCount === 0;
+        }
+
+        if (isFirstTimeCustomer) {
+          couponCode = "WELCOME100";
+          couponDiscount = Math.min(100, subtotal);
+
+          // Deduct the 100 Rs promo from the shopping wallet (wipe welcome bonus)
+          if (userId !== "guest-user") {
+            await User.findOneAndUpdate(
+              { id: userId },
+              { $inc: { "partnerProfile.walletBalance": -couponDiscount } },
+              { session }
+            );
+            // Ensure wallet balance doesn't drop below 0
+            await User.findOneAndUpdate(
+              { id: userId, "partnerProfile.walletBalance": { $lt: 0 } },
+              { $set: { "partnerProfile.walletBalance": 0 } },
+              { session }
+            );
+          }
+        }
+      }
+
+      const secureTotalAmount = Math.max(0, subtotal + deliveryFee - walletDiscount - networkWalletDiscount - couponDiscount);
       const secureTotalString = `₹${secureTotalAmount.toLocaleString("en-IN")}`;
 
       // 2. All items reserved successfully. Create the Order.
@@ -252,6 +285,8 @@ export const createOrder = async (req: Request, res: Response) => {
         total: secureTotalString,
         walletDiscount,
         networkWalletDiscount,
+        couponCode,
+        couponDiscount,
         sellPoints: 0,
         status: "Pending",
         statusText: "We are processing your order",
@@ -319,7 +354,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.user?.id || "guest-user";
 
-    const order = await Order.findOne({ 
+    const order = await Order.findOne({
       $or: [{ id: id }, { orderNumber: id }]
     });
 
@@ -370,7 +405,7 @@ export const cleanupAbandonedOrders = async (req: Request, res: Response) => {
   try {
     // Find all "Pending" Razorpay orders created more than 60 minutes ago
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    
+
     const abandonedOrders = await Order.find({
       status: "Pending",
       paymentStatus: "Pending",
@@ -417,7 +452,7 @@ export const returnOrder = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.user?.id || "guest-user";
 
-    const order = await Order.findOne({ 
+    const order = await Order.findOne({
       $or: [{ id: id }, { orderNumber: id }]
     });
 
@@ -442,9 +477,41 @@ export const returnOrder = async (req: Request, res: Response) => {
 
     order.status = "Return Requested";
     order.statusText = "Return has been requested";
+    order.returnRequestedAt = new Date().toISOString();
+    if (req.body.reason) {
+      order.returnReason = String(req.body.reason).trim();
+    }
+
+    // Production-ready Shiprocket Reverse Pickup / Return Order creation
+    let shiprocketReturnData: any = null;
+    try {
+      const { createShiprocketReturnOrder } = await import("../services/shiprocketService");
+      shiprocketReturnData = await createShiprocketReturnOrder(order, req.body.reason);
+      if (shiprocketReturnData) {
+        order.returnShiprocketOrderId = String(shiprocketReturnData.order_id || shiprocketReturnData.orderId || "");
+        order.returnShiprocketShipmentId = String(shiprocketReturnData.shipment_id || shiprocketReturnData.shipmentId || "");
+        if (shiprocketReturnData.awb_code || shiprocketReturnData.awb) {
+          order.returnAwb = String(shiprocketReturnData.awb_code || shiprocketReturnData.awb);
+          order.returnTrackingUrl = `https://shiprocket.co/tracking/${order.returnAwb}`;
+        }
+      }
+    } catch (srErr: any) {
+      console.error("[SHIPROCKET RETURN ORDER ERROR]:", srErr.message || srErr);
+      // Non-fatal: the return request is recorded in database, admin can view & retry/dispatch in Shiprocket
+    }
+
     await order.save();
 
-    res.json({ success: true, message: "Return requested successfully." });
+    res.json({
+      success: true,
+      message: "Return requested successfully.",
+      returnOrder: {
+        orderId: order.orderNumber || order.id,
+        status: order.status,
+        shiprocketReturnOrderId: order.returnShiprocketOrderId,
+        returnAwb: order.returnAwb
+      }
+    });
   } catch (error) {
     console.error("Error returning order:", error);
     res.status(500).json({ error: "Internal server error" });
