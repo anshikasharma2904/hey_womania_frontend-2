@@ -253,7 +253,7 @@ export const loginOtp = async (req: Request, res: Response) => {
     const rawDigits = phone.trim().replace(/[^0-9]/g, "");
     const last10 = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
 
-    const user = await User.findOne({
+    let user = await User.findOne({
       $or: [
         { phone: phone.trim() },
         { phone: last10 },
@@ -263,7 +263,38 @@ export const loginOtp = async (req: Request, res: Response) => {
     });
     
     if (!user) {
-      return res.status(404).json({ error: "No account found with this phone number." });
+      // If user placed an order as guest or verified OTP, auto-create their user profile!
+      try {
+        const { Order } = await import("../models/Order");
+        const { findOrCreateUserFromShipping } = await import("./userController");
+
+        // Look for any order placed with this phone number to use the shipping details
+        const existingOrder = await Order.findOne({
+          $or: [
+            { "address.phone": phone.trim() },
+            { "address.phone": last10 },
+            { "address.phone": `+91${last10}` },
+            { "address.phone": `91${last10}` }
+          ]
+        }).sort({ createdAt: -1 });
+
+        const addressData = existingOrder?.address || {
+          phone: last10,
+          fullName: "Customer",
+          streetAddress: "",
+          city: "",
+          state: "",
+          pincode: ""
+        };
+
+        user = await findOrCreateUserFromShipping(addressData);
+      } catch (autoCreateErr) {
+        console.error("Error auto-creating user on login OTP:", autoCreateErr);
+      }
+
+      if (!user) {
+        return res.status(404).json({ error: "No account found with this phone number." });
+      }
     }
 
     // Auto-claim and link any past orders placed with this phone number to the logged-in user

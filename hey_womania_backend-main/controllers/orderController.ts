@@ -107,13 +107,16 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Order items cannot be empty" });
     }
 
-    // Auto-create or link user from shipping details if ordering without signup/login
+    // Auto-create or link user from shipping details if ordering without signup/login or if userId is missing/guest
     let autoCreatedOrLinkedUser: any = null;
-    if (userId === "guest-user" && address && address.phone) {
+    if (address && address.phone) {
       try {
         autoCreatedOrLinkedUser = await findOrCreateUserFromShipping(address);
         if (autoCreatedOrLinkedUser) {
-          userId = autoCreatedOrLinkedUser.id;
+          // If the caller was a guest or unauthenticated, attach the order directly to this user's account
+          if (!userId || userId === "guest-user") {
+            userId = autoCreatedOrLinkedUser.id;
+          }
 
           // Issue session cookie so the user is immediately logged in with their profile
           try {
@@ -133,7 +136,7 @@ export const createOrder = async (req: Request, res: Response) => {
           }
         }
       } catch (guestUserErr) {
-        console.error("Error creating guest user profile:", guestUserErr);
+        console.error("Error creating/linking guest user profile:", guestUserErr);
       }
     }
 
