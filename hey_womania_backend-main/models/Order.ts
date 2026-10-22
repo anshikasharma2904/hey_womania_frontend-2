@@ -38,6 +38,10 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: String,
   razorpayOrderId: String,
   razorpayPaymentId: String,
+  refundId: String,
+  refundStatus: String,
+  refundAmount: Number,
+  refundedAt: String,
   address: {
     name: String,
     fullName: String,

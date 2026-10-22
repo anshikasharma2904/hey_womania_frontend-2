@@ -106,9 +106,35 @@ export default async function OrdersPage() {
                   
                   <div className="flex flex-row-reverse items-center justify-between gap-6 sm:flex-col sm:items-end sm:gap-2">
                     <div className="flex flex-col items-end">
-                      <p className="font-[family:var(--font-display)] text-xl text-[#1c1c19]">
-                        {order.total}
-                      </p>
+                      {(() => {
+                        const isCOD = String(order.paymentMethod || order.paymentMode || "").toLowerCase().includes("cod");
+                        const numericTotal = typeof order.total === "number"
+                          ? order.total
+                          : parseFloat(String(order.total || "0").replace(/[^0-9.]/g, "")) || 0;
+                        const remainingCOD = isCOD ? Math.max(0, numericTotal - 100) : 0;
+
+                        if (isCOD) {
+                          return (
+                            <div className="text-right">
+                              <p className="font-[family:var(--font-display)] text-xl text-[#1c1c19]">
+                                ₹{numericTotal.toLocaleString("en-IN")}
+                              </p>
+                              <p className="text-[11px] font-semibold text-[#9c4049]">
+                                To pay: ₹{remainingCOD.toLocaleString("en-IN")} (COD)
+                              </p>
+                              <p className="text-[10px] text-emerald-700">
+                                ₹100 advance paid
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <p className="font-[family:var(--font-display)] text-xl text-[#1c1c19]">
+                            {order.total}
+                          </p>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-3">
                       <div

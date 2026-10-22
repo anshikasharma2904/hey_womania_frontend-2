@@ -165,6 +165,29 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Auto-claim and link any past orders placed with this phone number to the logged-in user
+    if (user.phone) {
+      try {
+        const rawDigitsPhone = String(user.phone).trim().replace(/[^0-9]/g, "");
+        const userLast10 = rawDigitsPhone.length >= 10 ? rawDigitsPhone.slice(-10) : rawDigitsPhone;
+        const { Order } = await import("../models/Order");
+        await Order.updateMany(
+          {
+            $or: [
+              { "address.phone": user.phone },
+              { "address.phone": userLast10 },
+              { "address.phone": `+91${userLast10}` },
+              { "address.phone": `91${userLast10}` }
+            ],
+            userId: { $ne: user.id }
+          },
+          { $set: { userId: user.id } }
+        );
+      } catch (orderLinkErr) {
+        console.warn("Could not backlink guest orders to logged-in user:", orderLinkErr);
+      }
+    }
+
     const token = createSessionToken({ id: user.id, role: user.role as string });
     
     res.cookie(SESSION_COOKIE_NAME, token, {
@@ -241,6 +264,25 @@ export const loginOtp = async (req: Request, res: Response) => {
     
     if (!user) {
       return res.status(404).json({ error: "No account found with this phone number." });
+    }
+
+    // Auto-claim and link any past orders placed with this phone number to the logged-in user
+    try {
+      const { Order } = await import("../models/Order");
+      await Order.updateMany(
+        {
+          $or: [
+            { "address.phone": phone.trim() },
+            { "address.phone": last10 },
+            { "address.phone": `+91${last10}` },
+            { "address.phone": `91${last10}` }
+          ],
+          userId: { $ne: user.id }
+        },
+        { $set: { userId: user.id } }
+      );
+    } catch (orderLinkErr) {
+      console.warn("Could not backlink guest orders to logged-in user:", orderLinkErr);
     }
 
     const { createSessionToken } = await import("../utils/authHelpers");

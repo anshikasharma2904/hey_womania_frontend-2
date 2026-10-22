@@ -58,24 +58,27 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   return (
     <main className="min-h-screen bg-[#fcf9f4] px-3 pb-12 pt-4 sm:px-5 sm:pt-8 md:px-16 md:pt-10 lg:pt-10 text-[#1c1c19]">
       <div className="mx-auto max-w-6xl">
-        {/* Total Sell Points Box at the very top */}
-        <div className="mb-8 hidden sm:flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between rounded-[2rem] border border-[#eddad3] bg-[linear-gradient(180deg,#fff_0%,#fff7f3_100%)] p-6 shadow-[0_18px_40px_rgba(91,77,57,0.08)] md:p-8">
+        {/* Welcome & Wallet Header Box */}
+        <div className="mb-6 flex flex-col gap-4 sm:gap-6 sm:flex-row sm:items-center sm:justify-between rounded-[1.5rem] sm:rounded-[2rem] border border-[#eddad3] bg-[linear-gradient(180deg,#fff_0%,#fff7f3_100%)] p-5 sm:p-6 md:p-8 shadow-[0_18px_40px_rgba(91,77,57,0.08)]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#5f5d3e]/80">
+            <p className="text-[0.68rem] sm:text-xs font-semibold uppercase tracking-[0.22em] text-[#5f5d3e]/80">
               Welcome,
             </p>
-            <h2 className="mt-2 font-[family:var(--font-display)] text-[2.5rem] leading-none tracking-[-0.04em] text-[#3a2630] md:text-[3.5rem]">
+            <h2 className="mt-1 sm:mt-2 font-[family:var(--font-display)] text-[2rem] leading-tight tracking-[-0.04em] text-[#3a2630] sm:text-[2.5rem] md:text-[3.5rem]">
               {displayName}
             </h2>
-            <p className="mt-2 text-sm text-[#7c6e68]">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-[#7c6e68]">
               Manage your orders, profile, and account details here.
             </p>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="hidden h-16 min-w-16 px-4 flex-col items-center justify-center rounded-full bg-[#fcf9f4] text-[#5f5d3e] shadow-inner sm:flex md:h-20 md:min-w-20">
-              <span className="text-[0.65rem] font-bold uppercase tracking-wider text-[#9b948d]">Wallet</span>
-              <span className="font-[family:var(--font-display)] text-lg leading-none md:text-xl text-[#3a2630]">
-                ₹{user?.partnerProfile?.walletBalance || 0}
+          <div className="flex items-center gap-3 sm:gap-6 pt-2 sm:pt-0 border-t border-[#eddad3]/60 sm:border-t-0">
+            <div className="flex h-14 sm:h-16 md:h-20 min-w-full sm:min-w-20 px-4 items-center justify-between sm:justify-center sm:flex-col rounded-2xl sm:rounded-full bg-[#fcf9f4] border border-[#ece6df] sm:border-0 text-[#5f5d3e] shadow-xs sm:shadow-inner">
+              <div className="flex items-center gap-2 sm:flex-col sm:gap-0">
+                <span className="material-symbols-outlined text-[1.2rem] text-[#9c4049] sm:hidden">account_balance_wallet</span>
+                <span className="text-[0.7rem] sm:text-[0.65rem] font-bold uppercase tracking-wider text-[#9b948d]">My Wallet</span>
+              </div>
+              <span className="font-[family:var(--font-display)] text-xl sm:text-lg md:text-xl font-bold leading-none text-[#3a2630]">
+                ₹{(user?.partnerProfile?.walletBalance || 0).toLocaleString("en-IN")}
               </span>
             </div>
           </div>

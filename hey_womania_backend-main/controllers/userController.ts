@@ -30,9 +30,20 @@ export const getMe = async (req: Request, res: Response) => {
       }
     }
 
-    // Check if user has past orders (including cancelled ones)
+    // Check if user has past orders (including orders placed as guest with the same phone)
+    const pastOrderFilters: any[] = [{ userId }];
+    if (user.phone) {
+      const rawDigits = String(user.phone).trim().replace(/[^0-9]/g, "");
+      const last10 = rawDigits.length >= 10 ? rawDigits.slice(-10) : rawDigits;
+      if (last10 && last10.length >= 10) {
+        pastOrderFilters.push({ "address.phone": last10 });
+        pastOrderFilters.push({ "address.phone": `+91${last10}` });
+        pastOrderFilters.push({ "address.phone": `91${last10}` });
+        pastOrderFilters.push({ "address.phone": user.phone });
+      }
+    }
     const pastOrderCount = await Order.countDocuments({
-      userId: userId
+      $or: pastOrderFilters
     });
     user.hasPastOrders = pastOrderCount > 0;
 

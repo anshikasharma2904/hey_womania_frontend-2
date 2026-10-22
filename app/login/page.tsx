@@ -230,15 +230,27 @@ export default function LoginPage() {
                 Create Account
               </Link>
 
-              <Link
-                href="/"
-                className="flex items-center justify-center gap-2 py-2 text-xs uppercase tracking-[0.16em] text-[#48473d] transition-colors hover:text-[#5f5d3e]"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  arrow_back
-                </span>
-                Back to Home
-              </Link>
+              <div className="flex items-center justify-between py-1 text-xs uppercase tracking-[0.16em] text-[#48473d]">
+                <Link
+                  href="/"
+                  className="flex items-center gap-1.5 transition-colors hover:text-[#5f5d3e]"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    arrow_back
+                  </span>
+                  Back to Home
+                </Link>
+
+                <Link
+                  href="/account/orders"
+                  className="flex items-center gap-1.5 text-[#9c4049] transition-colors hover:underline"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    local_shipping
+                  </span>
+                  My Orders
+                </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -101,9 +101,15 @@ export default async function OrderDetailsPage(props: PageProps) {
         {order.status === "Cancelled" ? (
           <div className="mb-8 flex items-start gap-4 rounded-xl border border-[#fde8e8] bg-[#fdf5f5] p-5">
             <FaTimesCircle className="mt-0.5 text-xl text-[#ef6f63] shrink-0" />
-            <div>
+            <div className="flex-1">
               <h3 className="font-bold text-[#ef6f63] uppercase tracking-[0.1em] text-sm">Order Cancelled</h3>
               <p className="mt-1 text-sm text-[#ef6f63]/80">{order.statusText}</p>
+              {order.refundAmount ? (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                  <span className="material-symbols-outlined text-[1rem] text-emerald-600">currency_rupee</span>
+                  <span>Refund of ₹{order.refundAmount} automatically initiated to your original payment method.</span>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : order.status === "Return Requested" || order.status === "Returned" || order.status === "Refunded" ? (
@@ -130,7 +136,7 @@ export default async function OrderDetailsPage(props: PageProps) {
                 <CancelOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} />
                 <ReturnOrderButton orderId={order.id || order.orderNumber} currentStatus={order.status} deliveredAt={order.deliveredAt} />
                 <Link
-                  href={`/invoice/${order.id || order.orderNumber}`}
+                  href={`/invoice/${order.orderNumber || order.id}`}
                   target="_blank"
                   className="rounded-full border border-[#5f5d3e] px-3.5 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#5f5d3e] transition-colors hover:bg-[#5f5d3e] hover:text-white shrink-0"
                 >
@@ -228,18 +234,89 @@ export default async function OrderDetailsPage(props: PageProps) {
           <div className="flex flex-col gap-6">
             <div className="rounded-[1.5rem] border border-[#e8e2d9] p-6">
               <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-[#48473d]">
-                <FaMapMarkerAlt className="text-[#9c4049]" /> Shipping Address
+                <FaMapMarkerAlt className="text-[#9c4049]" /> Full Shipping Address
               </h3>
-              <p className="font-bold text-[#1c1c19]">{order.address.name || order.address.fullName}</p>
-              <p className="mt-1 text-sm leading-6 text-[#6d655d]">
-                {order.address.street || order.address.streetAddress}<br />
-                {order.address.city}<br />
-                {order.address.phone}
-              </p>
+              <p className="font-bold text-base text-[#1c1c19]">{order.address?.fullName || order.address?.name || "Customer"}</p>
+              
+              <div className="mt-2.5 text-sm leading-6 text-[#524b45] space-y-1">
+                {order.address?.streetAddress && <p>{order.address.streetAddress}</p>}
+                {!order.address?.streetAddress && order.address?.street && <p>{order.address.street}</p>}
+                {order.address?.streetAddressLine2 && <p>{order.address.streetAddressLine2}</p>}
+                <p>
+                  {[order.address?.city, order.address?.state].filter(Boolean).join(", ")}
+                  {order.address?.pincode ? ` - ${order.address.pincode}` : ""}
+                </p>
+                {order.address?.phone && (
+                  <p className="pt-2 font-medium text-[#1c1c19]">
+                    <span className="text-[#8b837b]">Phone:</span> +91 {order.address.phone.replace(/[^0-9]/g, "").slice(-10)}
+                  </p>
+                )}
+                {order.address?.email && (
+                  <p className="text-xs text-[#6d655d]">
+                    <span className="text-[#8b837b]">Email:</span> {order.address.email}
+                  </p>
+                )}
+              </div>
             </div>
+
             <div className="rounded-[1.5rem] border border-[#e8e2d9] p-6">
-              <h3 className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-[#48473d]">Payment Method</h3>
-              <p className="text-sm font-medium text-[#1c1c19]">{order.paymentMethod}</p>
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-[#48473d]">Payment Summary</h3>
+              {(() => {
+                const isCOD = String(order.paymentMethod || order.paymentMode || "").toLowerCase().includes("cod");
+                const numericTotal = typeof order.total === "number"
+                  ? order.total
+                  : parseFloat(String(order.total || "0").replace(/[^0-9.]/g, "")) || 0;
+                const advancePaid = isCOD ? 100 : 0;
+                const remainingCOD = isCOD ? Math.max(0, numericTotal - advancePaid) : 0;
+
+                return (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b border-[#f2ede7] pb-2.5">
+                      <span className="text-sm text-[#6d655d]">Payment Method</span>
+                      <span className="rounded-md bg-[#f6f3ee] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-[#1c1c19]">
+                        {isCOD ? "Cash on Delivery (COD)" : (order.paymentMethod || "Prepaid")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#6d655d]">Total Order Amount</span>
+                      <span className="font-semibold text-[#1c1c19]">₹{numericTotal.toLocaleString("en-IN")}</span>
+                    </div>
+
+                    {isCOD ? (
+                      <>
+                        <div className="flex items-center justify-between text-sm text-emerald-700">
+                          <span className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[1rem]">check_circle</span>
+                            Advance Online Paid
+                          </span>
+                          <span className="font-semibold">- ₹{advancePaid.toLocaleString("en-IN")}</span>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between rounded-xl bg-[#fff0f1]/60 border border-[#9c4049]/20 p-3.5">
+                          <div>
+                            <p className="text-xs uppercase tracking-wider font-bold text-[#9c4049]">To Pay at Delivery</p>
+                            <p className="text-[11px] text-[#6d655d]">Cash / UPI to courier agent</p>
+                          </div>
+                          <span className="font-[family:var(--font-display)] text-xl font-bold text-[#9c4049]">
+                            ₹{remainingCOD.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-2 flex items-center justify-between rounded-xl bg-[#edf7ef] border border-[#367743]/20 p-3.5 text-[#367743]">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider font-bold">Payment Status</p>
+                          <p className="text-[11px] opacity-80">Paid in full online</p>
+                        </div>
+                        <span className="font-[family:var(--font-display)] text-lg font-bold">
+                          Paid
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

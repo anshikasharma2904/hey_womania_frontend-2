@@ -373,18 +373,29 @@ export function MainNavbar() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2.5">
+                        <Link
+                          href="/account/orders"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl border border-[#ece6df] bg-[#fffdfb] px-3.5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#1c1c19] transition hover:border-[#9c4049] hover:bg-[#fff0f1]/30 hover:text-[#9c4049]"
+                        >
+                          <span className="material-symbols-outlined text-[1.15rem] text-[#9c4049]">local_shipping</span>
+                          <span>My Orders / Track Order</span>
+                        </Link>
+
+                        <div className="my-1 border-t border-[#ece6df]" />
+
                         <Link
                           href="/login"
                           onClick={() => setProfileOpen(false)}
-                          className="flex w-full items-center justify-center rounded-xl bg-[#5f5d3e] px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#48473d]"
+                          className="flex w-full items-center justify-center rounded-xl bg-[#5f5d3e] px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#48473d]"
                         >
                           Login
                         </Link>
                         <Link
                           href="/register"
                           onClick={() => setProfileOpen(false)}
-                          className="flex w-full items-center justify-center rounded-xl border border-[#d9cfc5] px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#1c1c19] transition hover:bg-[#f7f0e9]"
+                          className="flex w-full items-center justify-center rounded-xl border border-[#d9cfc5] px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#1c1c19] transition hover:bg-[#f7f0e9]"
                         >
                           Register
                         </Link>
@@ -498,26 +509,37 @@ export function MainNavbar() {
             ))}
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            <Link
+              href="/account/orders"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#9c4049] transition hover:bg-[#fff0f1]/20"
+            >
+              <span className="material-symbols-outlined text-[1.25rem] mb-1">local_shipping</span>
+              My Orders
+            </Link>
             <Link
               href="/account"
               onClick={() => setMobileMenuOpen(false)}
-              className="rounded-[1rem] border border-[#ece6df] bg-white px-3 py-4 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
+              className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
+              <span className="material-symbols-outlined text-[1.25rem] mb-1">person</span>
               Account
             </Link>
             <Link
               href="/wishbag"
               onClick={() => setMobileMenuOpen(false)}
-              className="rounded-[1rem] border border-[#ece6df] bg-white px-3 py-4 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
+              className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
+              <span className="material-symbols-outlined text-[1.25rem] mb-1">favorite</span>
               Wishbag
             </Link>
             <Link
               href="/cart"
               onClick={() => setMobileMenuOpen(false)}
-              className="rounded-[1rem] border border-[#ece6df] bg-white px-3 py-4 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
+              className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
+              <span className="material-symbols-outlined text-[1.25rem] mb-1">shopping_bag</span>
               Bag
             </Link>
           </div>

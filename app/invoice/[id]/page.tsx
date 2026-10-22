@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
+import InvoicePrintBar from '@/components/InvoicePrintBar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -109,13 +110,15 @@ export default async function InvoicePage(props: PageProps) {
   const totalAmount = parseFloat(order.total?.replace(/[^0-9.]/g, '') || '0');
 
   return (
-    <div className="bg-white text-black font-sans min-h-screen p-8 print:p-0">
-      <div className="max-w-4xl mx-auto border-2 border-black print:border-0 print:max-w-none">
+    <div className="bg-white text-black font-sans min-h-screen p-4 sm:p-8 print:p-0">
+      <div className="max-w-4xl mx-auto print:max-w-none">
+        <InvoicePrintBar orderNumber={order.orderNumber || order.id} />
         
-        {/* Header */}
-        <div className="text-center font-bold text-xl py-2 border-b-2 border-black tracking-widest">
-          INVOICE
-        </div>
+        <div className="border-2 border-black print:border-0">
+          {/* Header */}
+          <div className="text-center font-bold text-xl py-2 border-b-2 border-black tracking-widest">
+            INVOICE
+          </div>
 
         {/* Company & Invoice Details */}
         <div className="grid grid-cols-2 border-b-2 border-black">
@@ -308,11 +311,12 @@ export default async function InvoicePage(props: PageProps) {
             </div>
           </div>
         </div>
-
       </div>
-      <div className="text-center text-sm mt-2">
+
+      <div className="text-center text-sm mt-4 text-gray-500 print:text-black">
         This is a Computer Generated Invoice
       </div>
     </div>
+  </div>
   );
 }

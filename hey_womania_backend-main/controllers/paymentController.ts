@@ -74,7 +74,9 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
 
     let couponDiscount = 0;
     const rawCouponCode = String(req.body.couponCode || "").trim().toUpperCase();
-    if (rawCouponCode === "WELCOME100") {
+    const cleanCouponPayment = rawCouponCode.replace(/[^A-Z0-9]/g, "");
+
+    if (cleanCouponPayment === "WELCOME100") {
       let isFirstTime = true;
       const recipientPhone = String(req.body.address?.phone || req.body.phone || "").trim().replace(/[^0-9]/g, "");
       const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
@@ -112,6 +114,52 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
 
       if (isFirstTime) {
         couponDiscount = Math.min(100, subtotal);
+      }
+    } else if (cleanCouponPayment === "DIWALI10") {
+      const recipientPhone = String(req.body.address?.phone || req.body.phone || "").trim().replace(/[^0-9]/g, "");
+      const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
+
+      const pastOrderFilters: any[] = [];
+      if (userId && userId !== "guest-user") {
+        pastOrderFilters.push({ userId });
+      }
+      if (normalizedPhone && normalizedPhone.length >= 10) {
+        pastOrderFilters.push({ "address.phone": normalizedPhone });
+        pastOrderFilters.push({ "address.phone": `+91${normalizedPhone}` });
+        pastOrderFilters.push({ "address.phone": `91${normalizedPhone}` });
+
+        const existingUserWithPhone = await User.findOne({
+          $or: [
+            { phone: normalizedPhone },
+            { phone: `+91${normalizedPhone}` },
+            { phone: `91${normalizedPhone}` }
+          ]
+        });
+
+        if (existingUserWithPhone) {
+          pastOrderFilters.push({ userId: existingUserWithPhone.id });
+        }
+      }
+
+      if (pastOrderFilters.length > 0) {
+        const { Order } = await import("../models/Order");
+        const completedOrders = await Order.find({
+          $or: pastOrderFilters,
+          status: { $ne: "Cancelled" }
+        }).sort({ createdAt: 1 }).lean();
+
+        if (completedOrders.length > 0) {
+          const alreadyUsed = completedOrders.some((o: any) =>
+            String(o.couponCode || "").replace(/[^A-Z0-9]/g, "").toUpperCase() === "DIWALI10"
+          );
+
+          if (!alreadyUsed) {
+            const firstOrder = completedOrders[0];
+            const firstOrderTotal = parseFloat(String(firstOrder.total || "0").replace(/[^0-9.]/g, "")) || 0;
+            const diwaliDeduction = Math.max(1, Math.round(firstOrderTotal * 0.10));
+            couponDiscount = Math.min(diwaliDeduction, subtotal);
+          }
+        }
       }
     }
 

@@ -13,8 +13,25 @@ export const getUserOrders = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
-    const totalItems = await Order.countDocuments({ userId });
-    let orders = await Order.find({ userId }).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    // Build user match criteria: match by userId OR by customer phone (for guest-checkout orders)
+    const orderConditions: any[] = [{ userId }];
+
+    const user = await User.findOne({ id: userId });
+    if (user && user.phone) {
+      const rawPhone = String(user.phone).trim().replace(/[^0-9]/g, "");
+      const normalizedPhone = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+      if (normalizedPhone && normalizedPhone.length >= 10) {
+        orderConditions.push({ "address.phone": normalizedPhone });
+        orderConditions.push({ "address.phone": `+91${normalizedPhone}` });
+        orderConditions.push({ "address.phone": `91${normalizedPhone}` });
+        orderConditions.push({ "address.phone": user.phone });
+      }
+    }
+
+    const filterQuery = orderConditions.length === 1 ? orderConditions[0] : { $or: orderConditions };
+
+    const totalItems = await Order.countDocuments(filterQuery);
+    let orders = await Order.find(filterQuery).sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     res.json({
       data: orders,
@@ -36,7 +53,30 @@ export const getOrderById = async (req: Request, res: Response) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const order = await Order.findOne({ orderNumber: id, userId });
+    const orderConditions: any[] = [{ userId }];
+
+    const user = await User.findOne({ id: userId });
+    if (user && user.phone) {
+      const rawPhone = String(user.phone).trim().replace(/[^0-9]/g, "");
+      const normalizedPhone = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+      if (normalizedPhone && normalizedPhone.length >= 10) {
+        orderConditions.push({ "address.phone": normalizedPhone });
+        orderConditions.push({ "address.phone": `+91${normalizedPhone}` });
+        orderConditions.push({ "address.phone": `91${normalizedPhone}` });
+        orderConditions.push({ "address.phone": user.phone });
+      }
+    }
+
+    const order = await Order.findOne({
+      $or: [
+        { id: id },
+        { orderNumber: id }
+      ],
+      $and: [
+        { $or: orderConditions }
+      ]
+    });
+
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -245,7 +285,9 @@ export const createOrder = async (req: Request, res: Response) => {
       let couponDiscount = 0;
       let couponCode = "";
 
-      if (rawCouponCode === "WELCOME100") {
+      const cleanCouponReq = rawCouponCode.replace(/[^A-Z0-9]/g, "");
+
+      if (cleanCouponReq === "WELCOME100") {
         let isFirstTimeCustomer = true;
         const recipientPhone = String(address?.phone || "").trim().replace(/[^0-9]/g, "");
         const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
@@ -297,6 +339,53 @@ export const createOrder = async (req: Request, res: Response) => {
               { $set: { "partnerProfile.walletBalance": 0 } },
               { session }
             );
+          }
+        }
+      } else if (cleanCouponReq === "DIWALI10") {
+        const recipientPhone = String(address?.phone || "").trim().replace(/[^0-9]/g, "");
+        const normalizedPhone = recipientPhone.length > 10 ? recipientPhone.slice(-10) : recipientPhone;
+
+        const pastOrderFilters: any[] = [];
+        if (userId && userId !== "guest-user") {
+          pastOrderFilters.push({ userId });
+        }
+        if (normalizedPhone && normalizedPhone.length >= 10) {
+          pastOrderFilters.push({ "address.phone": normalizedPhone });
+          pastOrderFilters.push({ "address.phone": `+91${normalizedPhone}` });
+          pastOrderFilters.push({ "address.phone": `91${normalizedPhone}` });
+
+          const existingUserWithPhone = await User.findOne({
+            $or: [
+              { phone: normalizedPhone },
+              { phone: `+91${normalizedPhone}` },
+              { phone: `91${normalizedPhone}` }
+            ]
+          }).session(session);
+
+          if (existingUserWithPhone) {
+            pastOrderFilters.push({ userId: existingUserWithPhone.id });
+          }
+        }
+
+        if (pastOrderFilters.length > 0) {
+          const completedOrders = await Order.find({
+            $or: pastOrderFilters,
+            status: { $ne: "Cancelled" }
+          }).sort({ createdAt: 1 }).session(session).lean();
+
+          if (completedOrders.length > 0) {
+            const alreadyUsed = completedOrders.some((o: any) =>
+              String(o.couponCode || "").replace(/[^A-Z0-9]/g, "").toUpperCase() === "DIWALI10"
+            );
+
+            if (!alreadyUsed) {
+              const firstOrder = completedOrders[0];
+              const firstOrderTotal = parseFloat(String(firstOrder.total || "0").replace(/[^0-9.]/g, "")) || 0;
+              const diwaliDeduction = Math.max(1, Math.round(firstOrderTotal * 0.10));
+
+              couponCode = "DIWALI10";
+              couponDiscount = Math.min(diwaliDeduction, subtotal);
+            }
           }
         }
       }
@@ -420,9 +509,81 @@ export const cancelOrder = async (req: Request, res: Response) => {
     order.status = "Cancelled";
     order.statusText = "Cancelled by user";
     order.shippingStatus = "Cancelled";
+
+    // Automatic Refund Processing via Razorpay API
+    let refundInfo: any = null;
+    if (order.razorpayPaymentId) {
+      try {
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+        if (keyId && keySecret) {
+          const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
+
+          // Check payment status on Razorpay first
+          const paymentCheckRes = await fetch(`https://api.razorpay.com/v1/payments/${order.razorpayPaymentId}`, {
+            headers: { Authorization: authHeader }
+          });
+
+          if (paymentCheckRes.ok) {
+            const paymentData: any = await paymentCheckRes.json();
+            
+            // Only refund if payment was captured and not already refunded
+            if (paymentData.status === "captured" && paymentData.refund_status !== "full") {
+              const refundAmountPaisa = paymentData.amount - (paymentData.amount_refunded || 0);
+
+              if (refundAmountPaisa > 0) {
+                const refundRes = await fetch(`https://api.razorpay.com/v1/payments/${order.razorpayPaymentId}/refund`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: authHeader,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({
+                    amount: refundAmountPaisa,
+                    notes: {
+                      orderNumber: order.orderNumber,
+                      reason: "Cancelled by user before shipping"
+                    }
+                  })
+                });
+
+                if (refundRes.ok) {
+                  const refundData: any = await refundRes.json();
+                  order.refundId = refundData.id;
+                  order.refundStatus = refundData.status || "processed";
+                  order.refundAmount = refundAmountPaisa / 100;
+                  order.refundedAt = new Date().toISOString();
+                  order.paymentStatus = "Refunded";
+                  order.statusText = `Cancelled by user. ₹${refundAmountPaisa / 100} refund initiated.`;
+
+                  refundInfo = {
+                    refundId: refundData.id,
+                    amount: refundAmountPaisa / 100,
+                    status: refundData.status
+                  };
+                } else {
+                  const errPayload = await refundRes.json().catch(() => ({}));
+                  console.error("Razorpay refund error:", errPayload);
+                }
+              }
+            }
+          }
+        }
+      } catch (refundError) {
+        console.error("Failed to process automatic refund via Razorpay:", refundError);
+      }
+    }
+
     await order.save();
 
-    res.json({ success: true, message: "Order cancelled successfully." });
+    res.json({
+      success: true,
+      message: refundInfo
+        ? `Order cancelled and ₹${refundInfo.amount} refund automatically initiated to original payment method.`
+        : "Order cancelled successfully.",
+      refund: refundInfo
+    });
   } catch (error) {
     console.error("Error cancelling order:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -561,7 +722,9 @@ export const checkPromoEligibility = async (req: Request, res: Response) => {
       return res.status(400).json({ eligible: false, message: "Promo code is required." });
     }
 
-    if (rawCoupon !== "WELCOME100") {
+    const cleanCoupon = rawCoupon.replace(/[^A-Z0-9]/g, "");
+
+    if (cleanCoupon !== "WELCOME100" && cleanCoupon !== "DIWALI10") {
       return res.status(400).json({ eligible: false, message: "Invalid promo code." });
     }
 
@@ -592,28 +755,85 @@ export const checkPromoEligibility = async (req: Request, res: Response) => {
       }
     }
 
-    if (pastOrderConditions.length > 0) {
-      const pastOrdersCount = await Order.countDocuments({
-        $or: pastOrderConditions,
-        status: { $ne: "Cancelled" }
-      });
-
-      if (pastOrdersCount > 0) {
-        return res.json({
-          eligible: false,
-          code: "WELCOME100",
-          discount: 0,
-          message: "WELCOME100 is valid only on your first purchase."
+    // 1. WELCOME100 handling (First order only)
+    if (cleanCoupon === "WELCOME100") {
+      if (pastOrderConditions.length > 0) {
+        const pastOrdersCount = await Order.countDocuments({
+          $or: pastOrderConditions,
+          status: { $ne: "Cancelled" }
         });
+
+        if (pastOrdersCount > 0) {
+          return res.json({
+            eligible: false,
+            code: "WELCOME100",
+            discount: 0,
+            message: "WELCOME100 is valid only on your first purchase."
+          });
+        }
       }
+
+      return res.json({
+        eligible: true,
+        code: "WELCOME100",
+        discount: 100,
+        message: "Coupon WELCOME100 applied successfully! ₹100 saved."
+      });
     }
 
-    return res.json({
-      eligible: true,
-      code: "WELCOME100",
-      discount: 100,
-      message: "Coupon WELCOME100 applied successfully! ₹100 saved."
-    });
+    // 2. DIWALI10 handling (Second order: 10% of first order value)
+    if (cleanCoupon === "DIWALI10") {
+      if (pastOrderConditions.length === 0) {
+        return res.json({
+          eligible: false,
+          code: "DIWALI10",
+          discount: 0,
+          message: "Please enter your 10-digit mobile number in the shipping address first to verify eligibility."
+        });
+      }
+
+      // Find all completed/non-cancelled orders
+      const completedOrders = await Order.find({
+        $or: pastOrderConditions,
+        status: { $ne: "Cancelled" }
+      }).sort({ createdAt: 1 }).lean();
+
+      if (completedOrders.length === 0) {
+        return res.json({
+          eligible: false,
+          code: "DIWALI10",
+          discount: 0,
+          message: "Diwali 10% is an exclusive reward unlocked after your first purchase."
+        });
+      }
+
+      // Check if DIWALI10 has already been used on a subsequent order
+      const alreadyUsedDiwali = completedOrders.some((o: any) =>
+        String(o.couponCode || "").replace(/[^A-Z0-9]/g, "").toUpperCase() === "DIWALI10"
+      );
+
+      if (alreadyUsedDiwali) {
+        return res.json({
+          eligible: false,
+          code: "DIWALI10",
+          discount: 0,
+          message: "Diwali 10% promo code has already been redeemed."
+        });
+      }
+
+      // Calculate 10% of the first order's total
+      const firstOrder = completedOrders[0];
+      const numericFirstOrderTotal = parseFloat(String(firstOrder.total || "0").replace(/[^0-9.]/g, "")) || 0;
+      const diwaliDiscount = Math.max(1, Math.round(numericFirstOrderTotal * 0.10));
+
+      return res.json({
+        eligible: true,
+        code: "DIWALI10",
+        discount: diwaliDiscount,
+        firstOrderTotal: numericFirstOrderTotal,
+        message: `Diwali 10% applied! ₹${diwaliDiscount} saved (10% reward from your first order of ₹${numericFirstOrderTotal.toLocaleString("en-IN")}).`
+      });
+    }
   } catch (error) {
     console.error("Error checking promo eligibility:", error);
     res.status(500).json({ error: "Internal server error" });
