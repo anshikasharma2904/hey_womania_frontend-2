@@ -1,3 +1,4 @@
+import { MdVisibility } from "react-icons/md";
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -259,7 +260,7 @@ export default async function EarningsPage() {
                     ₹{networkWalletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <span className="text-[#6d655d]">
-                    <span className="material-symbols-outlined">visibility</span>
+                    <MdVisibility aria-hidden="true" className="inline-block shrink-0 align-middle text-[24px]" />
                   </span>
                 </div>
                 

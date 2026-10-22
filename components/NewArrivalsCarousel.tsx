@@ -1,5 +1,7 @@
 "use client";
 
+import { useVisibleInterval } from "@/lib/hooks/useVisibleInterval";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -27,15 +29,9 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
     ...cards.slice(0, activeIndex)
   ].slice(0, 4);
 
-  useEffect(() => {
-    if (cards.length === 0) return;
-
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % cards.length);
-    }, 3800);
-
-    return () => window.clearInterval(timer);
-  }, [cards.length]);
+  const carouselRef = useVisibleInterval<HTMLElement>(() => {
+    setActiveIndex(current => (current + 1) % cards.length);
+  }, 3800, cards.length > 1);
 
   useEffect(() => {
     if (activeIndex >= cards.length) {
@@ -44,7 +40,7 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
   }, [activeIndex, cards.length]);
 
   return (
-    <section id="shop-category-grid" className="mt-8 bg-[#fcf9f4] px-0 py-2 md:mt-12 md:px-0 md:py-4">
+    <section ref={carouselRef} id="shop-category-grid" className="mt-8 bg-[#fcf9f4] px-0 py-2 md:mt-12 md:px-0 md:py-4">
       <div className="mx-auto max-w-7xl rounded-[2rem] bg-white px-4 py-8 shadow-[0_22px_60px_rgba(95,93,62,0.06)] md:px-8 md:py-10">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
@@ -73,7 +69,7 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:pb-0">
             {visibleCards.map((item, index) => (
             <Link
-              key={`${item.title}-${activeIndex}-${index}`}
+              key={item.href || item.title}
               href={item.href || "/category"}
               className="group relative w-[calc((100%-0.75rem)/2)] min-w-[calc((100%-0.75rem)/2)] overflow-hidden rounded-[1.45rem] border border-[#efe7de] bg-white p-3.5 shadow-[0_10px_22px_rgba(95,93,62,0.04)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_34px_rgba(95,93,62,0.08)] sm:w-[220px] sm:min-w-[220px] sm:rounded-[1.7rem] sm:p-4 lg:w-auto lg:min-w-0 md:p-5"
             >

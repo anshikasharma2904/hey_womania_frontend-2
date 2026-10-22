@@ -338,6 +338,7 @@ export default function CartPage() {
                           fallbackSrcs={item.images || []}
                           alt={item.title}
                           fill
+                          sizes="80px"
                           className="object-cover"
                         />
                       </div>

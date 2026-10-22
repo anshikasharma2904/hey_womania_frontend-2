@@ -1,3 +1,4 @@
+import { MdArrowBack, MdCheckCircle, MdCurrencyRupee } from "react-icons/md";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { cookies } from "next/headers";
@@ -83,7 +84,7 @@ export default async function OrderDetailsPage(props: PageProps) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#e8e2d9] pb-6">
           <div>
             <Link href="/account/orders" className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8b837b] transition-colors hover:text-[#5f5d3e]">
-              <span className="material-symbols-outlined text-[1rem]">arrow_back</span>
+              <MdArrowBack aria-hidden="true" className="inline-block shrink-0 align-middle text-[1rem]" />
               Back to Orders
             </Link>
             <h2 className="font-[family:var(--font-display)] text-3xl">
@@ -106,7 +107,7 @@ export default async function OrderDetailsPage(props: PageProps) {
               <p className="mt-1 text-sm text-[#ef6f63]/80">{order.statusText}</p>
               {order.refundAmount ? (
                 <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800">
-                  <span className="material-symbols-outlined text-[1rem] text-emerald-600">currency_rupee</span>
+                  <MdCurrencyRupee aria-hidden="true" className="inline-block shrink-0 align-middle text-[1rem] text-emerald-600" />
                   <span>Refund of ₹{order.refundAmount} automatically initiated to your original payment method.</span>
                 </div>
               ) : null}
@@ -213,6 +214,7 @@ export default async function OrderDetailsPage(props: PageProps) {
                       fallbackSrcs={item.images || []}
                       alt={item.name}
                       fill
+                          sizes="80px"
                       className="object-cover transition-transform group-hover:scale-105"
                     />
                   </div>
@@ -287,7 +289,7 @@ export default async function OrderDetailsPage(props: PageProps) {
                       <>
                         <div className="flex items-center justify-between text-sm text-emerald-700">
                           <span className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-[1rem]">check_circle</span>
+                            <MdCheckCircle aria-hidden="true" className="inline-block shrink-0 align-middle text-[1rem]" />
                             Advance Online Paid
                           </span>
                           <span className="font-semibold">- ₹{advancePaid.toLocaleString("en-IN")}</span>

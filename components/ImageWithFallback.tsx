@@ -13,10 +13,13 @@ export default function ImageWithFallback({
   fallbackSrcs = [],
   src,
   alt,
+  onLoad,
+  onError,
   ...props
 }: ImageWithFallbackProps) {
   const [imgSrc, setImgSrc] = useState(src);
   const [errorCount, setErrorCount] = useState(0);
+  const candidates = [...new Set([...fallbackSrcs, fallbackSrc])].filter(candidate => candidate !== src);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,20 +32,23 @@ export default function ImageWithFallback({
   return (
     <div className={`relative h-full w-full ${props.className || ''}`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-[#e8e2d7] animate-pulse rounded-inherit" />
+        <div className="pointer-events-none absolute inset-0 bg-[#e8e2d7] animate-pulse rounded-inherit" />
       )}
       <Image
         {...props}
         src={imgSrc}
         alt={alt || ""}
-        className={`${props.className || ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          if (errorCount < fallbackSrcs.length) {
-            setImgSrc(fallbackSrcs[errorCount]);
+        className={`relative ${props.className || ''}`}
+        onLoad={(event) => {
+          setIsLoading(false);
+          onLoad?.(event);
+        }}
+        onError={(event) => {
+          onError?.(event);
+          if (errorCount < candidates.length) {
+            setImgSrc(candidates[errorCount]);
             setErrorCount(prev => prev + 1);
-          } else if (imgSrc !== fallbackSrc) {
-            setImgSrc(fallbackSrc);
+          } else {
             setIsLoading(false);
           }
         }}

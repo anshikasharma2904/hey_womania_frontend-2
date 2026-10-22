@@ -1,9 +1,13 @@
 "use client";
 
+import { useVisibleInterval } from "@/lib/hooks/useVisibleInterval";
+
+import { MdChevronRight } from "react-icons/md";
+
+
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import gsap from "gsap";
+import { useEffect, useRef, useState } from "react";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
 import { slugifyProductName } from "@/app/category/category-data";
 
@@ -129,15 +133,14 @@ function MobileCarousel({ items }: { items: BestSellerItem[] }) {
   const [current, setCurrent] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrent((prev) => (prev + 1) % items.length), 3000);
-    return () => clearInterval(timer);
-  }, [items.length]);
+  const carouselRef = useVisibleInterval<HTMLDivElement>(() => {
+    setCurrent(prev => (prev + 1) % items.length);
+  }, 3000, items.length > 1);
 
   const goTo = (idx: number) => setCurrent((idx + items.length) % items.length);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-6 pt-8 shadow-[0_24px_70px_rgba(20,18,16,0.28)]">
+    <div ref={carouselRef} className="relative w-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-6 pt-8 shadow-[0_24px_70px_rgba(20,18,16,0.28)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
       <Link
         href={items[current].href}
@@ -189,60 +192,17 @@ export function BestSellersCoverflow({
 }: BestSellersCoverflowProps) {
   const items = incomingItems && incomingItems.length > 0 ? incomingItems : fallbackItems;
   const [activeIndex, setActiveIndex] = useState(Math.min(3, Math.max(0, items.length - 1)));
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const cardRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const textRefs = useRef<(HTMLDivElement | null)[]>([]);
   const handleActivate = (index: number) => {
     setActiveIndex((currentIndex) => (currentIndex === index ? currentIndex : index));
   };
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setActiveIndex(Math.min(3, Math.max(0, items.length - 1)));
   }, [items.length]);
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      for (let index = 0; index < items.length; index += 1) {
-        const card = cardRefs.current[index];
-        const detail = textRefs.current[index];
-        if (!card || !detail) {
-          continue;
-        }
-
-        const relativeIndex = index - activeIndex;
-        const state = coverflowState(relativeIndex);
-
-        gsap.to(card, {
-          xPercent: -50,
-          x: state.x,
-          y: state.y,
-          z: state.z,
-          rotateY: state.rotateY,
-          scale: state.scale,
-          opacity: state.opacity,
-          filter: `blur(${state.blur}px)`,
-          boxShadow: state.shadow,
-          zIndex: 100 - Math.abs(relativeIndex) * 10,
-          duration: 1.05,
-          ease: "power3.out"
-        });
-
-        gsap.to(detail, {
-          autoAlpha: relativeIndex === 0 ? 1 : 0,
-          y: relativeIndex === 0 ? 0 : 18,
-          duration: 0.7,
-          ease: "power2.out"
-        });
-      }
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, [activeIndex]);
 
   return (
     <section
       id="best-sellers"
-      ref={sectionRef}
       className="bg-[radial-gradient(circle_at_top,rgba(255,244,232,0.9),transparent_24%),linear-gradient(180deg,#e8dfd6_0%,#d8ccbf_22%,#23201d_100%)] px-5 pb-20 pt-8 md:px-16 md:pb-28"
     >
       <div className="mb-10 flex items-center justify-between gap-4">
@@ -254,7 +214,7 @@ export function BestSellersCoverflow({
           className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-[#343434] shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-opacity duration-300 hover:opacity-75 md:px-5 md:py-3 md:text-lg"
         >
           View All
-          <span className="material-symbols-outlined text-[1.1rem]">chevron_right</span>
+          <MdChevronRight aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.1rem]" />
         </Link>
       </div>
 
@@ -274,13 +234,19 @@ export function BestSellersCoverflow({
               <Link
                 key={item.id}
                 href={item.href}
-                ref={(node) => {
-                  cardRefs.current[index] = node;
-                }}
+                style={(() => {
+                  const state = coverflowState(index - activeIndex);
+                  return {
+                    transform: `translateX(-50%) translate3d(${state.x}px, ${state.y}px, ${state.z}px) rotateY(${state.rotateY}deg) scale(${state.scale})`,
+                    opacity: state.opacity,
+                    zIndex: 100 - Math.abs(index - activeIndex) * 10,
+                    boxShadow: state.shadow,
+                  };
+                })()}
                 onMouseEnter={() => handleActivate(index)}
                 onFocus={() => handleActivate(index)}
                 aria-label={`Focus ${item.title}`}
-                className="absolute left-1/2 top-10 h-[250px] w-[170px] rounded-[1.7rem] bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,0.14),transparent_28%),linear-gradient(180deg,#8d6d60_0%,#5f4b40_28%,#241d1a_72%,#161311_100%)] p-0 [transform-style:preserve-3d] transition-transform duration-500 md:h-[320px] md:w-[220px]"
+                className="absolute left-1/2 top-10 h-[250px] w-[170px] rounded-[1.7rem] bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,0.14),transparent_28%),linear-gradient(180deg,#8d6d60_0%,#5f4b40_28%,#241d1a_72%,#161311_100%)] p-0 [transform-style:preserve-3d] transition-[transform,opacity] duration-700 motion-reduce:transition-none md:h-[320px] md:w-[220px]"
               >
                 <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_22%,rgba(0,0,0,0.16))]" />
                 <div className="pointer-events-none absolute left-1/2 top-0 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-white/75 shadow-[0_10px_22px_rgba(255,255,255,0.08)]" />
@@ -304,10 +270,9 @@ export function BestSellersCoverflow({
           {items.map((item, index) => (
             <div
               key={`${item.id}-detail`}
-              ref={(node) => {
-                textRefs.current[index] = node;
-              }}
-              className="absolute inset-x-0 top-0 text-center"
+              aria-hidden={index !== activeIndex}
+              style={{ opacity: index === activeIndex ? 1 : 0, visibility: index === activeIndex ? "visible" : "hidden", transform: `translateY(${index === activeIndex ? 0 : 18}px)` }}
+              className="absolute inset-x-0 top-0 text-center transition-[transform,opacity] duration-500 motion-reduce:transition-none"
             >
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#ef8b76]">
                 #{item.id}

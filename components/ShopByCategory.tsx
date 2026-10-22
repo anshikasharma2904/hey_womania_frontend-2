@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useVisibleInterval } from "@/lib/hooks/useVisibleInterval";
+
+import { useState } from "react";
 import Link from "next/link";
 import ImageWithFallback from "@/components/ImageWithFallback";
 
 type ShopByCategoryProps = {
+  categoryImages?: Record<string, string>;
   mostLovedImages?: string[];
   justDroppedImages?: string[];
 };
@@ -24,34 +27,14 @@ const categories: { title: string; items: string; image: string; href: string; i
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }: ShopByCategoryProps) {
+export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [], categoryImages = {} }: ShopByCategoryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [customImages, setCustomImages] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    // Fetch dynamic category images from site settings
-    fetch(`${API_URL}/api/settings`)
-      .then(res => {
-        if (!res.ok) return {} as any;
-        return res.json();
-      })
-      .then(data => {
-        if (data.categoryImages) {
-          setCustomImages(data.categoryImages);
-        }
-      })
-      .catch(err => console.error("Error fetching category images:", err));
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => prev + 1);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  const carouselRef = useVisibleInterval<HTMLElement>(() => {
+    setCurrentIndex(prev => prev + 1);
+  }, 4000, categories.some(category => Boolean(category.isSlider)));
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-8">
+    <section ref={carouselRef} className="mx-auto max-w-7xl px-4 pb-8">
       <div className="rounded-3xl bg-white p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
         <div className="mb-4 md:mb-6 flex items-center justify-between">
           <h2 className="text-xl md:text-4xl font-bold tracking-tight text-[#111111] font-sans">
@@ -62,7 +45,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-4">
           {categories.map((category) => {
             // Priority: Dynamic Custom Image -> MostLoved/JustDropped Slider -> Hardcoded Image
-            let activeImage = customImages[category.title] || category.image;
+            let activeImage = categoryImages[category.title] || category.image;
 
             if (category.isSlider === "mostLoved" && mostLovedImages.length > 0) {
               activeImage = mostLovedImages[currentIndex % mostLovedImages.length];
@@ -92,6 +75,7 @@ export function ShopByCategory({ mostLovedImages = [], justDroppedImages = [] }:
                         src={activeImage.startsWith('http') || activeImage.startsWith('/') ? activeImage : `${API_URL}${activeImage}`}
                         alt={category.title}
                         fill
+                        sizes="(max-width: 639px) 128px, (max-width: 767px) 160px, 192px"
                         className="object-contain scale-[1.0] transition-opacity duration-1000"
                       />
                     )

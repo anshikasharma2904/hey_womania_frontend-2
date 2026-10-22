@@ -1,3 +1,4 @@
+import { getStorefrontSettings } from "@/lib/server/storefront-settings";
 import Image from "next/image";
 import Link from "next/link";
 import { BestSellersCoverflow } from "@/components/BestSellersCoverflow";
@@ -364,9 +365,10 @@ function mapProductsToTestimonials(products: Product[]) {
 }
 
 export default async function Home() {
-  const [products, bestSellerProducts] = await Promise.all([
+  const [products, bestSellerProducts, settings] = await Promise.all([
     fetchProducts(),
-    fetchBestSellers()
+    fetchBestSellers(),
+    getStorefrontSettings()
   ]);
   const arrivalCards = mapProductsToArrivals(products);
   const categories = mapProductsToCategories(products);
@@ -375,7 +377,9 @@ export default async function Home() {
 
   return (
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
-      <HeroVideoSlider />
+      <link rel="preload" as="image" href="/phoneVideo-poster.webp" media="(max-width: 767px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/hero-desktop-poster.webp" media="(min-width: 768px)" fetchPriority="high" />
+      <HeroVideoSlider heroVideoMobile={settings.heroVideoMobile} />
 
       <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-10">
         <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
@@ -386,7 +390,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ShopByCategory 
+      <ShopByCategory categoryImages={settings.categoryImages}
         mostLovedImages={bestSellerProducts.map(p => {
           let defaultImg = null;
           if (Array.isArray(p.variants)) {

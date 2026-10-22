@@ -1,3 +1,4 @@
+import { MdAccountBalanceWallet } from "react-icons/md";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FaStar } from "react-icons/fa";
@@ -74,7 +75,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
           <div className="flex items-center gap-3 sm:gap-6 pt-2 sm:pt-0 border-t border-[#eddad3]/60 sm:border-t-0">
             <div className="flex h-14 sm:h-16 md:h-20 min-w-full sm:min-w-20 px-4 items-center justify-between sm:justify-center sm:flex-col rounded-2xl sm:rounded-full bg-[#fcf9f4] border border-[#ece6df] sm:border-0 text-[#5f5d3e] shadow-xs sm:shadow-inner">
               <div className="flex items-center gap-2 sm:flex-col sm:gap-0">
-                <span className="material-symbols-outlined text-[1.2rem] text-[#9c4049] sm:hidden">account_balance_wallet</span>
+                <MdAccountBalanceWallet aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.2rem] text-[#9c4049] sm:hidden" />
                 <span className="text-[0.7rem] sm:text-[0.65rem] font-bold uppercase tracking-wider text-[#9b948d]">My Wallet</span>
               </div>
               <span className="font-[family:var(--font-display)] text-xl sm:text-lg md:text-xl font-bold leading-none text-[#3a2630]">

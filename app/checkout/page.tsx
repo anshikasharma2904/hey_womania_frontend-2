@@ -774,6 +774,7 @@ export default function CheckoutPage() {
                           fallbackSrcs={item.images || []}
                           alt={item.title}
                           fill
+                          sizes="56px"
                           className="object-cover"
                         />
                       </div>

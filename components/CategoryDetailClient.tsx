@@ -1,5 +1,8 @@
 "use client";
 
+import { MdClose, MdSearch, MdTune } from "react-icons/md";
+
+
 import Link from "next/link";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { useMemo, useState } from "react";
@@ -334,7 +337,7 @@ export function CategoryDetailClient({
         </h1>
 
         <div className="mt-6 flex max-w-xl items-center gap-3 rounded-full border border-[#ece6df] bg-white px-4 py-3 shadow-[0_4px_20px_rgba(58,45,35,0.04)]">
-          <span className="material-symbols-outlined text-[#8c8f9e]">search</span>
+          <MdSearch aria-hidden="true" className="inline-block shrink-0 align-middle text-[#8c8f9e] text-[24px]" />
           <input
             type="text"
             placeholder="Search products, categories..."
@@ -344,7 +347,7 @@ export function CategoryDetailClient({
           />
           {localSearch && (
             <button type="button" onClick={() => setLocalSearch("")} className="flex text-[#8c8f9e] hover:text-[#111111]">
-              <span className="material-symbols-outlined text-lg">close</span>
+              <MdClose aria-hidden="true" className="inline-block shrink-0 align-middle text-lg" />
             </button>
           )}
         </div>
@@ -494,7 +497,7 @@ export function CategoryDetailClient({
               onClick={() => setMobileFiltersOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ddd5cc] text-[#5f5d3e]"
             >
-              <span className="material-symbols-outlined text-[1.15rem]">close</span>
+              <MdClose aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.15rem]" />
             </button>
           </div>
 
@@ -637,7 +640,7 @@ export function CategoryDetailClient({
                 className="flex items-center gap-1.5 rounded-[1.25rem] border border-[#ece6df] bg-white/95 px-3 py-1.5 text-[0.65rem] sm:text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#111111] shadow-sm lg:hidden"
               >
                 Filters
-                <span className="material-symbols-outlined text-[1rem] text-[#6d655d]">tune</span>
+                <MdTune aria-hidden="true" className="inline-block shrink-0 align-middle text-[1rem] text-[#6d655d]" />
               </button>
               <div className="rounded-full bg-[#f4efe8] px-3 py-1.5 text-[0.65rem] sm:text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.14em] text-[#6f5f56]">
                 Sort by: Popular
@@ -675,6 +678,7 @@ export function CategoryDetailClient({
                           fallbackSrc="/products/product-placeholder.png"
                           alt={product.name}
                           fill
+                          sizes="(max-width: 639px) 46vw, (max-width: 1279px) 42vw, 280px"
                           className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                         />
                         <button

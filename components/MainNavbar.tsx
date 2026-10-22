@@ -1,5 +1,8 @@
 "use client";
 
+import { MdClose, MdExpandMore, MdFavoriteBorder, MdLocalShipping, MdMenu, MdOutlineShoppingBag, MdPersonOutline, MdSearch } from "react-icons/md";
+
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -252,20 +255,20 @@ export function MainNavbar() {
               onClick={() => setMobileMenuOpen(true)}
               className="flex items-center gap-2 text-[#343434] transition-opacity duration-300 hover:opacity-70"
             >
-              <span className="material-symbols-outlined text-[1.4rem]">menu</span>
+              <MdMenu aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.4rem]" />
             </button>
             <Link
               href="/category/all"
               className="hidden items-center gap-2 lg:flex text-[#343434] transition-opacity duration-200 hover:opacity-70"
             >
-              <span className="material-symbols-outlined text-[1.2rem]">search</span>
+              <MdSearch aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.2rem]" />
               <span className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#343434] mr-2">Search</span>
             </Link>
             <Link
               href="/category/all"
               className="flex items-center text-[#343434] lg:hidden"
             >
-              <span className="material-symbols-outlined text-[1.3rem]">search</span>
+              <MdSearch aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.3rem]" />
             </Link>
           </div>
 
@@ -387,7 +390,7 @@ export function MainNavbar() {
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-2.5 rounded-xl border border-[#ece6df] bg-[#fffdfb] px-3.5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#1c1c19] transition hover:border-[#9c4049] hover:bg-[#fff0f1]/30 hover:text-[#9c4049]"
                         >
-                          <span className="material-symbols-outlined text-[1.15rem] text-[#9c4049]">local_shipping</span>
+                          <MdLocalShipping aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.15rem] text-[#9c4049]" />
                           <span>My Orders / Track Order</span>
                         </Link>
 
@@ -443,7 +446,7 @@ export function MainNavbar() {
             onClick={() => setMobileMenuOpen(false)}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dacdc0] text-[#5f5d3e]"
           >
-            <span className="material-symbols-outlined">close</span>
+            <MdClose aria-hidden="true" className="inline-block shrink-0 align-middle text-[24px]" />
           </button>
         </div>
 
@@ -483,7 +486,7 @@ export function MainNavbar() {
                   className="flex items-center justify-between text-sm font-semibold uppercase tracking-[0.14em] text-[#9c4049]"
                 >
                   <span>{menu.label}</span>
-                  <span className="material-symbols-outlined text-[1.2rem]">expand_more</span>
+                  <MdExpandMore aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.2rem]" />
                 </Link>
 
                 {menu.columns.length > 0 ? (
@@ -523,7 +526,7 @@ export function MainNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#9c4049] transition hover:bg-[#fff0f1]/20"
             >
-              <span className="material-symbols-outlined text-[1.25rem] mb-1">local_shipping</span>
+              <MdLocalShipping aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.25rem] mb-1" />
               My Orders
             </Link>
             <Link
@@ -531,7 +534,7 @@ export function MainNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
-              <span className="material-symbols-outlined text-[1.25rem] mb-1">person</span>
+              <MdPersonOutline aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.25rem] mb-1" />
               Account
             </Link>
             <Link
@@ -539,7 +542,7 @@ export function MainNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
-              <span className="material-symbols-outlined text-[1.25rem] mb-1">favorite</span>
+              <MdFavoriteBorder aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.25rem] mb-1" />
               Wishbag
             </Link>
             <Link
@@ -547,7 +550,7 @@ export function MainNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex flex-col items-center justify-center rounded-[1rem] border border-[#ece6df] bg-white px-2 py-3.5 text-center text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#35384b]"
             >
-              <span className="material-symbols-outlined text-[1.25rem] mb-1">shopping_bag</span>
+              <MdOutlineShoppingBag aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.25rem] mb-1" />
               Bag
             </Link>
           </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { MdClose } from "react-icons/md";
+
+
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { JEWELLERY_ASSETS, MODEL_ASSETS, PRODUCT_ASSETS } from "@/lib/fashion-assets";
@@ -116,9 +119,7 @@ export function LatestOffersWidget() {
                 onClick={() => setOpen(false)}
                 className="rounded-full p-1 transition-opacity duration-200 hover:opacity-75"
               >
-                <span className="material-symbols-outlined text-[1.5rem] md:text-[1.75rem]">
-                  close
-                </span>
+                <MdClose aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.5rem] md:text-[1.75rem]" />
               </button>
             </div>
 

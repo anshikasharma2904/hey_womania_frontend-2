@@ -1,5 +1,8 @@
 "use client";
 
+import { MdArrowBack, MdLocalShipping } from "react-icons/md";
+
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -235,9 +238,7 @@ export default function LoginPage() {
                   href="/"
                   className="flex items-center gap-1.5 transition-colors hover:text-[#5f5d3e]"
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    arrow_back
-                  </span>
+                  <MdArrowBack aria-hidden="true" className="inline-block shrink-0 align-middle text-sm" />
                   Back to Home
                 </Link>
 
@@ -245,9 +246,7 @@ export default function LoginPage() {
                   href="/account/orders"
                   className="flex items-center gap-1.5 text-[#9c4049] transition-colors hover:underline"
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    local_shipping
-                  </span>
+                  <MdLocalShipping aria-hidden="true" className="inline-block shrink-0 align-middle text-sm" />
                   My Orders
                 </Link>
               </div>

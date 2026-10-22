@@ -1,10 +1,9 @@
+import { Suspense } from "react";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { StoreFooter } from "@/components/StoreFooter";
-import { ProductOptionsClient } from "@/components/ProductOptionsClient";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
 import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
 import {
@@ -63,6 +62,11 @@ export default async function ProductDetailPage({
   const { slug } = await params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+  // Start public product loading alongside the independent customer lookup.
+  const productRequest = fetch(`${apiUrl}/api/products/${slug}`, {
+    cache: "no-store"
+  }).catch(() => null);
+
   let customerReferralCode = "";
   try {
     const cookieStore = await cookies();
@@ -85,10 +89,8 @@ export default async function ProductDetailPage({
 
   let product = null;
   try {
-    const res = await fetch(`${apiUrl}/api/products/${slug}`, {
-      cache: "no-store"
-    });
-    if (res.ok) {
+    const res = await productRequest;
+    if (res?.ok) {
       const p = await res.json();
       const hasDiscount = p.salePrice && p.salePrice < p.price;
       const finalPrice = hasDiscount ? p.salePrice : p.price;
@@ -171,6 +173,91 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+
+  return (
+    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-6 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
+      <section className="mx-auto max-w-7xl">
+        <div className="mb-5 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
+          <Link href="/">Home</Link>
+          <span>&gt;</span>
+          <Link href="/category">Category</Link>
+          <span>&gt;</span>
+          <Link href={`/category/${product.categorySlug}`}>{formatCoOrd(product.categoryTitle)}</Link>
+          <span>&gt;</span>
+          <span className="text-[#1c1c19]">{formatCoOrd(product.name)}</span>
+        </div>
+
+        <ProductDetailInteractive product={product as any} customerReferralCode={customerReferralCode} />
+
+        <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
+          <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece6df] pb-4">
+              <div className="flex flex-wrap gap-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#6d655d]">
+                <button className="border-b-2 border-[#111111] pb-2 text-[#111111]">
+                  Product Details
+                </button>
+                <button className="pb-2">Rating & Reviews</button>
+                <button className="pb-2">FAQ</button>
+              </div>
+              <div className="rounded-full bg-[#f4efe8] px-4 py-2 text-xs font-semibold text-[#111111]">
+                146 Reviews
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {reviewCards.map((review) => (
+                <article
+                  key={review.name}
+                  className="rounded-[1.2rem] border border-[#ece6df] bg-[#fcfaf7] p-4"
+                >
+                  <div className="flex items-center gap-1 text-[#ffb000]">
+                    {Array.from({ length: review.rating }).map((_, starIndex) => (
+                      <span key={starIndex} className="text-xs">
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-[#111111]">
+                    {review.name}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-[#6d655d]">
+                    {review.text}
+                  </p>
+                  <p className="mt-4 text-[11px] uppercase tracking-[0.14em] text-[#9b938b]">
+                    {review.date}
+                  </p>
+                </article>
+              ))}
+            </div>
+
+            <button className="mx-auto mt-6 block rounded-full border border-[#ddd5cc] px-5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
+              Load More Reviews
+            </button>
+          </div>
+
+          <Suspense fallback={
+            <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 md:p-6" aria-busy="true" aria-label="Loading recommendations">
+              <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">You Might Also Like</h2>
+              <div className="mt-5 grid grid-cols-2 gap-4">
+                {[0, 1, 2, 3].map(index => <div key={index} className="aspect-[3/4] rounded-[1.1rem] bg-[#f4efe8] motion-safe:animate-pulse" />)}
+              </div>
+            </div>
+          }>
+            <RelatedProducts product={product} apiUrl={apiUrl} />
+          </Suspense>
+        </section>
+      </section>
+
+      <StoreFooter />
+    </main>
+  );
+}
+
+
+async function RelatedProducts({ product, apiUrl }: {
+  product: { slug: string; categoryTitle: string; relatedCategory?: string };
+  apiUrl: string;
+}) {
   // Related products
   let relatedProducts = catalogProducts.slice(0, 4);
   try {
@@ -249,66 +336,6 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#fcf9f4] px-4 pb-12 pt-6 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
-      <section className="mx-auto max-w-7xl">
-        <div className="mb-5 flex flex-wrap items-center gap-2 text-[0.68rem] uppercase tracking-[0.16em] text-[#8b837b]">
-          <Link href="/">Home</Link>
-          <span>&gt;</span>
-          <Link href="/category">Category</Link>
-          <span>&gt;</span>
-          <Link href={`/category/${product.categorySlug}`}>{formatCoOrd(product.categoryTitle)}</Link>
-          <span>&gt;</span>
-          <span className="text-[#1c1c19]">{formatCoOrd(product.name)}</span>
-        </div>
-
-        <ProductDetailInteractive product={product as any} customerReferralCode={customerReferralCode} />
-
-        <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
-          <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece6df] pb-4">
-              <div className="flex flex-wrap gap-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#6d655d]">
-                <button className="border-b-2 border-[#111111] pb-2 text-[#111111]">
-                  Product Details
-                </button>
-                <button className="pb-2">Rating & Reviews</button>
-                <button className="pb-2">FAQ</button>
-              </div>
-              <div className="rounded-full bg-[#f4efe8] px-4 py-2 text-xs font-semibold text-[#111111]">
-                146 Reviews
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {reviewCards.map((review) => (
-                <article
-                  key={review.name}
-                  className="rounded-[1.2rem] border border-[#ece6df] bg-[#fcfaf7] p-4"
-                >
-                  <div className="flex items-center gap-1 text-[#ffb000]">
-                    {Array.from({ length: review.rating }).map((_, starIndex) => (
-                      <span key={starIndex} className="text-xs">
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-[#111111]">
-                    {review.name}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-[#6d655d]">
-                    {review.text}
-                  </p>
-                  <p className="mt-4 text-[11px] uppercase tracking-[0.14em] text-[#9b938b]">
-                    {review.date}
-                  </p>
-                </article>
-              ))}
-            </div>
-
-            <button className="mx-auto mt-6 block rounded-full border border-[#ddd5cc] px-5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-              Load More Reviews
-            </button>
-          </div>
-
           <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
             <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">
               You Might Also Like
@@ -350,10 +377,5 @@ export default async function ProductDetailPage({
               ))}
             </div>
           </div>
-        </section>
-      </section>
-
-      <StoreFooter />
-    </main>
   );
 }

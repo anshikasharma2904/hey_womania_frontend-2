@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Libre_Caslon_Text, Manrope, Cedarville_Cursive } from "next/font/google";
 import "./globals.css";
-import { LatestOffersWidget } from "@/components/LatestOffersWidget";
+import { GlobalStoreWidgets } from "@/components/GlobalStoreWidgets";
 import { MainNavbar } from "@/components/MainNavbar";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
-import { SurpriseGiftModal } from "@/components/SurpriseGiftModal";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
 
@@ -65,27 +64,12 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="preload"
-          as="image"
-          href="/phoneVideo-poster.webp"
-          type="image/webp"
-          // @ts-expect-error fetchpriority attribute
-          fetchpriority="high"
-          media="(max-width: 768px)"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        />
       </head>
       <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
         {/* Google tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-D38817RM74"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           id="google-analytics"
@@ -110,15 +94,13 @@ export default function RootLayout({
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
               if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
+              n.queue=[];}(window);
               fbq('init', '1701617601397965');
               fbq('track', 'PageView');
             `,
           }}
         />
+        <Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />
         <noscript>
           <img height="1" width="1" style={{ display: 'none' }} src="https://www.facebook.com/tr?id=1701617601397965&ev=PageView&noscript=1" alt="" />
         </noscript>
@@ -132,8 +114,7 @@ export default function RootLayout({
             <footer className="w-full bg-[#fcf9f4] py-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
               <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
             </footer>
-            <LatestOffersWidget />
-            <SurpriseGiftModal />
+            <GlobalStoreWidgets />
           </SmoothScrollProvider>
         </WishbagProvider>
       </body>

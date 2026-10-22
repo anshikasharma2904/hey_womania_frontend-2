@@ -2,145 +2,92 @@
 
 import { useEffect, useRef, useState } from "react";
 
-function getYoutubeId(url: string) {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-  return match ? match[1] : null;
-}
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export function HeroVideoSlider() {
-  const desktopVideoRef = useRef<HTMLVideoElement | null>(null);
-  const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [isDesktopReady, setIsDesktopReady] = useState(false);
-  
-  const [desktopVideoUrl, setDesktopVideoUrl] = useState("/video heywomaniya.mp4");
-  const [desktopIsYoutube, setDesktopIsYoutube] = useState(false);
-  const [desktopIsImage, setDesktopIsImage] = useState(false);
-  
-  const [mobileVideoUrl, setMobileVideoUrl] = useState("/phoneVideo.mp4");
-  const [mobileIsImage, setMobileIsImage] = useState(false);
+export function HeroVideoSlider({ heroVideoMobile }: { heroVideoMobile?: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const configuredMobileUrl = heroVideoMobile || "/phoneVideo.mp4";
+  const mobileUrl = ["/phoneVideo.mp4", "phoneVideo.mp4"].includes(configuredMobileUrl)
+    ? "/media/hero-mobile-v1.mp4"
+    : configuredMobileUrl.startsWith("/uploads") ? `${API_URL}${configuredMobileUrl}` : configuredMobileUrl;
+  const [videoReady, setVideoReady] = useState(false);
+  const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
-    // Fetch dynamic settings
-    fetch(`${API_URL}/api/settings`)
-      .then(res => {
-        if (!res.ok) return {} as any;
-        return res.json();
-      })
-      .then(data => {
-        /* 
-        if (data.heroVideoDesktop) {
-          const url = data.heroVideoDesktop;
-          const isImg = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-          setDesktopIsImage(!!isImg);
-          
-          if (isImg) {
-            setDesktopVideoUrl(url.startsWith('http') ? url : `${API_URL}${url}`);
-            setDesktopIsYoutube(false);
-            setIsDesktopReady(true);
-          } else {
-            const ytId = getYoutubeId(url);
-            if (ytId) {
-              setDesktopVideoUrl(ytId);
-              setDesktopIsYoutube(true);
-            } else {
-              setDesktopVideoUrl(url.startsWith('http') ? url : `${API_URL}${url}`);
-              setDesktopIsYoutube(false);
-            }
-          }
-        }
-        */
-        
-        if (data.heroVideoMobile) {
-          const mUrl = data.heroVideoMobile;
-          const isImg = mUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-          setMobileIsImage(!!isImg);
-          if (mUrl.startsWith("http")) {
-            setMobileVideoUrl(mUrl);
-          } else if (mUrl.startsWith("/uploads")) {
-            setMobileVideoUrl(`${API_URL}${mUrl}`);
-          } else {
-            // Static public frontend asset (e.g. /phoneVideo.mp4)
-            setMobileVideoUrl(mUrl);
-          }
-        }
-      })
-      .catch(err => console.error("Error fetching site settings:", err));
+    const viewport = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobile(viewport.matches);
+    updateViewport();
+    viewport.addEventListener("change", updateViewport);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    let timer: number | undefined;
+    const updatePlayback = () => {
+      window.clearTimeout(timer);
+      setAllowVideo(false);
+      // A still poster avoids decorative downloads on constrained connections.
+      if (reducedMotion.matches || connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType || "")) return;
+      timer = window.setTimeout(() => setAllowVideo(true), 1500);
+    };
+    updatePlayback();
+    reducedMotion.addEventListener("change", updatePlayback);
+    return () => {
+      viewport.removeEventListener("change", updateViewport);
+      window.clearTimeout(timer);
+      reducedMotion.removeEventListener("change", updatePlayback);
+    };
   }, []);
 
-  // Fallback to ensure video shows after YouTube title fades or immediately for native video
-  useEffect(() => {
-    if (desktopVideoRef.current && !desktopIsYoutube && !desktopIsImage) {
-      desktopVideoRef.current.currentTime = 0;
-      void desktopVideoRef.current.play().catch(() => { });
-    }
-    if (mobileVideoRef.current && !mobileIsImage) {
-      mobileVideoRef.current.currentTime = 0;
-      void mobileVideoRef.current.play().catch(() => { });
-    }
+  const url = isMobile ? mobileUrl : "/media/hero-desktop-v1.mp4";
+  const isImage = /\.(jpe?g|gif|png|webp|avif)(?:[?#]|$)/i.test(url);
 
-    if (!desktopIsYoutube) {
-      setIsDesktopReady(true);
-    } else {
-      const timer = setTimeout(() => setIsDesktopReady(true), 4500);
-      return () => clearTimeout(timer);
-    }
-  }, [desktopIsYoutube, desktopIsImage, desktopVideoUrl, mobileVideoUrl, mobileIsImage]);
+  useEffect(() => setVideoReady(false), [url]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    let visible = false;
+    const update = () => {
+      if (visible && !document.hidden) void video.play().catch(() => {});
+      else video.pause();
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      update();
+    });
+    observer.observe(video);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [allowVideo, isMobile, isImage, url]);
 
   return (
     <section className="relative w-full overflow-hidden bg-[#fcf9f4]">
       <div className="relative h-[65vh] w-full min-h-[420px] max-h-[850px] md:h-[80vh] lg:h-[88vh]">
-        
-        {/* Desktop View */}
-        <div className={`absolute inset-0 z-10 hidden md:block overflow-hidden transition-opacity duration-1000 ${isDesktopReady ? 'opacity-100' : 'opacity-0'}`}>
-          {desktopIsImage ? (
-            <img src={desktopVideoUrl} alt="Hero Banner" className="w-full h-full object-cover object-center" />
-          ) : desktopIsYoutube ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${desktopVideoUrl}?autoplay=1&mute=1&loop=1&playlist=${desktopVideoUrl}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0`}
-              allow="autoplay; encrypted-media; picture-in-picture"
-              className="w-full h-full pointer-events-none"
-              style={{ border: 0 }}
-              onLoad={() => {
-                setTimeout(() => setIsDesktopReady(true), 2500);
-              }}
-            />
-          ) : (
-            <video
-              ref={desktopVideoRef}
-              src={desktopVideoUrl}
-              poster="/hero-desktop-poster.webp"
-              muted
-              playsInline
-              autoPlay
-              loop
-              className="h-full w-full object-cover object-center"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply pointer-events-none" />
-        </div>
-
-        {/* Mobile View */}
-        <div className="absolute inset-0 z-10 block md:hidden">
-          {mobileIsImage ? (
-             <img src={mobileVideoUrl} alt="Hero Banner Mobile" className="w-full h-full object-cover object-center" />
-          ) : (
-            <video
-              ref={mobileVideoRef}
-              src={mobileVideoUrl}
-              poster="/phoneVideo-poster.webp"
-              muted
-              playsInline
-              disablePictureInPicture
-              preload="metadata"
-              autoPlay
-              loop
-              className="h-full w-full object-cover object-center"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply pointer-events-none" />
-        </div>
+        <picture>
+          <source media="(max-width: 767px)" srcSet="/phoneVideo-poster.webp" />
+          <img src="/hero-desktop-poster.webp" alt="Hey Womaniyaa collection" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center" />
+        </picture>
+        {isMobile !== null && (isImage ? (
+          <img src={url} alt="Hero Banner" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center" />
+        ) : allowVideo && (
+          <video
+            key={url}
+            ref={videoRef}
+            src={url}
+            muted
+            playsInline
+            disablePictureInPicture
+            preload="none"
+            autoPlay
+            loop
+            onLoadedData={() => setVideoReady(true)}
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${videoReady ? "opacity-100" : "opacity-0"}`}
+          />
+        ))}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply" />
       </div>
     </section>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { MdArrowBack } from "react-icons/md";
+
+
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -267,7 +270,7 @@ export default function ForgotPasswordPage() {
               href="/login"
               className="flex items-center justify-center gap-2 py-2 text-xs uppercase tracking-[0.16em] text-[#48473d] transition-colors hover:text-[#5f5d3e]"
             >
-              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              <MdArrowBack aria-hidden="true" className="inline-block shrink-0 align-middle text-sm" />
               Back to Login
             </Link>
           </div>

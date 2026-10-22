@@ -1,3 +1,4 @@
+import { MdArrowForwardIos } from "react-icons/md";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -146,7 +147,7 @@ export default async function AccountPage() {
                         {order.status}
                       </div>
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fcf9f4] text-[#8b837b] transition-colors group-hover:bg-[#fff0f1] group-hover:text-[#9c4049]">
-                        <span className="material-symbols-outlined text-sm">arrow_forward_ios</span>
+                        <MdArrowForwardIos aria-hidden="true" className="inline-block shrink-0 align-middle text-sm" />
                       </div>
                     </div>
                   </div>

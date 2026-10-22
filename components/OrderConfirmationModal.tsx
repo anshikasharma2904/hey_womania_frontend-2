@@ -51,9 +51,9 @@ export function OrderConfirmationModal({
                 <div key={idx} className="flex gap-3 items-center bg-white p-2.5 sm:p-3 rounded-xl border border-[#e8e2d9]/60 shadow-xs">
                   <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-[#f0ede8] overflow-hidden shrink-0">
                     {item.img ? (
-                      <ImageWithFallback src={item.img} alt={item.name} fill className="object-cover" />
+                      <ImageWithFallback src={item.img} alt={item.name} fill sizes="48px" className="object-cover" />
                     ) : (
-                      <ImageWithFallback src="/products/product-placeholder.png" alt={item.name} fill className="object-cover" />
+                      <ImageWithFallback src="/products/product-placeholder.png" alt={item.name} fill sizes="48px" className="object-cover" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

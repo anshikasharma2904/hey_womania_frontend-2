@@ -1,5 +1,6 @@
 "use client";
 
+import ImageWithFallback from "@/components/ImageWithFallback";
 import React, { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaShoppingBag, FaHeart, FaRegHeart, FaShareAlt } from "react-icons/fa";
 import { useWishbag } from "@/contexts/WishbagContext";
@@ -546,7 +547,9 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
                 >
                   <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full border border-black/10 shadow-inner">
                     {colorVariantImg ? (
-                      <img
+                      <ImageWithFallback
+                        fill
+                        sizes="24px"
                         src={colorVariantImg}
                         alt={color.name}
                         className="h-full w-full object-cover object-top"

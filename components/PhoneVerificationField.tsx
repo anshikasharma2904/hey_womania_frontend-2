@@ -1,5 +1,8 @@
 "use client";
 
+import { MdTaskAlt, MdVerifiedUser } from "react-icons/md";
+
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaAsterisk } from "react-icons/fa";
 
@@ -375,7 +378,7 @@ export function PhoneVerificationField({
           disabled={isSendingOtp}
           className="absolute right-0 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#d9c9bb] bg-white px-3 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.12em] text-[#9c4049] transition-all duration-200 hover:border-[#9c4049] hover:bg-[#fff7f3] sm:px-4 sm:text-[0.68rem]"
         >
-          <span className="material-symbols-outlined text-[0.95rem] sm:text-base">verified_user</span>
+          <MdVerifiedUser aria-hidden="true" className="inline-block shrink-0 align-middle text-[0.95rem] sm:text-base" />
           {isSendingOtp ? "Sending..." : isOtpSent ? "Reset" : "Verify"}
         </button>
       </div>
@@ -383,7 +386,7 @@ export function PhoneVerificationField({
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {isVerified ? (
           <span className="inline-flex items-center gap-1 text-[0.74rem] font-semibold uppercase tracking-[0.12em] text-[#3f7d47]">
-            <span className="material-symbols-outlined text-base">task_alt</span>
+            <MdTaskAlt aria-hidden="true" className="inline-block shrink-0 align-middle text-base" />
             Verified
           </span>
         ) : null}

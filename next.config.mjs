@@ -1,5 +1,7 @@
 const nextConfig = {
   output: 'standalone',
+  // Deliver Tailwind styles with the HTML to remove the initial CSS request chain.
+  experimental: { inlineCss: true },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [320, 420, 640, 750, 828, 1080, 1200, 1920],
@@ -22,15 +24,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
         source: '/(categoryImage|bags|images|products|models)/:path*',
         headers: [
           {
@@ -49,7 +42,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/:path*.(png|jpg|jpeg|gif|webp|svg|ico)',
+        source: '/:path*.(png|jpg|jpeg|gif|webp|avif|svg|ico|mp4|webm)',
         headers: [
           {
             key: 'Cache-Control',

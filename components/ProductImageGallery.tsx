@@ -35,7 +35,7 @@ export function ProductImageGallery({
     if (Math.abs(diffX) > 40) {
       if (diffX > 0) {
         // Swiped Left -> Next Image
-        setActiveIndex((prev) => Math.min(prev + 1, images.length - 1));
+        setActiveIndex((prev) => Math.min(prev + 1, Math.max(0, images.length - 1)));
       } else {
         // Swiped Right -> Previous Image
         setActiveIndex((prev) => Math.max(prev - 1, 0));
@@ -46,79 +46,42 @@ export function ProductImageGallery({
 
   return (
     <section className="w-full max-w-full min-w-0">
-      {/* ----------------- MOBILE VIEW (Single Image per Swipe + Full Frame + Dots) ----------------- */}
-      <div className="flex flex-col gap-3 w-full md:hidden">
+      <div className={`flex w-full min-w-0 flex-col gap-3 md:gap-4 ${images.length > 1 ? "lg:grid lg:grid-cols-[108px_minmax(0,1fr)] lg:items-start" : ""}`}>
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full aspect-[3/4] sm:aspect-[4/5] overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-[#f4efe8] shadow-[0_14px_36px_rgba(95,93,62,0.06)] flex items-center justify-center"
+          className="relative order-1 w-full min-w-0 aspect-[3/4] sm:aspect-[4/5] overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-[#f4efe8] shadow-[0_14px_36px_rgba(95,93,62,0.06)] lg:order-2"
         >
           <ImageWithFallback
-            key={`mobile-active-${activeIndex}`}
+            key={activeImage}
             src={activeImage}
             fallbackSrcs={images.slice(activeIndex + 1)}
-            fallbackSrc="/products/product-placeholder.png"
             alt={`${name} view ${activeIndex + 1}`}
             fill
+            sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1023px) calc(100vw - 80px), 560px"
             loading="eager"
-            priority
-            className="w-full h-full object-contain object-center transition-all duration-300"
+            fetchPriority="high"
+            className="object-contain object-center"
           />
         </div>
-
-        {/* Mobile Dot Indicators */}
         {images.length > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-1 pb-1">
+          <div className="order-2 flex items-center justify-center gap-2 py-1 md:hidden">
             {images.map((_, index) => (
               <button
                 key={`mobile-dot-${index}`}
                 type="button"
                 onClick={() => setActiveIndex(index)}
                 aria-label={`Go to image ${index + 1}`}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  activeIndex === index
-                    ? "w-7 bg-[#9c4049]"
-                    : "w-2.5 bg-[#ddd5cc] hover:bg-[#b0a79d]"
-                }`}
+                aria-pressed={activeIndex === index}
+                className={`h-2.5 rounded-full transition-all duration-300 ${activeIndex === index ? "w-7 bg-[#9c4049]" : "w-2.5 bg-[#ddd5cc] hover:bg-[#b0a79d]"}`}
               />
             ))}
           </div>
         )}
-      </div>
-
-      {/* ----------------- DESKTOP VIEW (Classic Side Thumbnails + Main Image) ----------------- */}
-      <div
-        className={`hidden md:flex md:flex-col md:gap-4 lg:items-start w-full ${
-          images.length > 1
-            ? "lg:grid lg:grid-cols-[108px_minmax(0,1fr)]"
-            : "lg:flex lg:flex-col"
-        }`}
-      >
-        {/* Large Main Image: Full width if single image, right if multiple */}
-        <div
-          className={`flex w-full max-w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.8rem] border border-[#ece6df] bg-white p-4 ${
-            images.length > 1 ? "order-1 lg:order-2" : "w-full"
-          }`}
-        >
-          <div className="relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f4efe8]">
-            <ImageWithFallback
-              key={`main-desktop-${activeImage}`}
-              src={activeImage}
-              fallbackSrcs={images.slice(activeIndex + 1)}
-              fallbackSrc="/products/product-placeholder.png"
-              alt={name}
-              width={760}
-              height={900}
-              loading="eager"
-              priority
-              className="h-auto max-h-[75vh] lg:max-h-[720px] w-full object-cover mx-auto transition-all duration-300"
-            />
-          </div>
-        </div>
 
         {/* Left Thumbnails Sidebar on desktop */}
         {images.length > 1 && (
-          <div className="order-2 flex flex-row gap-2.5 overflow-x-auto w-full max-w-full min-w-0 pb-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x lg:order-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:max-h-[720px] lg:pb-0 lg:pt-0">
+          <div className="order-2 hidden md:flex flex-row gap-2.5 overflow-x-auto w-full max-w-full min-w-0 pb-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x lg:order-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:max-h-[720px] lg:pb-0 lg:pt-0">
             {images.map((image, index) => {
               const thumbSrc = image || "/products/product-placeholder.png";
               return (
@@ -139,8 +102,8 @@ export function ProductImageGallery({
                     fallbackSrcs={images.slice(index + 1)}
                     fallbackSrc="/products/product-placeholder.png"
                     alt={`${name} thumbnail ${index + 1}`}
-                    width={120}
-                    height={120}
+                    fill
+                    sizes="(min-width: 1024px) 108px, 88px"
                     className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.04]"
                   />
                 </button>

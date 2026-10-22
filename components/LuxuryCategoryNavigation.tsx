@@ -1,8 +1,16 @@
 "use client";
 
+import { MdApps, MdCheckroom, MdAutoAwesome, MdBusinessCenter, MdDryCleaning, MdStyle, MdDiamond, MdShoppingBag, MdAccessibilityNew, MdLocalOffer } from "react-icons/md";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { categoryQuickLinks } from "@/app/category/category-data";
+
+const categoryIcons: Record<string, typeof MdApps> = {
+  apps: MdApps, checkroom: MdCheckroom, auto_awesome: MdAutoAwesome,
+  business_center: MdBusinessCenter, dry_cleaning: MdDryCleaning, styler: MdStyle,
+  diamond: MdDiamond, shopping_bag: MdShoppingBag, accessibility_new: MdAccessibilityNew,
+  local_offer: MdLocalOffer,
+};
 
 type CategoryLink = {
   slug: string;
@@ -93,9 +101,7 @@ export function LuxuryCategoryNavigation({ categories: incomingCategories }: Lux
                     <div className="absolute inset-[5px] rounded-full border border-[#f1c1b6]/90 md:inset-[7px]" />
                     <div className="absolute inset-[13px] rounded-full bg-[linear-gradient(180deg,#fff6f1_0%,#fde9e2_100%)] shadow-inner md:inset-[19px]" />
                     <div className="absolute inset-[19px] rounded-full border border-white/70 md:inset-[28px]" />
-                    <span className="material-symbols-outlined relative z-10 text-[1rem] text-[#ef6f63] md:text-[1.55rem]">
-                      {category.icon}
-                    </span>
+                    {(() => { const Icon = categoryIcons[category.icon] || MdApps; return <Icon aria-hidden="true" className="relative z-10 text-[1rem] text-[#ef6f63] md:text-[1.55rem]" />; })()}
                   </div>
 
                   <p className="mt-2 text-[0.6rem] font-medium uppercase tracking-[0.1em] text-[#6f5f56] transition-colors duration-300 group-hover:text-[#9c4049] leading-tight md:mt-3 md:text-[0.78rem] md:tracking-[0.14em]">
