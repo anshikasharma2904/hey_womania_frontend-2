@@ -125,7 +125,7 @@ async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const res = await fetch(`${apiUrl}/api/products?limit=50`, {
-      cache: "no-store"
+      next: { revalidate: 300, tags: ["products"] }
     });
     if (!res.ok) return [];
     const result = await res.json();
@@ -140,7 +140,7 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     const res = await fetch(`${apiUrl}/api/products/best-sellers?limit=7`, {
-      cache: "no-store"
+      next: { revalidate: 300, tags: ["best-sellers"] }
     });
     if (!res.ok) return [];
     const result = await res.json();

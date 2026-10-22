@@ -13,19 +13,22 @@ import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "700"]
+  weight: ["400", "700"],
+  display: "swap"
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700", "800"]
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap"
 });
 
 const cedarville = Cedarville_Cursive({
   subsets: ["latin"],
   variable: "--font-cursive",
-  weight: "400"
+  weight: "400",
+  display: "swap"
 });
 
 export const viewport = {
@@ -66,7 +69,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
       </head>
       <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
