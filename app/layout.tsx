@@ -49,6 +49,8 @@ export const metadata: Metadata = {
   }
 };
 
+import Script from "next/script";
+
 export default function RootLayout({
   children
 }: Readonly<{
@@ -60,13 +62,31 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          media="print"
+          // @ts-ignore
+          onLoad="this.media='all'"
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          />
+        </noscript>
+      </head>
+      <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
         {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-D38817RM74"></script>
-        <script
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-D38817RM74"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -76,8 +96,11 @@ export default function RootLayout({
             `,
           }}
         />
+
         {/* Meta Pixel Code */}
-        <script
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -94,11 +117,8 @@ export default function RootLayout({
           }}
         />
         <noscript>
-          <img height="1" width="1" style={{ display: 'none' }} src="https://www.facebook.com/tr?id=1701617601397965&ev=PageView&noscript=1" />
+          <img height="1" width="1" style={{ display: 'none' }} src="https://www.facebook.com/tr?id=1701617601397965&ev=PageView&noscript=1" alt="" />
         </noscript>
-        {/* End Meta Pixel Code */}
-      </head>
-      <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
         <CustomAnalyticsTracker />
         <ReferralTracker />
         <ExtensionErrorFilter />

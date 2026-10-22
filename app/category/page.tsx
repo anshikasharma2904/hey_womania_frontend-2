@@ -134,21 +134,21 @@ const directionCopy: Record<
     title: "Everyday",
     eyebrow: "Featured Floor",
     description: "Daily Wear and comfortable looks",
-    image: "/categoryImage/everyday.jpeg"
+    image: "/categoryImage/everyday.webp"
   },
   "co-ords": {
     match: "Co-Ords",
     title: "Co-Ords",
     eyebrow: "Featured Floor",
     description: "Matching Sets",
-    image: "/categoryImage/coordSet.jpeg"
+    image: "/categoryImage/coordSet.webp"
   },
   "desi-collections": {
     match: "Desi Collections",
     title: "Desi Collections",
     eyebrow: "Featured Floor",
     description: "Ethnic Wear",
-    image: "/categoryImage/desi.jpeg"
+    image: "/categoryImage/desi.webp"
   }
 };
 

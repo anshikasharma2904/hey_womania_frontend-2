@@ -10,16 +10,16 @@ type ShopByCategoryProps = {
 };
 
 const categories: { title: string; items: string; image: string; href: string; isSlider?: string; video?: string }[] = [
-  { title: "EVERYDAY", items: "Daily Wear", image: "/categoryImage/everyday.jpeg", href: "/category/everyday" },
-  { title: "Co-Ords", items: "Matching Sets", image: "/categoryImage/coordSet.jpeg", href: "/category/co-ords" },
-  { title: "SHIRTS STORIES", items: "Tops & Blouses", image: "/categoryImage/shirtStory.jpeg", href: "/category/shirt" },
-  { title: "TOP STYLE", items: "Premium Styles", image: "/categoryImage/topStyle.jpeg", href: "/category/top-style" },
-  { title: "DESI COLLECTIONS", items: "Ethnic Wear", image: "/categoryImage/desi.jpeg", href: "/category/desi-collections" },
-  { title: "BRANDS STUDIO", items: "Designer", image: "/categoryImage/brandStudio.jpeg", href: "/category/brands-studio" },
-  { title: "JEWEL ROOM", items: "Accessories", image: "/categoryImage/jewelroom.jpeg", href: "/category/jewel-room" },
-  { title: "BAG AFFAIRS", items: "Handbags", image: "/bags/Studio Mini Bag.jpeg", href: "/category/bag-affairs" },
-  { title: "BIG SIZES STYL", items: "Plus Size", image: "/categoryImage/Big size style.jpeg", href: "/category/big-sizes-styl" },
-  { title: "DRESS GALLERY", items: "All Dresses", image: "/categoryImage/dressgallery.jpeg", href: "/category/dress-gallery" }
+  { title: "EVERYDAY", items: "Daily Wear", image: "/categoryImage/everyday.webp", href: "/category/everyday" },
+  { title: "Co-Ords", items: "Matching Sets", image: "/categoryImage/coordSet.webp", href: "/category/co-ords" },
+  { title: "SHIRTS STORIES", items: "Tops & Blouses", image: "/categoryImage/shirtStory.webp", href: "/category/shirt" },
+  { title: "TOP STYLE", items: "Premium Styles", image: "/categoryImage/topStyle.webp", href: "/category/top-style" },
+  { title: "DESI COLLECTIONS", items: "Ethnic Wear", image: "/categoryImage/desi.webp", href: "/category/desi-collections" },
+  { title: "BRANDS STUDIO", items: "Designer", image: "/categoryImage/brandStudio.webp", href: "/category/brands-studio" },
+  { title: "JEWEL ROOM", items: "Accessories", image: "/categoryImage/jewelroom.webp", href: "/category/jewel-room" },
+  { title: "BAG AFFAIRS", items: "Handbags", image: "/bags/Studio Mini Bag.webp", href: "/category/bag-affairs" },
+  { title: "BIG SIZES STYL", items: "Plus Size", image: "/categoryImage/Big size style.webp", href: "/category/big-sizes-styl" },
+  { title: "DRESS GALLERY", items: "All Dresses", image: "/categoryImage/dressgallery.webp", href: "/category/dress-gallery" }
 ];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
