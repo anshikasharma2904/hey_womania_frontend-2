@@ -240,11 +240,18 @@ export default function CheckoutPage() {
   ).replace(/[^0-9]/g, "");
 
   const [phoneHasPastOrders, setPhoneHasPastOrders] = useState(false);
+  const [diwaliEligibility, setDiwaliEligibility] = useState<{
+    eligible: boolean;
+    discount: number;
+    message?: string;
+    firstOrderTotal?: number;
+  } | null>(null);
 
   useEffect(() => {
     const normalized = activePhone.length > 10 ? activePhone.slice(-10) : activePhone;
     if (normalized.length === 10) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      // 1. Check WELCOME100 eligibility
       fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`)
         .then(res => res.json())
         .then(data => {
@@ -259,13 +266,47 @@ export default function CheckoutPage() {
           }
         })
         .catch(() => {});
+
+      // 2. Check DIWALI10 eligibility (10% of first order for 2nd order)
+      fetch(`${baseUrl}/api/orders/promo-eligibility?code=DIWALI10&phone=${normalized}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.eligible) {
+            setDiwaliEligibility({
+              eligible: true,
+              discount: Number(data.discount) || 0,
+              message: data.message,
+              firstOrderTotal: Number(data.firstOrderTotal) || 0
+            });
+          } else {
+            setDiwaliEligibility(null);
+            if (appliedCoupon === "DIWALI10") {
+              setAppliedCoupon("");
+              localStorage.removeItem("hey_womania_promo");
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      setDiwaliEligibility(null);
     }
   }, [activePhone, appliedCoupon]);
 
   const isPhoneValid = activePhone.length >= 10;
   const isEligibleForWelcome = !hasPastOrders && !phoneHasPastOrders;
+  const isEligibleForDiwali = Boolean(diwaliEligibility?.eligible && diwaliEligibility.discount > 0);
+  const diwaliDiscountAmount = diwaliEligibility?.discount || 0;
+
   const walletDiscount = (isPhoneValid && isEligibleForWelcome && useWallet) ? Math.floor(Math.min(walletBalance, subtotal * 0.05)) : 0;
-  const couponDiscount = (isPhoneValid && isEligibleForWelcome && appliedCoupon === "WELCOME100") ? Math.min(100, subtotal) : 0;
+  
+  let couponDiscount = 0;
+  if (isPhoneValid) {
+    if (appliedCoupon === "WELCOME100" && isEligibleForWelcome) {
+      couponDiscount = Math.min(100, subtotal);
+    } else if (appliedCoupon === "DIWALI10" && isEligibleForDiwali) {
+      couponDiscount = Math.min(diwaliDiscountAmount, subtotal);
+    }
+  }
 
   const remainingTotalBeforeNetwork = Math.max(0, subtotal + shippingAmount - walletDiscount - couponDiscount);
   const networkWalletDiscount = useNetworkWallet ? Math.floor(Math.min(networkWalletBalance, remainingTotalBeforeNetwork)) : 0;
@@ -292,13 +333,19 @@ export default function CheckoutPage() {
 
   const handleApplyCheckoutPromo = async (codeToUse?: string | any) => {
     const rawVal = typeof codeToUse === "string" ? codeToUse : promoInput;
-    const code = String(rawVal || "").trim().toUpperCase();
+    let code = String(rawVal || "").trim().toUpperCase();
     if (!code) {
       setPromoStatusMsg({ text: "Please enter a promo code", isError: true });
       return;
     }
 
-    if (code !== "WELCOME100") {
+    // Normalize code (e.g., "DIWALI 10%" or "DIWALI10%" -> "DIWALI10")
+    const cleanCode = code.replace(/[^A-Z0-9]/g, "");
+    if (cleanCode === "DIWALI10" || code.includes("DIWALI")) {
+      code = "DIWALI10";
+    }
+
+    if (code !== "WELCOME100" && code !== "DIWALI10") {
       setPromoStatusMsg({ text: "Invalid promo code.", isError: true });
       return;
     }
@@ -319,30 +366,69 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (hasPastOrders) {
-      setPromoStatusMsg({ text: "WELCOME100 is valid only on your first order.", isError: true });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+    if (code === "WELCOME100") {
+      if (hasPastOrders) {
+        setPromoStatusMsg({ text: "WELCOME100 is valid only on your first order.", isError: true });
+        return;
+      }
+
+      try {
+        const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`);
+        const data = await res.json();
+        if (data && data.eligible === false) {
+          setPhoneHasPastOrders(true);
+          setPromoStatusMsg({ text: data.message || "WELCOME100 is valid only on your first purchase.", isError: true });
+          setAppliedCoupon("");
+          localStorage.removeItem("hey_womania_promo");
+          return;
+        }
+      } catch (err) {
+        console.error("Promo eligibility error:", err);
+      }
+
+      setAppliedCoupon("WELCOME100");
+      setPromoInput("WELCOME100");
+      setPromoStatusMsg({ text: "WELCOME100 applied! ₹100 discount applied to order.", isError: false });
+      localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
       return;
     }
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=WELCOME100&phone=${normalized}`);
-      const data = await res.json();
-      if (data && data.eligible === false) {
-        setPhoneHasPastOrders(true);
-        setPromoStatusMsg({ text: data.message || "WELCOME100 is valid only on your first purchase.", isError: true });
-        setAppliedCoupon("");
-        localStorage.removeItem("hey_womania_promo");
-        return;
+    if (code === "DIWALI10") {
+      try {
+        const res = await fetch(`${baseUrl}/api/orders/promo-eligibility?code=DIWALI10&phone=${normalized}`);
+        const data = await res.json();
+        if (data && data.eligible) {
+          const discountVal = Number(data.discount) || 0;
+          setDiwaliEligibility({
+            eligible: true,
+            discount: discountVal,
+            message: data.message,
+            firstOrderTotal: Number(data.firstOrderTotal) || 0
+          });
+          setAppliedCoupon("DIWALI10");
+          setPromoInput("DIWALI10");
+          setPromoStatusMsg({
+            text: `Diwali 10% applied! ₹${discountVal} discount applied (10% of your first order).`,
+            isError: false
+          });
+          localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "DIWALI10", discount: discountVal }));
+          return;
+        } else {
+          setPromoStatusMsg({
+            text: data.message || "Diwali 10% coupon is valid only on your second order.",
+            isError: true
+          });
+          setAppliedCoupon("");
+          localStorage.removeItem("hey_womania_promo");
+          return;
+        }
+      } catch (err) {
+        console.error("Promo eligibility error:", err);
+        setPromoStatusMsg({ text: "Unable to verify Diwali 10% promo code at this moment.", isError: true });
       }
-    } catch (err) {
-      console.error("Promo eligibility error:", err);
     }
-
-    setAppliedCoupon("WELCOME100");
-    setPromoInput("WELCOME100");
-    setPromoStatusMsg({ text: "WELCOME100 applied! ₹100 discount applied to order.", isError: false });
-    localStorage.setItem("hey_womania_promo", JSON.stringify({ code: "WELCOME100", discount: 100 }));
   };
 
   const loadRazorpayCheckout = () => {
@@ -393,7 +479,7 @@ export default function CheckoutPage() {
       useWallet,
       useNetworkWallet,
       deliveryFee: shippingAmount,
-      couponCode: couponDiscount > 0 ? "WELCOME100" : "",
+      couponCode: couponDiscount > 0 ? (appliedCoupon || "WELCOME100") : "",
       couponDiscount,
       total: `₹${grandTotal.toLocaleString("en-IN")}`,
       items: cartItems.map(item => ({
@@ -754,6 +840,33 @@ export default function CheckoutPage() {
                           type="button"
                           onClick={() => handleApplyCheckoutPromo("WELCOME100")}
                           className="shrink-0 rounded-lg bg-[#9c4049] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs hover:bg-[#85343d] transition-all cursor-pointer"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Diwali 10% Coupon on 2nd order */}
+                  {isEligibleForDiwali && appliedCoupon !== "DIWALI10" && (
+                    <div className="mb-2.5 rounded-xl border border-dashed border-amber-500/60 bg-gradient-to-r from-[#fffbf0] to-[#fff6e6] p-2.5 shadow-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-xs">🪔</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-amber-900 tracking-wide">DIWALI10</p>
+                              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">10% OFF</span>
+                            </div>
+                            <p className="text-[11px] text-[#6d655d] leading-tight truncate">
+                              Diwali 10%: Get 10% back from 1st order (Save ₹{diwaliDiscountAmount})
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyCheckoutPromo("DIWALI10")}
+                          className="shrink-0 rounded-lg bg-amber-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs hover:bg-amber-800 transition-all cursor-pointer"
                         >
                           Apply
                         </button>
