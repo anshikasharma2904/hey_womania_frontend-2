@@ -67,6 +67,15 @@ img {
   opacity: 0.42;
 }
 
+/* Material Symbols local + CDN fallback */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/material-symbols-outlined.woff2') format('woff2');
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;
@@ -79,7 +88,8 @@ img {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga' 1;
+  -webkit-font-feature-settings: 'liga' 1;
   -webkit-font-smoothing: antialiased;
   font-variation-settings:
     "FILL" 0,
