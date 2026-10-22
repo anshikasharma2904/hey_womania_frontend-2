@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
@@ -154,7 +155,13 @@ function MobileCarousel({ items }: { items: BestSellerItem[] }) {
           <div className="pointer-events-none absolute left-1/2 top-0 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-white/75" />
           <div className="pointer-events-none absolute bottom-0 left-1/2 h-7 w-7 -translate-x-1/2 translate-y-1/2 rounded-full border border-[#f0d0b4]/40 bg-[#b76a3c]" />
           <div className="absolute inset-[0.45rem] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#2b221e]">
-            <img src={items[current].image} alt={items[current].title} className="h-full w-full object-cover object-top transition-all duration-500" />
+            <Image
+              src={items[current].image}
+              alt={items[current].title}
+              fill
+              sizes="(max-width: 768px) 170px, 220px"
+              className="h-full w-full object-cover object-top transition-all duration-500"
+            />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent_0%,rgba(15,12,11,0.46)_100%)]" />
           </div>
         </div>
@@ -279,9 +286,11 @@ export function BestSellersCoverflow({
                 <div className="pointer-events-none absolute left-1/2 top-0 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-white/75 shadow-[0_10px_22px_rgba(255,255,255,0.08)]" />
                 <div className="pointer-events-none absolute bottom-0 left-1/2 h-8 w-8 -translate-x-1/2 translate-y-1/2 rounded-full border border-[#f0d0b4]/40 bg-[#b76a3c] shadow-[0_12px_24px_rgba(183,106,60,0.24)]" />
                 <div className="absolute inset-[0.45rem] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#2b221e]">
-                  <img
+                  <Image
                     src={item.image}
                     alt={item.title}
+                    fill
+                    sizes="(max-width: 768px) 170px, 220px"
                     className="pointer-events-none h-full w-full object-cover object-top"
                   />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent_0%,rgba(15,12,11,0.18)_45%,rgba(15,12,11,0.46)_100%)]" />

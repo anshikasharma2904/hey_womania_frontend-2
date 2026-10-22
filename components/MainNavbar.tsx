@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
@@ -274,7 +275,14 @@ export function MainNavbar() {
               href="/"
               className="flex items-center"
             >
-              <img src="/logo.png" alt="Hey Womaniyaa" className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]" />
+              <Image
+                src="/logo.webp"
+                alt="Hey Womaniyaa"
+                width={183}
+                height={72}
+                priority
+                className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]"
+              />
             </Link>
           </div>
 
