@@ -69,6 +69,15 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="preload"
+          as="image"
+          href="/phoneVideo-poster.webp"
+          type="image/webp"
+          // @ts-expect-error fetchpriority attribute
+          fetchpriority="high"
+          media="(max-width: 768px)"
+        />
+        <link
+          rel="preload"
           as="style"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />

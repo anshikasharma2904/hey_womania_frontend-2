@@ -110,6 +110,7 @@ export function HeroVideoSlider() {
             <video
               ref={desktopVideoRef}
               src={desktopVideoUrl}
+              poster="/hero-desktop-poster.webp"
               muted
               playsInline
               autoPlay
@@ -128,10 +129,11 @@ export function HeroVideoSlider() {
             <video
               ref={mobileVideoRef}
               src={mobileVideoUrl}
+              poster="/phoneVideo-poster.webp"
               muted
               playsInline
               disablePictureInPicture
-              preload="auto"
+              preload="metadata"
               autoPlay
               loop
               className="h-full w-full object-cover object-center"
