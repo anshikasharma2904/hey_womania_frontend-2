@@ -255,8 +255,16 @@ export function MainNavbar() {
 
   return (
     <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
-      <div className="bg-[#5f5d3e] px-5 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white md:px-16">
-        Free shipping on orders above ₹999 • New-season arrivals now live
+      <div className="bg-[#5f5d3e] px-4 py-2 text-center text-[0.68rem] font-medium uppercase tracking-[0.18em] text-white md:px-16">
+        <span className="inline-flex items-center justify-center flex-wrap gap-2 sm:gap-3">
+          <span className="text-sm select-none animate-pulse">🪔</span>
+          <span className="font-bold text-amber-200">DIWALI SALE IS LIVE</span>
+          <span className="opacity-70">•</span>
+          <span className="text-white/95">FREE SURPRISE GIFT ON EVERY ORDER 🎁</span>
+          <span className="hidden sm:inline opacity-70">•</span>
+          <span className="hidden sm:inline text-white/90">FREE SHIPPING ABOVE ₹999</span>
+          <span className="text-sm select-none animate-pulse">🪔</span>
+        </span>
       </div>
 
       <header className="border-b border-[#cac7b9]/40 bg-[#fcf9f4] px-5 py-3 md:px-12">

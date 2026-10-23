@@ -134,35 +134,19 @@ export function DiwaliPatakaPopup() {
           Light up your wardrobe with handwoven couture. Enjoy an exclusive festive treat on all designer collections.
         </p>
 
-        {/* Coupon Card Container */}
-        <div className="mt-5 rounded-2xl border border-dashed border-amber-400/60 bg-black/40 p-3.5 backdrop-blur-xs">
-          <div className="text-[0.68rem] font-bold uppercase tracking-widest text-amber-300/90">
-            Use Festive Promo Code
-          </div>
-          <div className="mt-1 flex items-center justify-center gap-2">
-            <span className="font-mono text-xl font-black tracking-wider text-amber-400">
-              DIWALI10
+        {/* Surprise Gift Announcement Container */}
+        <div className="mt-5 rounded-2xl border border-dashed border-amber-400/60 bg-black/40 p-4 backdrop-blur-xs">
+          <div className="flex items-center justify-center gap-2 text-amber-300">
+            <span className="text-2xl animate-pulse">🎁</span>
+            <span className="text-base font-extrabold uppercase tracking-wide text-amber-300">
+              Free Surprise Gift
             </span>
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-[0.7rem] font-bold text-black transition-all hover:bg-amber-400 active:scale-95"
-            >
-              {copied ? (
-                <>
-                  <FaCheck className="text-xs text-green-900" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <FaCopy className="text-xs" />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
           </div>
-          <div className="mt-1 text-[0.68rem] text-amber-200/80">
-            Flat 10% OFF + Complimentary Festive Packaging
+          <p className="mt-1.5 text-xs text-amber-100/90 font-medium">
+            Get an exclusive handcrafted surprise gift included with every festive order!
+          </p>
+          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-3 py-1 text-[0.68rem] font-bold text-amber-200">
+            <span>✨ No Coupon Code Required • Auto-Applied</span>
           </div>
         </div>
 
