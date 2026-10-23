@@ -3,23 +3,28 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import confetti from "canvas-confetti";
 import { FaTimes } from "react-icons/fa";
 
 export function DiwaliPatakaPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Gentle, classy festive sparkle burst on open
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 35,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ["#d4af37", "#f59e0b", "#9c4049", "#fcd34d"],
-      zIndex: 999999,
-      scalar: 0.95,
-      disableForReducedMotion: true,
-    });
+  // Gentle, classy festive sparkle burst on open (safely dynamic for SSR/Turbopack)
+  const triggerConfetti = async () => {
+    try {
+      const confettiModule = await import("canvas-confetti");
+      const confetti = confettiModule.default || confettiModule;
+      confetti({
+        particleCount: 35,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ["#d4af37", "#f59e0b", "#9c4049", "#fcd34d"],
+        zIndex: 999999,
+        scalar: 0.95,
+        disableForReducedMotion: true,
+      });
+    } catch {
+      // Safe fallback if canvas-confetti is not loaded
+    }
   };
 
   useEffect(() => {
