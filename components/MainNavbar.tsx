@@ -503,16 +503,22 @@ export function MainNavbar() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {navbarMenus.map((menu) => {
-              const categoryImg = CATEGORY_ICONS[menu.label.toUpperCase()] || CATEGORY_ICONS[menu.label];
+            {[...navbarMenus]
+              .sort((a, b) => {
+                if (a.label.toUpperCase() === "EVERYDAY") return 1;
+                if (b.label.toUpperCase() === "EVERYDAY") return -1;
+                return 0;
+              })
+              .map((menu) => {
+                const categoryImg = CATEGORY_ICONS[menu.label.toUpperCase()] || CATEGORY_ICONS[menu.label];
 
-              return (
-                <div key={menu.label} className="rounded-[1.2rem] border border-[#ece6df] bg-white/70 p-3.5 shadow-sm transition-all hover:bg-white">
-                  <Link
-                    href={menu.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between text-sm font-bold uppercase tracking-[0.14em] text-[#9c4049]"
-                  >
+                return (
+                  <div key={menu.label} className="rounded-[1.2rem] border border-[#ece6df] bg-white/70 p-3.5 shadow-sm transition-all hover:bg-white">
+                    <Link
+                      href={menu.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between text-sm font-bold uppercase tracking-[0.14em] text-[#9c4049]"
+                    >
                     <div className="flex items-center gap-3">
                       {categoryImg && (
                         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#ece6df] bg-[#f8f0e8] shadow-xs">

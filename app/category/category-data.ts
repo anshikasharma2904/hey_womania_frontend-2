@@ -78,7 +78,6 @@ export const slugifyProductName = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
-  { label: "EVERYDAY", href: "/category/everyday", columns: [] },
   { label: "Co-Ords", href: "/category/co-ords", columns: [] },
   { label: "SHIRTS STORIES", href: "/category/shirts-stories", columns: [] },
   { label: "TOP STYLE", href: "/category/top-style", columns: [] },
@@ -87,7 +86,8 @@ export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
   { label: "JEWEL ROOM", href: "/category/jewel-room", columns: [] },
   { label: "BAG AFFAIRS", href: "/category/bag-affairs", columns: [] },
   { label: "BIG SIZES STYL", href: "/category/big-sizes-styl", columns: [] },
-  { label: "DRESS GALLERY", href: "/category/dress-gallery", columns: [] }
+  { label: "DRESS GALLERY", href: "/category/dress-gallery", columns: [] },
+  { label: "EVERYDAY", href: "/category/everyday", columns: [] }
 ];
 
 const createProduct = (
