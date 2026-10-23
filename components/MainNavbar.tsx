@@ -11,7 +11,6 @@ import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
 import { IoMdHeart } from "react-icons/io";
 import { NAVBAR_CATEGORY_MENUS } from "../app/category/category-data";
-import { DiwaliSpecialBar } from "@/components/DiwaliSpecialBar";
 
 type CategoryLink = {
   label: string;
@@ -256,7 +255,6 @@ export function MainNavbar() {
 
   return (
     <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
-      <DiwaliSpecialBar />
       <div className="bg-[#5f5d3e] px-5 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white md:px-16">
         Free shipping on orders above ₹999 • New-season arrivals now live
       </div>
