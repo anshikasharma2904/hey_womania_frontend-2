@@ -8,23 +8,47 @@ import { FaTimes } from "react-icons/fa";
 export function DiwaliPatakaPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Gentle, classy festive sparkle burst on open (safely dynamic for SSR/Turbopack)
-  const triggerConfetti = async () => {
-    try {
-      const confettiModule = await import("canvas-confetti");
-      const confetti = confettiModule.default || confettiModule;
-      confetti({
-        particleCount: 35,
-        spread: 60,
-        origin: { y: 0.6 },
-        colors: ["#d4af37", "#f59e0b", "#9c4049", "#fcd34d"],
-        zIndex: 999999,
-        scalar: 0.95,
-        disableForReducedMotion: true,
+  // Pure zero-dependency subtle festive sparkle burst (no canvas-confetti package required)
+  const triggerConfetti = () => {
+    if (typeof window === "undefined") return;
+    const colors = ["#d4af37", "#f59e0b", "#9c4049", "#fcd34d", "#ffffff"];
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.inset = "0";
+    container.style.pointerEvents = "none";
+    container.style.zIndex = "999999";
+    container.style.overflow = "hidden";
+    document.body.appendChild(container);
+
+    for (let i = 0; i < 35; i++) {
+      const piece = document.createElement("div");
+      const size = Math.random() * 6 + 4;
+      const startX = window.innerWidth * (0.35 + Math.random() * 0.3);
+      const startY = window.innerHeight * 0.45;
+      const targetX = (Math.random() - 0.5) * 450;
+      const targetY = (Math.random() - 0.75) * 400;
+
+      piece.style.position = "absolute";
+      piece.style.left = `${startX}px`;
+      piece.style.top = `${startY}px`;
+      piece.style.width = `${size}px`;
+      piece.style.height = `${size * (Math.random() > 0.5 ? 1.5 : 1)}px`;
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      piece.style.opacity = "1";
+      piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+      piece.style.transition = "transform 1.1s cubic-bezier(0.25, 1, 0.5, 1), opacity 1.1s ease-out";
+      container.appendChild(piece);
+
+      requestAnimationFrame(() => {
+        piece.style.transform = `translate(${targetX}px, ${targetY}px) rotate(${Math.random() * 720}deg)`;
+        piece.style.opacity = "0";
       });
-    } catch {
-      // Safe fallback if canvas-confetti is not loaded
     }
+
+    setTimeout(() => {
+      container.remove();
+    }, 1200);
   };
 
   useEffect(() => {
