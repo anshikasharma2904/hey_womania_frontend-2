@@ -10,6 +10,7 @@ import { WishbagProvider } from "@/contexts/WishbagContext";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
 import { DiwaliPatakaPopup } from "@/components/DiwaliPatakaPopup";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -113,12 +114,13 @@ export default function RootLayout({
           <SmoothScrollProvider>
             <MainNavbar />
             {children}
-            <footer className="w-full bg-[#fcf9f4] py-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
+            <footer className="w-full bg-[#fcf9f4] pt-5 pb-20 md:pb-5 text-center text-[0.72rem] text-[#8b837b] mt-auto">
               <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
             </footer>
             <GlobalStoreWidgets />
             <MobileBottomNav />
             <DiwaliPatakaPopup />
+            <ServiceWorkerRegister />
           </SmoothScrollProvider>
         </WishbagProvider>
       </body>

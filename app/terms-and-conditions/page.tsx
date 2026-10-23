@@ -182,9 +182,9 @@ export default function TermsAndConditions() {
 
               <div id="refund" className="scroll-mt-32 mb-10">
                 <h2 className="text-2xl font-bold text-[#111111] mb-4">9. Refund Policy</h2>
-                <p className="mb-4">Refund may be approved for eligible cancelled, returned, damaged, defective, wrong, unavailable, or failed payment orders.</p>
-                <p className="mb-4">Refund will be processed only after verification and quality check. Approved refunds will usually be processed within 7–10 business days to the original payment method.</p>
-                <p className="mb-4">Shipping charges, COD charges, convenience fees, or handling charges may be non-refundable unless the issue is from Hey Womaniyaa&apos;s side.</p>
+                <p className="mb-4">All approved refunds for returns are issued exclusively in the form of <strong>Store Credit (Gift Card)</strong> to the customer&apos;s registered email. We do not offer cash or monetary bank account refunds.</p>
+                <p className="mb-4">Refund will be processed only after the returned item arrives at our warehouse and successfully passes our team&apos;s quality check (within 2–3 working days of arrival). Return shipping charges (₹100/-) are borne by the customer and will be adjusted against the store credit. Original outbound shipping charges are non-refundable.</p>
+                <p className="mb-4">Store credit cannot be en-cashed or transferred to another account and can be redeemed towards future purchases on Hey Womaniyaa.</p>
               </div>
 
               <div id="rewards" className="scroll-mt-32 mb-10">

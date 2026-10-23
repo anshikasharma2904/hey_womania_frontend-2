@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { ProductOptionsClient } from "./ProductOptionsClient";
 import { formatCoOrd, isSizeValue } from "@/lib/format-utils";

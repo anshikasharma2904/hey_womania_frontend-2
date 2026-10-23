@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
 import { ProductReviewsAndFaqTabs } from "@/components/ProductReviewsAndFaqTabs";
+import { RelatedProductCard } from "@/components/RelatedProductCard";
 import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
 import {
   catalogProducts,
@@ -65,7 +66,7 @@ export default async function ProductDetailPage({
 
   // Start public product loading alongside the independent customer lookup.
   const productRequest = fetch(`${apiUrl}/api/products/${slug}`, {
-    cache: "no-store"
+    next: { revalidate: 60, tags: ["products", `product-${slug}`] }
   }).catch(() => null);
 
   let customerReferralCode = "";
@@ -190,13 +191,17 @@ export default async function ProductDetailPage({
 
         <ProductDetailInteractive product={product as any} customerReferralCode={customerReferralCode} />
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
+        {/* Rating & Reviews + FAQ (Full Width) */}
+        <section className="mt-12 w-full">
           <ProductReviewsAndFaqTabs initialReviews={reviewCards} productName={product.name} />
+        </section>
 
+        {/* You Might Also Like Section (Full Width 4-column Grid) */}
+        <section className="mt-12 w-full">
           <Suspense fallback={
-            <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 md:p-6" aria-busy="true" aria-label="Loading recommendations">
+            <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 md:p-8" aria-busy="true" aria-label="Loading recommendations">
               <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">You Might Also Like</h2>
-              <div className="mt-5 grid grid-cols-2 gap-4">
+              <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {[0, 1, 2, 3].map(index => <div key={index} className="aspect-[3/4] rounded-[1.1rem] bg-[#f4efe8] motion-safe:animate-pulse" />)}
               </div>
             </div>
@@ -213,11 +218,19 @@ export default async function ProductDetailPage({
 
 
 async function RelatedProducts({ product, apiUrl }: {
-  product: { slug: string; categoryTitle: string; relatedCategory?: string };
+  product: { slug: string; categoryTitle: string; categorySlug?: string; relatedCategory?: string };
   apiUrl: string;
 }) {
-  // Related products
-  let relatedProducts = catalogProducts.slice(0, 4);
+  // Category-matched fallback from catalog
+  const currentCatSlug = (product as any).categorySlug || "";
+  const matchedCatalog = catalogProducts.filter(
+    (item) =>
+      item.slug !== product.slug &&
+      (item.categorySlug === currentCatSlug ||
+       item.categoryTitle?.toLowerCase() === product.categoryTitle?.toLowerCase())
+  );
+  let relatedProducts = (matchedCatalog.length >= 4 ? matchedCatalog : catalogProducts.filter(p => p.slug !== product.slug)).slice(0, 4);
+
   try {
     const relatedCategory = encodeURIComponent((product as any).relatedCategory || product.categoryTitle || "all");
     const res = await fetch(
@@ -255,85 +268,16 @@ async function RelatedProducts({ product, apiUrl }: {
     console.error("Failed to fetch related products:", err);
   }
 
-  if (!relatedProducts.length) {
-    try {
-      const res = await fetch(`${apiUrl}/api/admin/products`, {
-      cache: 'no-store'
-    });
-      if (res.ok) {
-        const data = await res.json();
-        const allLive = data.data ? data.data : Array.isArray(data) ? data : [];
-        const fallbackRelated = allLive
-          .filter((p: any) => p.slug !== product.slug)
-          .slice(0, 4)
-          .map((p: any) => {
-            const gallery = (p.images || [])
-              .filter(Boolean)
-              .map((img: string) => {
-                if (img.startsWith("http")) return img;
-                return `${apiUrl}${img}`;
-              });
-            const hasDiscount = p.salePrice && p.price && p.salePrice < p.price;
-            return {
-              name: p.title,
-              slug: p.slug,
-              price: `₹${p.salePrice || p.price}`,
-              originalPrice: hasDiscount ? `₹${p.price}` : null,
-              image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
-              gallery: gallery
-            };
-          });
-
-        if (fallbackRelated.length > 0) {
-          relatedProducts = fallbackRelated;
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch fallback related products:", err);
-    }
-  }
-
   return (
-          <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
-            <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">
-              You Might Also Like
-            </h2>
-            <div className="mt-5 grid grid-cols-2 gap-4">
-              {relatedProducts.map((item) => (
-                <Link
-                  key={item.slug}
-                  href={`/product/${item.slug || slugifyProductName(item.name)}`}
-                  className="group rounded-[1.35rem] border border-[#f0e7de] bg-[#fffdfa] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-[#e1d1c6] hover:shadow-[0_18px_34px_rgba(95,93,62,0.08)]"
-                >
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.1rem] bg-[#f4efe8] flex items-center justify-center">
-                    <ImageWithFallback
-                      src={item.image}
-                      fallbackSrcs={item.gallery?.slice(1) || []}
-                      fallbackSrc="/products/product-placeholder.png"
-                      alt={item.name}
-                      width={260}
-                      height={340}
-                      className="h-full w-full object-contain mx-auto transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <p className="line-clamp-2 min-h-[2.8rem] text-xs sm:text-[0.92rem] font-semibold leading-[1.35rem] text-[#111111]">
-                      {item.name}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-baseline gap-1.5 sm:gap-2">
-                      <span className="text-sm sm:text-[1rem] font-bold text-[#111111]">
-                        {item.price}
-                      </span>
-                      {(item as any).originalPrice && (
-                        <span className="text-[0.7rem] sm:text-[0.75rem] text-[#a7a09a] line-through">
-                          {(item as any).originalPrice}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+    <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-8">
+      <h2 className="text-[1.35rem] font-black uppercase tracking-[-0.04em] text-[#111111]">
+        You Might Also Like
+      </h2>
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+        {relatedProducts.map((item) => (
+          <RelatedProductCard key={item.slug} item={item} />
+        ))}
+      </div>
+    </div>
   );
 }

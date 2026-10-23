@@ -377,8 +377,8 @@ export default async function Home() {
 
   return (
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
-      <link rel="preload" as="image" href="/phoneVideo-poster.webp" media="(max-width: 767px)" fetchPriority="high" />
-      <link rel="preload" as="image" href="/hero-desktop-poster.webp" media="(min-width: 768px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/phoneVideo-poster.webp" media="(max-width: 1023px) and (orientation: portrait), (max-width: 767px)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/hero-desktop-poster.webp" media="(min-width: 1024px), (min-width: 768px) and (orientation: landscape)" fetchPriority="high" />
       <HeroVideoSlider heroVideoMobile={settings.heroVideoMobile} />
 
       <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-10">

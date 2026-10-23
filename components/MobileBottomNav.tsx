@@ -60,9 +60,9 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed bottom-3 inset-x-3 z-50 md:hidden"
+      className="fixed bottom-0 inset-x-0 z-50 w-full border-t border-[#e8dfd6] bg-white/95 px-2 py-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)] md:hidden"
     >
-      <div className="mx-auto flex h-16 max-w-md items-center justify-around rounded-3xl border border-[#e8dfd6] bg-white/95 px-2 py-1 shadow-[0_12px_36px_rgba(28,24,22,0.14)] backdrop-blur-md">
+      <div className="flex h-14 w-full items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.isActive ? item.iconFilled : item.iconOutline;
           const linkProps = item.isExternal
@@ -79,15 +79,6 @@ export function MobileBottomNav() {
               }`}
             >
               <div className="relative">
-                {/* Diwali Diya festive touch on Home icon (matching reference design) */}
-                {item.label === "Home" && (
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-1 -left-2 text-[0.95rem] drop-shadow-[0_0_8px_rgba(255,165,0,0.8)] filter select-none animate-pulse"
-                  >
-                    🪔
-                  </span>
-                )}
                 <Icon className={`text-[1.45rem] ${item.isActive ? "scale-105" : ""}`} />
                 {Boolean(item.badge && item.badge > 0) && (
                   <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c53b45] px-1 text-[0.62rem] font-bold text-white shadow-xs">

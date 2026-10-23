@@ -15,10 +15,14 @@ export function HeroVideoSlider({ heroVideoMobile }: { heroVideoMobile?: string 
   const [allowVideo, setAllowVideo] = useState(false);
 
   useEffect(() => {
-    const viewport = window.matchMedia("(max-width: 767px)");
-    const updateViewport = () => setIsMobile(viewport.matches);
+    // Treat as vertical layout on phones AND on tablets in portrait mode
+    const portraitMedia = window.matchMedia(
+      "(max-width: 1023px) and (orientation: portrait), (max-width: 767px)"
+    );
+    const updateViewport = () => setIsMobile(portraitMedia.matches);
     updateViewport();
-    viewport.addEventListener("change", updateViewport);
+    portraitMedia.addEventListener("change", updateViewport);
+
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     let timer: number | undefined;
@@ -32,7 +36,7 @@ export function HeroVideoSlider({ heroVideoMobile }: { heroVideoMobile?: string 
     updatePlayback();
     reducedMotion.addEventListener("change", updatePlayback);
     return () => {
-      viewport.removeEventListener("change", updateViewport);
+      portraitMedia.removeEventListener("change", updateViewport);
       window.clearTimeout(timer);
       reducedMotion.removeEventListener("change", updatePlayback);
     };
@@ -65,13 +69,28 @@ export function HeroVideoSlider({ heroVideoMobile }: { heroVideoMobile?: string 
 
   return (
     <section className="relative w-full overflow-hidden bg-[#fcf9f4]">
-      <div className="relative h-[65vh] w-full min-h-[420px] max-h-[850px] md:h-[80vh] lg:h-[88vh]">
+      {/* 
+        Responsive height and object-top framing:
+        - object-top prevents cropping the model's head/face on phones and tablets
+        - lg:object-center centers the wide landscape video on desktop
+      */}
+      <div className="relative h-[72vh] min-h-[460px] max-h-[920px] sm:h-[78vh] md:h-[82vh] lg:h-[88vh] w-full">
         <picture>
-          <source media="(max-width: 767px)" srcSet="/phoneVideo-poster.webp" />
-          <img src="/hero-desktop-poster.webp" alt="Hey Womaniyaa collection" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center" />
+          <source media="(max-width: 1023px) and (orientation: portrait), (max-width: 767px)" srcSet="/phoneVideo-poster.webp" />
+          <img
+            src="/hero-desktop-poster.webp"
+            alt="Hey Womaniyaa collection"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-top lg:object-center"
+          />
         </picture>
         {isMobile !== null && (isImage ? (
-          <img src={url} alt="Hero Banner" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-center" />
+          <img
+            src={url}
+            alt="Hero Banner"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-top lg:object-center"
+          />
         ) : allowVideo && (
           <video
             key={url}
@@ -84,7 +103,7 @@ export function HeroVideoSlider({ heroVideoMobile }: { heroVideoMobile?: string 
             autoPlay
             loop
             onLoadedData={() => setVideoReady(true)}
-            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${videoReady ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 h-full w-full object-cover object-top lg:object-center transition-opacity duration-500 ${videoReady ? "opacity-100" : "opacity-0"}`}
           />
         ))}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1c1c19]/30 via-transparent to-[#1c1c19]/10 mix-blend-multiply" />
