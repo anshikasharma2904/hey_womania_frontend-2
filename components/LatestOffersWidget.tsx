@@ -59,7 +59,7 @@ export function LatestOffersWidget() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-3 z-[70] flex items-end gap-3 md:bottom-8 md:right-6">
+      <div className="fixed bottom-22 right-3 z-[40] flex items-end gap-3 md:bottom-8 md:right-6">
         {/* <button
           type="button"
           aria-label="Open latest offers tab"

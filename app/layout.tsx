@@ -3,11 +3,13 @@ import { Libre_Caslon_Text, Manrope, Cedarville_Cursive } from "next/font/google
 import "./globals.css";
 import { GlobalStoreWidgets } from "@/components/GlobalStoreWidgets";
 import { MainNavbar } from "@/components/MainNavbar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
+import { DiwaliDiyasDecor } from "@/components/DiwaliDiyasDecor";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -115,6 +117,8 @@ export default function RootLayout({
               <p>© 2026 Hey Womaniyaa. All Rights Reserved.</p>
             </footer>
             <GlobalStoreWidgets />
+            <MobileBottomNav />
+            <DiwaliDiyasDecor />
           </SmoothScrollProvider>
         </WishbagProvider>
       </body>

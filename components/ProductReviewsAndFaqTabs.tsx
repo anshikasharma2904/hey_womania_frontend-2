@@ -71,12 +71,6 @@ export function ProductReviewsAndFaqTabs({ initialReviews, productName }: Produc
             FAQ
           </button>
         </div>
-
-        {activeTab === "reviews" && (
-          <div className="rounded-full bg-[#f4efe8] px-4 py-2 text-xs font-semibold text-[#111111]">
-            146 Reviews
-          </div>
-        )}
       </div>
 
       {/* Reviews Tab Content */}

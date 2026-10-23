@@ -11,6 +11,7 @@ import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
 import { IoMdHeart } from "react-icons/io";
 import { NAVBAR_CATEGORY_MENUS } from "../app/category/category-data";
+import { DiwaliSpecialBar } from "@/components/DiwaliSpecialBar";
 
 type CategoryLink = {
   label: string;
@@ -56,6 +57,19 @@ const normalizeMainCategory = (value: string) => {
   const formatted = formatCategoryLabel(value);
   if (formatted.toLowerCase() === "cloths") return "Clothes";
   return formatted;
+};
+
+const CATEGORY_ICONS: Record<string, string> = {
+  "EVERYDAY": "/categoryImage/everyday.webp",
+  "CO-ORDS": "/categoryImage/coordSet.webp",
+  "SHIRTS STORIES": "/categoryImage/shirtStory.webp",
+  "TOP STYLE": "/categoryImage/topStyle.webp",
+  "DESI COLLECTIONS": "/categoryImage/desi.webp",
+  "BRANDS STUDIO": "/categoryImage/brandStudio.webp",
+  "JEWEL ROOM": "/categoryImage/jewelroom.webp",
+  "BAG AFFAIRS": "/bags/Studio Mini Bag.webp",
+  "BIG SIZES STYL": "/categoryImage/Big size style.webp",
+  "DRESS GALLERY": "/categoryImage/dressgallery.webp"
 };
 
 const getCategoryPathParts = (value: string) =>
@@ -242,6 +256,7 @@ export function MainNavbar() {
 
   return (
     <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
+      <DiwaliSpecialBar />
       <div className="bg-[#5f5d3e] px-5 py-2 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white md:px-16">
         Free shipping on orders above ₹999 • New-season arrivals now live
       </div>
@@ -477,47 +492,64 @@ export function MainNavbar() {
             )}
           </div>
 
-          <div className="mt-6 space-y-5">
-            {navbarMenus.map((menu) => (
-              <div key={menu.label} className="rounded-[1.2rem] border border-[#ece6df] bg-white/70 p-4">
-                <Link
-                  href={menu.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between text-sm font-semibold uppercase tracking-[0.14em] text-[#9c4049]"
-                >
-                  <span>{menu.label}</span>
-                  <MdExpandMore aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.2rem]" />
-                </Link>
+          <div className="mt-6 space-y-3">
+            {navbarMenus.map((menu) => {
+              const categoryImg = CATEGORY_ICONS[menu.label.toUpperCase()] || CATEGORY_ICONS[menu.label];
 
-                {menu.columns.length > 0 ? (
-                  <div className="mt-3 grid gap-4">
-                    {menu.columns.map((column) => (
-                      <div key={`${menu.label}-${column.title}`}>
-                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6f5f56]">
-                          {column.title}
-                        </p>
-                        <div className="mt-2 space-y-2">
-                          {column.links.length > 0 ? (
-                            column.links.map((item, linkIdx) => (
-                              <Link
-                                key={`${item.label}-${linkIdx}`}
-                                href={item.href}
-                                onClick={() => setMobileMenuOpen(false)}
-                                className="block text-sm leading-6 text-[#2d3147]"
-                              >
-                                {item.label}
-                              </Link>
-                            ))
-                          ) : column.title === "Coming Soon" ? (
-                            <p className="text-sm text-[#8b837b]">Coming soon</p>
-                          ) : null}
+              return (
+                <div key={menu.label} className="rounded-[1.2rem] border border-[#ece6df] bg-white/70 p-3.5 shadow-sm transition-all hover:bg-white">
+                  <Link
+                    href={menu.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between text-sm font-bold uppercase tracking-[0.14em] text-[#9c4049]"
+                  >
+                    <div className="flex items-center gap-3">
+                      {categoryImg && (
+                        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#ece6df] bg-[#f8f0e8] shadow-xs">
+                          <Image
+                            src={categoryImg}
+                            alt={menu.label}
+                            fill
+                            sizes="36px"
+                            className="object-cover object-center"
+                          />
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
+                      )}
+                      <span>{menu.label}</span>
+                    </div>
+                    <MdExpandMore aria-hidden="true" className="inline-block shrink-0 align-middle text-[1.3rem] text-[#9c4049]/70" />
+                  </Link>
+
+                  {menu.columns.length > 0 ? (
+                    <div className="mt-3 grid gap-4">
+                      {menu.columns.map((column) => (
+                        <div key={`${menu.label}-${column.title}`}>
+                          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6f5f56]">
+                            {column.title}
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {column.links.length > 0 ? (
+                              column.links.map((item, linkIdx) => (
+                                <Link
+                                  key={`${item.label}-${linkIdx}`}
+                                  href={item.href}
+                                  onClick={() => setMobileMenuOpen(false)}
+                                  className="block text-sm leading-6 text-[#2d3147]"
+                                >
+                                  {item.label}
+                                </Link>
+                              ))
+                            ) : column.title === "Coming Soon" ? (
+                              <p className="text-sm text-[#8b837b]">Coming soon</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">

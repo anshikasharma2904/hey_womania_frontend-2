@@ -140,8 +140,7 @@ function MobileCarousel({ items }: { items: BestSellerItem[] }) {
   const goTo = (idx: number) => setCurrent((idx + items.length) % items.length);
 
   return (
-    <div ref={carouselRef} className="relative w-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-6 pt-8 shadow-[0_24px_70px_rgba(20,18,16,0.28)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
+    <div ref={carouselRef} className="relative w-full overflow-hidden px-4 pb-6 pt-4">
       <Link
         href={items[current].href}
         className="relative mx-auto block w-[170px]"
@@ -225,8 +224,7 @@ export function BestSellersCoverflow({
 
       {/* Desktop: 3D coverflow */}
       <div className="hidden md:block">
-      <div className="relative mx-auto max-w-[1280px] overflow-hidden rounded-[2.4rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] px-4 pb-10 pt-10 shadow-[0_24px_70px_rgba(20,18,16,0.28)] md:px-10 md:pb-16 md:pt-14">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
+      <div className="relative mx-auto max-w-[1280px] overflow-hidden px-4 pb-10 pt-6 md:px-10 md:pb-16 md:pt-8">
 
         <div className="[perspective:2200px]">
           <div className="relative h-[360px] [transform-style:preserve-3d] md:h-[470px]">

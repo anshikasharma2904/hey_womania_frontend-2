@@ -390,26 +390,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ShopByCategory categoryImages={settings.categoryImages}
-        mostLovedImages={bestSellerProducts.map(p => {
-          let defaultImg = null;
-          if (Array.isArray(p.variants)) {
-            const vWithImg = p.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
-            if (vWithImg) defaultImg = vWithImg.images[0];
-          }
-          if (!defaultImg && p.images && p.images.length > 0) defaultImg = p.images[0];
-          return defaultImg ? (defaultImg.startsWith('http') ? defaultImg : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${defaultImg}`) : null;
-        }).filter(Boolean) as string[]}
-        justDroppedImages={products.map(p => {
-          let defaultImg = null;
-          if (Array.isArray(p.variants)) {
-            const vWithImg = p.variants.find((v: any) => v.images && v.images.length > 0 && v.images[0]);
-            if (vWithImg) defaultImg = vWithImg.images[0];
-          }
-          if (!defaultImg && p.images && p.images.length > 0) defaultImg = p.images[0];
-          return defaultImg ? (defaultImg.startsWith('http') ? defaultImg : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${defaultImg}`) : null;
-        }).filter(Boolean) as string[]}
-      />
+
 
       <NewArrivalsCarousel cards={arrivalCards} />
 
