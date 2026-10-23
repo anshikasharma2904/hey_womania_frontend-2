@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { StoreFooter } from "@/components/StoreFooter";
 import { ProductDetailInteractive } from "@/components/ProductDetailInteractive";
+import { ProductReviewsAndFaqTabs } from "@/components/ProductReviewsAndFaqTabs";
 import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
 import {
   catalogProducts,
@@ -190,50 +191,7 @@ export default async function ProductDetailPage({
         <ProductDetailInteractive product={product as any} customerReferralCode={customerReferralCode} />
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
-          <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece6df] pb-4">
-              <div className="flex flex-wrap gap-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#6d655d]">
-                <button className="border-b-2 border-[#111111] pb-2 text-[#111111]">
-                  Product Details
-                </button>
-                <button className="pb-2">Rating & Reviews</button>
-                <button className="pb-2">FAQ</button>
-              </div>
-              <div className="rounded-full bg-[#f4efe8] px-4 py-2 text-xs font-semibold text-[#111111]">
-                146 Reviews
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {reviewCards.map((review) => (
-                <article
-                  key={review.name}
-                  className="rounded-[1.2rem] border border-[#ece6df] bg-[#fcfaf7] p-4"
-                >
-                  <div className="flex items-center gap-1 text-[#ffb000]">
-                    {Array.from({ length: review.rating }).map((_, starIndex) => (
-                      <span key={starIndex} className="text-xs">
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-[#111111]">
-                    {review.name}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-[#6d655d]">
-                    {review.text}
-                  </p>
-                  <p className="mt-4 text-[11px] uppercase tracking-[0.14em] text-[#9b938b]">
-                    {review.date}
-                  </p>
-                </article>
-              ))}
-            </div>
-
-            <button className="mx-auto mt-6 block rounded-full border border-[#ddd5cc] px-5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#111111]">
-              Load More Reviews
-            </button>
-          </div>
+          <ProductReviewsAndFaqTabs initialReviews={reviewCards} productName={product.name} />
 
           <Suspense fallback={
             <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 md:p-6" aria-busy="true" aria-label="Loading recommendations">
