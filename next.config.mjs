@@ -3,9 +3,12 @@ const nextConfig = {
   // Deliver Tailwind styles with the HTML to remove the initial CSS request chain.
   experimental: { inlineCss: true },
   images: {
+    loader: 'custom',
+    loaderFile: './lib/imageLoader.ts',
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [320, 420, 640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [360, 480, 640, 768, 1080, 1440],
+    imageSizes: [32, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: 'https',
