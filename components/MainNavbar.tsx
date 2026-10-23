@@ -11,7 +11,7 @@ import { FaUserAlt } from "react-icons/fa";
 import { HiMiniShoppingBag } from "react-icons/hi2";
 import { IoMdHeart } from "react-icons/io";
 import { NAVBAR_CATEGORY_MENUS } from "../app/category/category-data";
-import { DiwaliFairyLights } from "@/components/DiwaliFairyLights";
+import { MahaDiwaliHeaderBanner } from "@/components/MahaDiwaliHeaderBanner";
 
 type CategoryLink = {
   label: string;
@@ -256,20 +256,7 @@ export function MainNavbar() {
 
   return (
     <div className="sticky top-0 z-50 bg-[#fcf9f4] shadow-sm">
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#5a111a] via-[#751722] to-[#500f16] px-4 py-2.5 text-center text-[0.68rem] font-medium uppercase tracking-[0.18em] text-amber-100 shadow-inner">
-        {/* Festive hanging fairy string lights (Blinkit style) */}
-        <DiwaliFairyLights />
-
-        <span className="relative z-10 inline-flex items-center justify-center flex-wrap gap-2 sm:gap-3">
-          <span className="text-sm select-none animate-pulse">🪔</span>
-          <span className="font-extrabold tracking-wider text-[#ffd166]">DIWALI SALE IS LIVE</span>
-          <span className="opacity-70 text-amber-200">•</span>
-          <span className="text-white/95">FREE SURPRISE GIFT ON EVERY ORDER 🎁</span>
-          <span className="hidden sm:inline opacity-70 text-amber-200">•</span>
-          <span className="hidden sm:inline text-amber-200/90">FREE SHIPPING ABOVE ₹999</span>
-          <span className="text-sm select-none animate-pulse">🪔</span>
-        </span>
-      </div>
+      <MahaDiwaliHeaderBanner />
 
       <header className="border-b border-[#cac7b9]/40 bg-[#fcf9f4] px-5 py-3 md:px-12">
         <div className="flex items-center justify-between gap-3">
