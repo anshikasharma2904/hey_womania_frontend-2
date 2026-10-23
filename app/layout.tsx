@@ -10,6 +10,7 @@ import { WishbagProvider } from "@/contexts/WishbagContext";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
 import { DiwaliDiyasDecor } from "@/components/DiwaliDiyasDecor";
+import { DiwaliPatakaPopup } from "@/components/DiwaliPatakaPopup";
 
 const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -119,6 +120,7 @@ export default function RootLayout({
             <GlobalStoreWidgets />
             <MobileBottomNav />
             <DiwaliDiyasDecor />
+            <DiwaliPatakaPopup />
           </SmoothScrollProvider>
         </WishbagProvider>
       </body>
