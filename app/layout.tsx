@@ -9,7 +9,6 @@ import { ExtensionErrorFilter } from "@/components/ExtensionErrorFilter";
 import { WishbagProvider } from "@/contexts/WishbagContext";
 import { ReferralTracker } from "@/components/ReferralTracker";
 import { CustomAnalyticsTracker } from "@/components/CustomAnalyticsTracker";
-import { DiwaliPatakaPopup } from "@/components/DiwaliPatakaPopup";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const libreCaslon = Libre_Caslon_Text({
@@ -119,7 +118,6 @@ export default function RootLayout({
             </footer>
             <GlobalStoreWidgets />
             <MobileBottomNav />
-            <DiwaliPatakaPopup />
             <ServiceWorkerRegister />
           </SmoothScrollProvider>
         </WishbagProvider>
