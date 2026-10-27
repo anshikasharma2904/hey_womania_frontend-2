@@ -61,16 +61,13 @@ export function ProductReviewsAndFaqTabs({
           <button
             type="button"
             onClick={() => setActiveTab("fabric")}
-            className={`pb-2 transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2 transition-colors duration-200 cursor-pointer ${
               activeTab === "fabric"
                 ? "border-b-2 border-[#111111] text-[#111111]"
                 : "text-[#8b837b] hover:text-[#111111]"
             }`}
           >
-            <span>{specs.isJewelleryOrBag ? "Material & Craft" : "Fabric & Details"}</span>
-            <span className="rounded-full bg-[#9c4049]/10 px-2 py-0.5 text-[0.62rem] font-bold text-[#9c4049]">
-              Specs
-            </span>
+            {specs.isJewelleryOrBag ? "Material & Craft" : "Fabric & Details"}
           </button>
           <button
             type="button"
