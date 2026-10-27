@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { detectFabricDetail } from "@/lib/product-fabric";
 
 interface Review {
   name: string;
@@ -12,6 +13,8 @@ interface Review {
 interface ProductTabsProps {
   initialReviews: Review[];
   productName?: string;
+  description?: string;
+  category?: string;
 }
 
 const faqs = [
@@ -33,21 +36,42 @@ const faqs = [
   }
 ];
 
-export function ProductReviewsAndFaqTabs({ initialReviews, productName }: ProductTabsProps) {
-  const [activeTab, setActiveTab] = useState<"reviews" | "faq">("reviews");
+export function ProductReviewsAndFaqTabs({
+  initialReviews,
+  productName = "",
+  description = "",
+  category = ""
+}: ProductTabsProps) {
+  const [activeTab, setActiveTab] = useState<"fabric" | "reviews" | "faq">("fabric");
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [visibleCount, setVisibleCount] = useState(4);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const specs = detectFabricDetail(productName, description, category);
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => Math.min(prev + 4, reviews.length));
   };
 
   return (
-    <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-6">
+    <div className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-8">
       {/* Header Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece6df] pb-4">
-        <div className="flex items-center gap-6 text-xs font-bold uppercase tracking-[0.16em]">
+        <div className="flex items-center gap-5 sm:gap-8 text-xs font-bold uppercase tracking-[0.16em]">
+          <button
+            type="button"
+            onClick={() => setActiveTab("fabric")}
+            className={`pb-2 transition-colors duration-200 cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "fabric"
+                ? "border-b-2 border-[#111111] text-[#111111]"
+                : "text-[#8b837b] hover:text-[#111111]"
+            }`}
+          >
+            <span>{specs.isJewelleryOrBag ? "Material & Craft" : "Fabric & Details"}</span>
+            <span className="rounded-full bg-[#9c4049]/10 px-2 py-0.5 text-[0.62rem] font-bold text-[#9c4049]">
+              Specs
+            </span>
+          </button>
           <button
             type="button"
             onClick={() => setActiveTab("reviews")}
@@ -72,6 +96,83 @@ export function ProductReviewsAndFaqTabs({ initialReviews, productName }: Produc
           </button>
         </div>
       </div>
+
+      {/* Fabric & Material Tab Content */}
+      {activeTab === "fabric" && (
+        <div className="mt-6">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-[#fcfaf7] border border-[#ece6df] p-4 sm:p-5">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-[#9c4049]">
+                Authentic Specifications
+              </p>
+              <h3 className="mt-1 text-base sm:text-lg font-bold text-[#111111]">
+                {specs.fabric}
+              </h3>
+              <p className="mt-1 text-xs text-[#736b63]">
+                {productName}
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full bg-[#f4ece1] px-3.5 py-1.5 text-[0.72rem] font-semibold text-[#8c6b38]">
+              <span>✦</span>
+              <span>100% Verified Quality Checked</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            {/* Box 1: Material */}
+            <div className="rounded-2xl border border-[#ece6df] bg-[#fdfbf9] p-4 transition-all hover:bg-white hover:shadow-xs">
+              <span className="block text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#9c4049]">
+                {specs.isJewelleryOrBag ? "Base Material" : "Primary Fabric"}
+              </span>
+              <p className="mt-2 text-sm font-bold text-[#111111] leading-snug">
+                {specs.fabric}
+              </p>
+              <p className="mt-1 text-[0.72rem] text-[#786f65]">
+                Breathable, gentle on skin and tailored for all-day comfort.
+              </p>
+            </div>
+
+            {/* Box 2: Weave / Texture */}
+            <div className="rounded-2xl border border-[#ece6df] bg-[#fdfbf9] p-4 transition-all hover:bg-white hover:shadow-xs">
+              <span className="block text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#9c4049]">
+                {specs.isJewelleryOrBag ? "Finish & Plating" : "Weave & Feel"}
+              </span>
+              <p className="mt-2 text-sm font-bold text-[#111111] leading-snug">
+                {specs.weaveOrTexture}
+              </p>
+              <p className="mt-1 text-[0.72rem] text-[#786f65]">
+                Smooth handfeel with high shape retention and fine fall.
+              </p>
+            </div>
+
+            {/* Box 3: Work & Pattern */}
+            <div className="rounded-2xl border border-[#ece6df] bg-[#fdfbf9] p-4 transition-all hover:bg-white hover:shadow-xs">
+              <span className="block text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#9c4049]">
+                Work & Pattern
+              </span>
+              <p className="mt-2 text-sm font-bold text-[#111111] leading-snug">
+                {specs.pattern}
+              </p>
+              <p className="mt-1 text-[0.72rem] text-[#786f65]">
+                Intricately rendered artisanal finishing on hem and borders.
+              </p>
+            </div>
+
+            {/* Box 4: Care */}
+            <div className="rounded-2xl border border-[#ece6df] bg-[#fdfbf9] p-4 transition-all hover:bg-white hover:shadow-xs">
+              <span className="block text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#9c4049]">
+                Care Instructions
+              </span>
+              <p className="mt-2 text-sm font-bold text-[#111111] leading-snug">
+                {specs.care}
+              </p>
+              <p className="mt-1 text-[0.72rem] text-[#786f65]">
+                Recommended method to retain color luster and shape.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reviews Tab Content */}
       {activeTab === "reviews" && (

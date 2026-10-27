@@ -6,6 +6,7 @@ import { ShopByCategory } from "@/components/ShopByCategory";
 import { HeroVideoSlider } from "@/components/HeroVideoSlider";
 
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
+import { ShopByBudget } from "@/components/ShopByBudget";
 import { StoreFooter } from "@/components/StoreFooter";
 import { slugifyProductName } from "@/app/category/category-data";
 import { MODEL_ASSETS } from "@/lib/fashion-assets";
@@ -392,9 +393,9 @@ export default async function Home() {
 
 
 
+      {/* <ShopByBudget /> */}
+
       <NewArrivalsCarousel cards={arrivalCards} />
-
-
 
       <BestSellersCoverflow items={bestSellerItems} viewAllHref="/category/all" />
 

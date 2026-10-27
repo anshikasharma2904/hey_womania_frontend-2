@@ -193,7 +193,12 @@ export default async function ProductDetailPage({
 
         {/* Rating & Reviews + FAQ (Full Width) */}
         <section className="mt-12 w-full">
-          <ProductReviewsAndFaqTabs initialReviews={reviewCards} productName={product.name} />
+          <ProductReviewsAndFaqTabs
+            initialReviews={reviewCards}
+            productName={product.name}
+            description={product.subtitle || ""}
+            category={product.categoryTitle || ""}
+          />
         </section>
 
         {/* You Might Also Like Section (Full Width 4-column Grid) */}

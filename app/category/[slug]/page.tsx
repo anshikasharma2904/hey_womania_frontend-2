@@ -165,6 +165,8 @@ type CategoryDetailPageProps = {
   }>;
   searchParams?: Promise<{
     search?: string;
+    minPrice?: string | number;
+    maxPrice?: string | number;
   }>;
 };
 
@@ -220,6 +222,8 @@ export default async function CategoryDetailPage({
   const slug = rawSlug;
   const searchQuery = String(resolvedSearchParams?.search || "").trim();
   const normalizedSearchQuery = searchQuery.toLowerCase();
+  const minPriceQuery = resolvedSearchParams?.minPrice !== undefined ? Number(resolvedSearchParams.minPrice) : null;
+  const maxPriceQuery = resolvedSearchParams?.maxPrice !== undefined ? Number(resolvedSearchParams.maxPrice) : null;
 
   let liveProducts: any[] = [];
   let liveCategories: any[] = [];
@@ -353,6 +357,14 @@ export default async function CategoryDetailPage({
       };
     })
     .filter((product: any) => {
+      const priceNum = Number(String(product.price).replace(/[^0-9.]/g, "")) || 0;
+      if (minPriceQuery !== null && !isNaN(minPriceQuery) && priceNum < minPriceQuery) {
+        return false;
+      }
+      if (maxPriceQuery !== null && !isNaN(maxPriceQuery) && priceNum > maxPriceQuery) {
+        return false;
+      }
+
       if (!normalizedSearchQuery) {
         return true;
       }
@@ -562,10 +574,19 @@ export default async function CategoryDetailPage({
     notFound();
   }
 
+  const isBudgetFilter = minPriceQuery !== null || maxPriceQuery !== null;
+  const budgetTitle = isBudgetFilter
+    ? maxPriceQuery && maxPriceQuery >= 999999
+      ? `Styles Above ₹${minPriceQuery?.toLocaleString("en-IN")}`
+      : `Styles ₹${minPriceQuery?.toLocaleString("en-IN") || 0} – ₹${maxPriceQuery?.toLocaleString("en-IN")}`
+    : "";
+
   const category = {
     title:
       searchQuery
         ? `Search Results for "${searchQuery}"`
+        : isBudgetFilter
+        ? budgetTitle
         : slug === "all"
         ? "All Products"
         : isMainCategoryRoute
@@ -575,6 +596,8 @@ export default async function CategoryDetailPage({
     eyebrow:
       searchQuery
         ? "SEARCH RESULTS"
+        : isBudgetFilter
+        ? "SHOP BY BUDGET"
         : slug === "all"
         ? "SHOP THE FULL COLLECTION"
         : isMainCategoryRoute
@@ -583,6 +606,8 @@ export default async function CategoryDetailPage({
     intro:
       searchQuery
         ? `Showing live products matching "${searchQuery}".`
+        : isBudgetFilter
+        ? `Handpicked styles within your chosen budget range.`
         : slug === "all"
         ? "Browse the complete live catalog with the same category experience as before."
         : matchedCategory?.description || "",
