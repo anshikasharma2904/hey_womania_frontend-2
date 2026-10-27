@@ -15,6 +15,7 @@ interface ProductTabsProps {
   productName?: string;
   description?: string;
   category?: string;
+  fabric?: string | null;
 }
 
 const faqs = [
@@ -40,14 +41,15 @@ export function ProductReviewsAndFaqTabs({
   initialReviews,
   productName = "",
   description = "",
-  category = ""
+  category = "",
+  fabric = ""
 }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState<"fabric" | "reviews" | "faq">("fabric");
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [visibleCount, setVisibleCount] = useState(4);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const specs = detectFabricDetail(productName, description, category);
+  const specs = detectFabricDetail(productName, description, category, fabric);
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => Math.min(prev + 4, reviews.length));

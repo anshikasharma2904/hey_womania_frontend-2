@@ -21,6 +21,7 @@ const productSchema = new mongoose.Schema({
   title: { type: String, required: true },
   slug: { type: String, required: true, unique: true },
   description: String,
+  fabric: String,
   images: [String],
   cloudflareImageIds: [String],
   price: { type: Number, required: true },

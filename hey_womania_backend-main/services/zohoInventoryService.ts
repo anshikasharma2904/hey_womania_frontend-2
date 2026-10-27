@@ -614,6 +614,19 @@ function getZohoItemMRP(item: any) {
   return 0;
 }
 
+export function getZohoItemFabric(item: any): string {
+  if (Array.isArray(item?.custom_fields)) {
+    const fabricField = item.custom_fields.find((f: any) =>
+      /fabric/i.test(f.label || f.api_name || "")
+    );
+    if (fabricField) {
+      const val = String(fabricField.value || fabricField.value_formatted || "").trim();
+      if (val) return val;
+    }
+  }
+  return "";
+}
+
 function getZohoItemCategoryInfo(item: any) {
   const categoryName =
     item?.category_name ||
@@ -860,11 +873,13 @@ export async function syncSingleZohoItemToProduct(
 
   if (!existingProduct) {
     const slug = baseSlug;
+    const fabricFromZoho = getZohoItemFabric(finalItem) || getZohoItemFabric(item);
     existingProduct = new Product({
       id: crypto.randomUUID(),
       title,
       slug,
       description: finalItem.description || item.description || title,
+      fabric: fabricFromZoho || undefined,
       price,
       salePrice,
       images: finalVariantImages,
@@ -933,6 +948,8 @@ export async function syncSingleZohoItemToProduct(
     if (title) existingProduct.title = title;
     const newDescription = finalItem.description || item.description;
     if (newDescription) existingProduct.description = newDescription;
+    const fabricFromZoho = getZohoItemFabric(finalItem) || getZohoItemFabric(item);
+    if (fabricFromZoho) existingProduct.fabric = fabricFromZoho;
     if (price && price > 0) {
       existingProduct.price = price;
       existingProduct.salePrice = salePrice;

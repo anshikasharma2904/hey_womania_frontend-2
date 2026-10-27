@@ -145,6 +145,7 @@ export default async function ProductDetailPage({
         originalPrice: hasDiscount ? `₹${originalPrice}` : null,
         discountPercent: hasDiscount ? `${discountPercent}% OFF` : null,
         subtitle: p.description || "Newly added",
+        fabric: p.fabric || null,
         image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
         gallery: gallery,
         slug: p.slug,
@@ -198,6 +199,7 @@ export default async function ProductDetailPage({
             productName={product.name}
             description={product.subtitle || ""}
             category={product.categoryTitle || ""}
+            fabric={(product as any).fabric || ""}
           />
         </section>
 
