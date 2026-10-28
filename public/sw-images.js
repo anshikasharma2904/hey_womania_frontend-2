@@ -1,4 +1,4 @@
-const CACHE_NAME = "hw-image-cache-v3";
+const CACHE_NAME = "hw-image-cache-v4";
 
 // Cache-first strategy exclusively for image assets (Cloudflare & static images)
 self.addEventListener("fetch", (event) => {

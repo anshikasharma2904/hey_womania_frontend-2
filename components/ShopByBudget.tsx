@@ -16,35 +16,35 @@ const budgetTiers: BudgetTier[] = [
     id: "under-1499",
     minPrice: 0,
     maxPrice: 1499,
-    imageSrc: "/budget-tag-under-1499.png",
+    imageSrc: "/budget-tag-under-1499.webp",
     imageAlt: "Shop By Budget Below ₹1,499"
   },
   {
     id: "1500-4999",
     minPrice: 1500,
     maxPrice: 4999,
-    imageSrc: "/budget-tag-1500-4999.png",
+    imageSrc: "/budget-tag-1500-4999.webp",
     imageAlt: "Shop By Budget ₹1,500 - ₹4,999"
   },
   {
     id: "5000-9999",
     minPrice: 5000,
     maxPrice: 9999,
-    imageSrc: "/budget-tag-5000-9999.png",
+    imageSrc: "/budget-tag-5000-9999.webp",
     imageAlt: "Shop By Budget ₹5,000 - ₹9,999"
   },
   {
     id: "10000-19999",
     minPrice: 10000,
     maxPrice: 19999,
-    imageSrc: "/budget-tag-10000-19999.png",
+    imageSrc: "/budget-tag-10000-19999.webp",
     imageAlt: "Shop By Budget ₹10,000 - ₹19,999"
   },
   {
     id: "above-20000",
     minPrice: 20000,
     maxPrice: 999999,
-    imageSrc: "/budget-tag-above-20000.png",
+    imageSrc: "/budget-tag-above-20000.webp",
     imageAlt: "Shop By Budget Above ₹20,000"
   }
 ];
