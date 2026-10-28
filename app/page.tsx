@@ -393,7 +393,7 @@ export default async function Home() {
 
 
 
-      {/* <ShopByBudget /> */}
+      <ShopByBudget />
 
       <NewArrivalsCarousel cards={arrivalCards} />
 
