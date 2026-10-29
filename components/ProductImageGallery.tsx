@@ -84,6 +84,17 @@ export function ProductImageGallery({
                 }`}
                 aria-hidden={!isActive}
               >
+                {index === 0 && (
+                  <ImageWithFallback
+                    src={imageSrc}
+                    alt=""
+                    aria-hidden="true"
+                    fill
+                    sizes="(max-width: 639px) 46vw, (max-width: 1279px) 42vw, 280px"
+                    loading="eager"
+                    className="object-contain object-center"
+                  />
+                )}
                 <ImageWithFallback
                   src={imageSrc}
                   fallbackSrcs={displayImages.filter((_, i) => i !== index)}
