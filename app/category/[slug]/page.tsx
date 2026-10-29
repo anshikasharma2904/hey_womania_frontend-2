@@ -307,7 +307,8 @@ export default async function CategoryDetailPage({
         .map((img: string) => {
           if (img.startsWith("http")) return img;
           return `${API_URL}${img}`;
-        });
+        })
+        .slice(0, 2);
 
       let defaultImage = null;
       
@@ -329,11 +330,8 @@ export default async function CategoryDetailPage({
 
       const normalizedVariants = Array.isArray(p.variants)
         ? p.variants.map((v: any) => ({
-            ...v,
-            images: (v.images || []).filter(Boolean).map((img: string) => {
-              if (img.startsWith("http")) return img;
-              return `${API_URL}${img}`;
-            })
+            size: v.size,
+            availableStock: v.availableStock
           }))
         : [];
 
@@ -343,7 +341,7 @@ export default async function CategoryDetailPage({
         price: `₹${finalPrice}`,
         originalPrice: hasDiscount ? `₹${originalPrice}` : undefined,
         discountPercentage: discountPercentage,
-        subtitle: p.description || "Newly added",
+        subtitle: p.description ? String(p.description).slice(0, 160) : "Newly added",
         categoryLabel: formatCategoryLabel(categoryParts[1] || categoryParts[0] || "Collection"),
         subcategoryLabel: categoryParts[2] ? formatCategoryLabel(categoryParts[2]) : undefined,
         image: defaultImage,
@@ -581,6 +579,10 @@ export default async function CategoryDetailPage({
       : `Styles ₹${minPriceQuery?.toLocaleString("en-IN") || 0} – ₹${maxPriceQuery?.toLocaleString("en-IN")}`
     : "";
 
+  const SSR_PRODUCT_LIMIT = 24;
+  const totalProductCount = mappedLive.length;
+  mappedLive = mappedLive.slice(0, SSR_PRODUCT_LIMIT);
+
   const category = {
     title:
       searchQuery
@@ -611,6 +613,7 @@ export default async function CategoryDetailPage({
         : slug === "all"
         ? "Browse the complete live catalog with the same category experience as before."
         : matchedCategory?.description || "",
+    totalCount: totalProductCount,
     products: mappedLive
   };
 

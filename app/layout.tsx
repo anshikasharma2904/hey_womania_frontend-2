@@ -15,7 +15,8 @@ const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["400", "700"],
-  display: "swap"
+  display: "swap",
+  preload: false
 });
 
 const manrope = Manrope({
@@ -29,7 +30,8 @@ const cedarville = Cedarville_Cursive({
   subsets: ["latin"],
   variable: "--font-cursive",
   weight: "400",
-  display: "swap"
+  display: "swap",
+  preload: false
 });
 
 export const viewport = {
@@ -75,7 +77,7 @@ export default function RootLayout({
         />
         <Script
           id="google-analytics"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -89,7 +91,7 @@ export default function RootLayout({
         {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)

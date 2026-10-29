@@ -6,8 +6,8 @@ const nextConfig = {
     loader: 'custom',
     loaderFile: './lib/imageLoader.ts',
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [360, 480, 640, 768, 1080, 1440],
-    imageSizes: [32, 64, 96, 128, 256, 384],
+    deviceSizes: [360, 480, 640, 768, 828],
+    imageSizes: [96, 128, 256, 384],
     minimumCacheTTL: 2678400,
     remotePatterns: [
       {

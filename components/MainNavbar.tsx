@@ -308,7 +308,6 @@ export function MainNavbar() {
                 alt="Hey Womaniyaa"
                 width={183}
                 height={72}
-                priority
                 className="h-12 sm:h-16 w-auto object-contain md:h-[4.5rem]"
               />
             </Link>

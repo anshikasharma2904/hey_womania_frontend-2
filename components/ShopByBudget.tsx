@@ -85,7 +85,6 @@ export function ShopByBudget() {
                 fill
                 sizes="(max-width: 640px) 20vw, (max-width: 1024px) 20vw, 240px"
                 className="object-contain object-center"
-                priority
               />
             </Link>
           ))}

@@ -628,7 +628,7 @@ export function CategoryDetailClient({
               <span className="font-semibold text-[#111111]">
                 {filteredProducts.length}
               </span>{" "}
-              of <span className="font-semibold text-[#111111]">{category.products.length}</span> items in{" "}
+              of <span className="font-semibold text-[#111111]">{(category as any).totalCount ?? category.products.length}</span> items in{" "}
               <span className="font-semibold text-[#111111]">
                 {activeResultsLabel}
               </span>
