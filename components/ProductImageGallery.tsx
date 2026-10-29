@@ -84,17 +84,15 @@ export function ProductImageGallery({
                 }`}
                 aria-hidden={!isActive}
               >
-                {index === 0 && (
-                  <ImageWithFallback
-                    src={imageSrc}
-                    alt=""
-                    aria-hidden="true"
-                    fill
-                    sizes="(max-width: 639px) 46vw, (max-width: 1279px) 42vw, 280px"
-                    loading="eager"
-                    className="object-contain object-center"
-                  />
-                )}
+                <ImageWithFallback
+                  src={imageSrc}
+                  alt=""
+                  aria-hidden="true"
+                  fill
+                  sizes="(min-width: 1024px) 108px, 88px"
+                  loading="eager"
+                  className="object-contain object-center"
+                />
                 <ImageWithFallback
                   src={imageSrc}
                   fallbackSrcs={displayImages.filter((_, i) => i !== index)}
@@ -186,7 +184,7 @@ export function ProductImageGallery({
                     alt={`${name} thumbnail ${index + 1}`}
                     fill
                     sizes="(min-width: 1024px) 108px, 88px"
-                    loading="lazy"
+                    loading="eager"
                     className="h-full w-full object-cover object-top transition-transform duration-200 group-hover:scale-[1.04]"
                   />
                 </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ImageWithFallback from "@/components/ImageWithFallback";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { ProductOptionsClient } from "./ProductOptionsClient";
 import { formatCoOrd, isSizeValue } from "@/lib/format-utils";
@@ -63,6 +64,19 @@ export function ProductDetailInteractive({ product, customerReferralCode }: Prod
 
   const [currentGallery, setCurrentGallery] = useState<string[]>(getInitialGallery);
 
+  const warmImages = React.useMemo(() => {
+    const out: { src: string; main: boolean }[] = [];
+    const seen = new Set<string>(currentGallery);
+    (product.variants || []).forEach((v) => {
+      (v.images || []).filter(Boolean).forEach((src, i) => {
+        if (seen.has(src)) return;
+        seen.add(src);
+        out.push({ src, main: i === 0 });
+      });
+    });
+    return out.slice(0, 24);
+  }, [product.variants, currentGallery]);
+
   const handleColorSelect = (selectedColorName: string, customImages?: string[]) => {
     if (customImages && customImages.length > 0) {
       setCurrentGallery(customImages);
@@ -89,8 +103,20 @@ export function ProductDetailInteractive({ product, customerReferralCode }: Prod
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] w-full max-w-full min-w-0">
-      {/* Product Image Gallery (updates when color changes) */}
-      <ProductImageGallery name={product.name} images={currentGallery} />
+      <div className="min-w-0">
+        <div aria-hidden="true" className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0">
+          {warmImages.map(({ src, main }) => (
+            <div key={src} className="relative h-[100px] w-[100px]">
+              <ImageWithFallback src={src} alt="" fill sizes="(min-width: 1024px) 108px, 88px" loading="eager" />
+              {main && (
+                <ImageWithFallback src={src} alt="" fill sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1023px) calc(100vw - 80px), 560px" loading="eager" />
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Product Image Gallery (updates when color changes) */}
+        <ProductImageGallery name={product.name} images={currentGallery} />
+      </div>
 
       {/* Product Right Options Section */}
       <section className="rounded-[1.8rem] border border-[#ece6df] bg-white p-5 shadow-[0_14px_36px_rgba(95,93,62,0.06)] md:p-8">
