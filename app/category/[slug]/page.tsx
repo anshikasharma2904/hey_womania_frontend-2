@@ -579,10 +579,6 @@ export default async function CategoryDetailPage({
       : `Styles ₹${minPriceQuery?.toLocaleString("en-IN") || 0} – ₹${maxPriceQuery?.toLocaleString("en-IN")}`
     : "";
 
-  const SSR_PRODUCT_LIMIT = 24;
-  const totalProductCount = mappedLive.length;
-  mappedLive = mappedLive.slice(0, SSR_PRODUCT_LIMIT);
-
   const category = {
     title:
       searchQuery
@@ -613,7 +609,6 @@ export default async function CategoryDetailPage({
         : slug === "all"
         ? "Browse the complete live catalog with the same category experience as before."
         : matchedCategory?.description || "",
-    totalCount: totalProductCount,
     products: mappedLive
   };
 
