@@ -228,15 +228,7 @@ async function RelatedProducts({ product, apiUrl }: {
   product: { slug: string; categoryTitle: string; categorySlug?: string; relatedCategory?: string };
   apiUrl: string;
 }) {
-  // Category-matched fallback from catalog
-  const currentCatSlug = (product as any).categorySlug || "";
-  const matchedCatalog = catalogProducts.filter(
-    (item) =>
-      item.slug !== product.slug &&
-      (item.categorySlug === currentCatSlug ||
-       item.categoryTitle?.toLowerCase() === product.categoryTitle?.toLowerCase())
-  );
-  let relatedProducts = (matchedCatalog.length >= 4 ? matchedCatalog : catalogProducts.filter(p => p.slug !== product.slug)).slice(0, 4);
+  let relatedProducts: any[] = [];
 
   try {
     const relatedCategory = encodeURIComponent((product as any).relatedCategory || product.categoryTitle || "all");
@@ -269,6 +261,34 @@ async function RelatedProducts({ product, apiUrl }: {
 
       if (liveRelated.length > 0) {
         relatedProducts = liveRelated;
+      }
+    }
+
+    // If still empty (e.g. API returned 0), fetch any 4 active real products from DB
+    if (relatedProducts.length === 0) {
+      const fallbackRes = await fetch(`${apiUrl}/api/products?limit=8`, {
+        next: { revalidate: 60, tags: ["products"] }
+      });
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        const items = fallbackData.data ? fallbackData.data : Array.isArray(fallbackData) ? fallbackData : [];
+        relatedProducts = items
+          .filter((p: any) => p.slug !== product.slug)
+          .slice(0, 4)
+          .map((p: any) => {
+            const gallery = (p.images || [])
+              .filter(Boolean)
+              .map((img: string) => (img.startsWith("http") ? img : `${apiUrl}${img}`));
+            const hasDiscount = p.salePrice && p.price && p.salePrice < p.price;
+            return {
+              name: p.title,
+              slug: p.slug,
+              price: `₹${p.salePrice || p.price}`,
+              originalPrice: hasDiscount ? `₹${p.price}` : null,
+              image: gallery.length > 0 ? gallery[0] : "/products/product-placeholder.png",
+              gallery: gallery
+            };
+          });
       }
     }
   } catch (err) {

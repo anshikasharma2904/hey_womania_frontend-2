@@ -165,11 +165,6 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
 
     let amount = Math.max(0, subtotal + deliveryFee - walletDiscount - networkWalletDiscount - couponDiscount);
 
-    // COD orders require a mandatory Rs 100 upfront payment online
-    if (String(req.body.paymentMethod || "").toLowerCase() === "cod") {
-      amount = 100;
-    }
-
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ error: "Invalid payment amount calculated" });
     }

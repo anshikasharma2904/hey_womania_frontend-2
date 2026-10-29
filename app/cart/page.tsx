@@ -253,7 +253,7 @@ export default function CartPage() {
                         </span>
                       </div>
                       <p className="mt-1 text-xs sm:text-sm font-bold text-[#111]">
-                        Complimentary Mystery Surprise Gift included with your order!
+                        Complimentary Surprise Gift included with your order!
                       </p>
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export default function CartPage() {
                         <div className="overflow-hidden rounded-[0.95rem] bg-white border border-[#f0dfce] md:rounded-[1rem] relative w-20 h-20 shrink-0 shadow-sm">
                           <Image
                             src="/surprise-gift-box.jpg"
-                            alt="Complimentary Mystery Surprise Gift"
+                            alt="Complimentary Surprise Gift"
                             fill
                             className="object-cover"
                           />

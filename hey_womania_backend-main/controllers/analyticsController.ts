@@ -300,6 +300,7 @@ export const getAddToCartEvents = async (req: Request, res: Response) => {
           role: user.role || 'member'
         } : {
           isGuest: true,
+          phone: ev.metadata?.phone || null,
           sessionId: ev.sessionId
         }
       };

@@ -268,9 +268,6 @@ export default async function OrderDetailsPage(props: PageProps) {
                 const numericTotal = typeof order.total === "number"
                   ? order.total
                   : parseFloat(String(order.total || "0").replace(/[^0-9.]/g, "")) || 0;
-                const advancePaid = isCOD ? 100 : 0;
-                const remainingCOD = isCOD ? Math.max(0, numericTotal - advancePaid) : 0;
-
                 return (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between border-b border-[#f2ede7] pb-2.5">
@@ -286,25 +283,15 @@ export default async function OrderDetailsPage(props: PageProps) {
                     </div>
 
                     {isCOD ? (
-                      <>
-                        <div className="flex items-center justify-between text-sm text-emerald-700">
-                          <span className="flex items-center gap-1.5">
-                            <MdCheckCircle aria-hidden="true" className="inline-block shrink-0 align-middle text-[1rem]" />
-                            Advance Online Paid
-                          </span>
-                          <span className="font-semibold">- ₹{advancePaid.toLocaleString("en-IN")}</span>
+                      <div className="mt-2 flex items-center justify-between rounded-xl bg-[#fff0f1]/60 border border-[#9c4049]/20 p-3.5">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider font-bold text-[#9c4049]">To Pay at Delivery</p>
+                          <p className="text-[11px] text-[#6d655d]">Cash / UPI to courier agent</p>
                         </div>
-
-                        <div className="mt-2 flex items-center justify-between rounded-xl bg-[#fff0f1]/60 border border-[#9c4049]/20 p-3.5">
-                          <div>
-                            <p className="text-xs uppercase tracking-wider font-bold text-[#9c4049]">To Pay at Delivery</p>
-                            <p className="text-[11px] text-[#6d655d]">Cash / UPI to courier agent</p>
-                          </div>
-                          <span className="font-[family:var(--font-display)] text-xl font-bold text-[#9c4049]">
-                            ₹{remainingCOD.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      </>
+                        <span className="font-[family:var(--font-display)] text-xl font-bold text-[#9c4049]">
+                          ₹{numericTotal.toLocaleString("en-IN")}
+                        </span>
+                      </div>
                     ) : (
                       <div className="mt-2 flex items-center justify-between rounded-xl bg-[#edf7ef] border border-[#367743]/20 p-3.5 text-[#367743]">
                         <div>

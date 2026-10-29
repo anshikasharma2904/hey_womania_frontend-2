@@ -579,6 +579,12 @@ export default function Analytics({ defaultTab = 'all' }: AnalyticsProps) {
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
                                 <User size={12} className="text-amber-600" /> Guest Visitor
                               </span>
+                              {(item.user as any).phone && (
+                                <div className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                                  <Phone size={12} className="text-emerald-600 shrink-0" />
+                                  <span>{(item.user as any).phone}</span>
+                                </div>
+                              )}
                               <div className="text-xs text-gray-400 font-mono flex items-center gap-1">
                                 <span className="truncate max-w-[140px]" title={item.sessionId}>
                                   {item.sessionId}

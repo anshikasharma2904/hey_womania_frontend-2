@@ -18,14 +18,13 @@ export const SURPRISE_GIFT_PRODUCT_ID = "surprise-gift";
 
 export const SURPRISE_GIFT_ITEM: CartItem = {
   productId: SURPRISE_GIFT_PRODUCT_ID,
-  title: "Exclusive Mystery Surprise Gift 🎁",
+  title: "Surprise Gift 🎁",
   image: "/surprise-gift-box.jpg",
   images: ["/surprise-gift-box.jpg"],
   sku: SURPRISE_GIFT_SKU,
   size: "Complimentary",
   color: "Luxury Gold",
   salePrice: 0,
-  originalPrice: 499,
   quantity: 1,
   maxStock: 1,
   isFreeGift: true,

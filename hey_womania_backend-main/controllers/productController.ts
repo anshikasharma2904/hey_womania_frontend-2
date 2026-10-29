@@ -110,34 +110,50 @@ export const getRelatedProducts = async (req: Request, res: Response) => {
       isActive: { $ne: false }
     }).sort({ createdAt: -1 });
 
-    const relatedProducts = products
-      .filter((product) => {
-        const rawCategory = String(product.category || "");
-        const parts = rawCategory
-          .split("/")
-          .map((part) => part.trim())
-          .filter(Boolean);
+    // 1. Direct subcategory / category match
+    const categoryMatches = products.filter((product) => {
+      const rawCategory = String(product.category || "");
+      const parts = rawCategory
+        .split("/")
+        .map((part) => part.trim())
+        .filter(Boolean);
 
-        const normalizedParts = parts.map((part) => part.toLowerCase());
-        const normalizedPartSlugs = normalizedParts.map((part) =>
-          part.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
-        );
-        const normalizedPartNoSpaces = normalizedParts.map((part) => part.replace(/\s+/g, ""));
+      const normalizedParts = parts.map((part) => part.toLowerCase());
+      const normalizedPartSlugs = normalizedParts.map((part) =>
+        part.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
+      );
+      const normalizedPartNoSpaces = normalizedParts.map((part) => part.replace(/\s+/g, ""));
 
-        return (
-          normalizedParts.includes(normalizedCategory) ||
-          normalizedPartNoSpaces.includes(normalizedCategoryNoSpaces) ||
-          normalizedPartSlugs.includes(normalizedCategorySlug)
-        );
-      })
-      .slice(0, limit);
+      return (
+        normalizedParts.includes(normalizedCategory) ||
+        normalizedPartNoSpaces.includes(normalizedCategoryNoSpaces) ||
+        normalizedPartSlugs.includes(normalizedCategorySlug)
+      );
+    });
+
+    const matchedIds = new Set(categoryMatches.map((p: any) => p.id || String(p._id)));
+    let finalRelated = [...categoryMatches];
+
+    // 2. If fewer than limit, fill remaining slots with real active products from other categories
+    if (finalRelated.length < limit) {
+      for (const p of products) {
+        const pid = p.id || String(p._id);
+        if (!matchedIds.has(pid)) {
+          finalRelated.push(p);
+          matchedIds.add(pid);
+          if (finalRelated.length >= limit) break;
+        }
+      }
+    }
+
+    finalRelated = finalRelated.slice(0, limit);
 
     return res.json({
-      data: relatedProducts,
+      data: finalRelated,
       meta: {
         category,
         excludeSlug,
-        total: relatedProducts.length
+        total: finalRelated.length
       }
     });
   } catch (error) {

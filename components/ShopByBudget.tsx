@@ -51,10 +51,10 @@ const budgetTiers: BudgetTier[] = [
 
 export function ShopByBudget() {
   return (
-    <section className="bg-transparent px-0 py-2 md:mt-4 md:px-0 md:py-4">
-      <div className="mx-auto max-w-7xl px-3 py-3 md:px-8 md:py-6">
+    <section className="bg-transparent px-0 py-1 md:py-2">
+      <div className="mx-auto max-w-7xl px-3 pt-1 pb-2 md:px-8 md:pt-2 md:pb-3">
         {/* Section Header */}
-        <div className="mb-4 sm:mb-8 flex items-center justify-between gap-3">
+        <div className="mb-3 sm:mb-6 flex items-center justify-between gap-3">
           <div>
             <p className="text-[0.66rem] sm:text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
               Curated Collections

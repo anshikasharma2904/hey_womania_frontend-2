@@ -101,12 +101,6 @@ export function OrderConfirmationModal({
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/70 mb-0.5">Total Amount</p>
                 <p className="font-[family:var(--font-display)] text-2xl sm:text-3xl leading-tight font-bold">{payload.total}</p>
               </div>
-              {String(payload.paymentMethod || "").toLowerCase() === "cod" && (
-                <div className="text-right text-xs bg-black/25 px-2.5 py-1.5 rounded-xl ml-3 shrink-0">
-                  <p className="font-extrabold text-[#fcf9f4] text-xs">Pay ₹100 Now</p>
-                  <p className="text-[10px] text-white/80">Rest on delivery</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

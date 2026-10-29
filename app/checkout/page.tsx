@@ -89,6 +89,88 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState<boolean>(false);
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
+  // Mobile OTP verification for guests when adding shipping address
+  const [isPhoneVerified, setIsPhoneVerified] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState<string>("");
+  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
+  const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState<boolean>(false);
+  const [otpError, setOtpError] = useState<string>("");
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState<string>("");
+  const [otpResendCountdown, setOtpResendCountdown] = useState<number>(0);
+
+  useEffect(() => {
+    if (otpResendCountdown <= 0) return;
+    const timer = window.setInterval(() => {
+      setOtpResendCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpResendCountdown]);
+
+  const handleSendAddressOtp = async () => {
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setAddressErrors((prev) => ({ ...prev, phone: "Please enter a valid 10-digit mobile number." }));
+      return;
+    }
+    try {
+      setIsSendingOtp(true);
+      setOtpError("");
+      setOtpSuccessMsg("");
+      const res = await fetch("/api/phone-verification/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setOtpError(data.message || "Failed to send OTP. Please try again.");
+        return;
+      }
+      setIsOtpSent(true);
+      setOtpSuccessMsg(`OTP sent to +91 ${cleanPhone}`);
+      setOtpResendCountdown(30);
+    } catch {
+      setOtpError("Unable to send OTP right now. Please check your connection.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyAddressOtp = async (codeToVerify?: string) => {
+    const code = (codeToVerify ?? otpCode).trim();
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    if (!code || code.length < 4) {
+      setOtpError("Please enter the complete OTP.");
+      return;
+    }
+    try {
+      setIsVerifyingOtp(true);
+      setOtpError("");
+      const res = await fetch("/api/phone-verification/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone, code })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setOtpError(data.message || "Incorrect or expired OTP. Please try again.");
+        return;
+      }
+      setIsPhoneVerified(true);
+      setOtpSuccessMsg("Mobile number verified successfully! ✓");
+      setAddressErrors((prev) => {
+        const next = { ...prev };
+        delete next.phone;
+        return next;
+      });
+    } catch {
+      setOtpError("Unable to verify OTP right now. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   // Load cart from localStorage and fetch addresses
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -160,11 +242,25 @@ export default function CheckoutPage() {
           }));
         } else {
           setIsLoggedIn(false);
+          const guestPhone = localStorage.getItem("hw_guest_phone");
+          if (guestPhone) {
+            setFormData(prev => ({
+              ...prev,
+              phone: prev.phone || guestPhone
+            }));
+          }
         }
       })
       .catch(err => {
         console.error("Failed to fetch user addresses:", err);
         setIsLoggedIn(false);
+        const guestPhone = localStorage.getItem("hw_guest_phone");
+        if (guestPhone) {
+          setFormData(prev => ({
+            ...prev,
+            phone: prev.phone || guestPhone
+          }));
+        }
       });
   }, []);
 
@@ -655,6 +751,24 @@ export default function CheckoutPage() {
         }
         return;
       }
+
+      // If user is not logged in, enforce phone OTP verification
+      if (!isLoggedIn && !isPhoneVerified) {
+        setShowAddressForm(true);
+        setAddressErrors((prev) => ({
+          ...prev,
+          phone: "Please verify your mobile number with OTP to continue."
+        }));
+        setSubmitStatus("Please verify your mobile number with OTP before placing your order.");
+        const el = document.getElementById("checkout-phone-input") || document.getElementById("shipping-address-section");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        if (!isOtpSent) {
+          void handleSendAddressOtp();
+        }
+        return;
+      }
     } else {
       const selected = savedAddresses.find((a) => (a._id === selectedAddressId) || (a.id === selectedAddressId));
       if (!selected) {
@@ -703,7 +817,7 @@ export default function CheckoutPage() {
         }
       }
 
-      if (formData.paymentMethod === "online" || formData.paymentMethod === "cod") {
+      if (formData.paymentMethod === "online") {
         await handleRazorpayPayment(payload);
       } else {
         await completeOrder(payload);
@@ -1206,26 +1320,97 @@ export default function CheckoutPage() {
                       )}
                     </label>
 
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#5f5d3e]">
-                        Mobile Number <span className="text-red-500">*</span>
-                      </span>
-                      <input
-                        id="checkout-phone-input"
-                        type="tel"
-                        required
-                        maxLength={10}
-                        value={formData.phone}
-                        onChange={(e) => updateField("phone", e.target.value.replace(/\D/g, ""))}
-                        placeholder="9876543210 (10 digits)"
-                        className={`w-full rounded-xl border bg-white px-3.5 py-3 text-sm text-[#1c1c19] outline-none transition ${
-                          addressErrors.phone ? "border-red-500 ring-1 ring-red-500" : "border-[#e8e2d9] focus:border-[#5f5d3e]"
-                        }`}
-                      />
-                      {addressErrors.phone && (
+                    <div className="block">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#5f5d3e]">
+                          Mobile Number <span className="text-red-500">*</span>
+                        </span>
+                        {!isLoggedIn && isPhoneVerified && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            ✓ Verified
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          id="checkout-phone-input"
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={formData.phone}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            updateField("phone", val);
+                            if (isPhoneVerified) {
+                              setIsPhoneVerified(false);
+                              setIsOtpSent(false);
+                              setOtpCode("");
+                            }
+                          }}
+                          placeholder="9876543210 (10 digits)"
+                          className={`w-full rounded-xl border bg-white px-3.5 py-3 pr-24 text-sm text-[#1c1c19] outline-none transition ${
+                            addressErrors.phone ? "border-red-500 ring-1 ring-red-500" : "border-[#e8e2d9] focus:border-[#5f5d3e]"
+                          }`}
+                        />
+                        {!isLoggedIn && !isPhoneVerified && formData.phone.length === 10 && (
+                          <button
+                            type="button"
+                            onClick={handleSendAddressOtp}
+                            disabled={isSendingOtp || otpResendCountdown > 0}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-[#5f5d3e] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#48462e] transition disabled:opacity-50"
+                          >
+                            {isSendingOtp ? "Sending..." : isOtpSent ? (otpResendCountdown > 0 ? `${otpResendCountdown}s` : "Resend") : "Verify"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* OTP input box shown when OTP is sent for guest users */}
+                      {!isLoggedIn && isOtpSent && !isPhoneVerified && (
+                        <div className="mt-2.5 p-3 rounded-xl border border-[#ece6df] bg-[#fcf9f4]">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#9c4049] mb-1.5">
+                            Enter 6-Digit OTP sent to your phone
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={otpCode}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                                setOtpCode(val);
+                                if (val.length === 6) {
+                                  void handleVerifyAddressOtp(val);
+                                }
+                              }}
+                              placeholder="123456"
+                              className="w-36 rounded-lg border border-[#d8d0c5] bg-white px-3 py-1.5 text-center text-sm font-bold tracking-widest text-[#1c1c19] outline-none focus:border-[#5f5d3e]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleVerifyAddressOtp()}
+                              disabled={isVerifyingOtp || otpCode.length < 4}
+                              className="rounded-lg bg-[#9c4049] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#81353f] transition disabled:opacity-50"
+                            >
+                              {isVerifyingOtp ? "Checking..." : "Confirm OTP"}
+                            </button>
+                          </div>
+                          {otpResendCountdown > 0 && (
+                            <p className="mt-1 text-[10px] text-[#8b837b]">Resend available in {otpResendCountdown}s</p>
+                          )}
+                        </div>
+                      )}
+
+                      {otpError && (
+                        <p className="mt-1.5 text-xs text-red-600 font-medium">{otpError}</p>
+                      )}
+                      {otpSuccessMsg && (
+                        <p className="mt-1.5 text-xs text-emerald-700 font-medium">{otpSuccessMsg}</p>
+                      )}
+                      {addressErrors.phone && !otpError && (
                         <p className="mt-1 text-xs text-red-600 font-medium">{addressErrors.phone}</p>
                       )}
-                    </label>
+                    </div>
                   </div>
 
                   <label className="block">

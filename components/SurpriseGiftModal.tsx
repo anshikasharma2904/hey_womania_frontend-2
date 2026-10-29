@@ -117,11 +117,11 @@ export function SurpriseGiftModal({
           {productName ? (
             <>
               You added <span className="font-bold text-[#111]">&quot;{productName}&quot;</span> to your bag. 
-              We&apos;ve automatically included a complimentary <span className="font-bold text-[#9c4049]">Mystery Surprise Gift</span> with your order!
+              We&apos;ve automatically included a complimentary <span className="font-bold text-[#9c4049]">Surprise Gift</span> with your order!
             </>
           ) : (
             <>
-              We&apos;ve automatically added an exclusive <span className="font-bold text-[#9c4049]">Mystery Surprise Gift</span> to your shopping bag to celebrate your purchase!
+              We&apos;ve automatically added an exclusive <span className="font-bold text-[#9c4049]">Surprise Gift</span> to your shopping bag to celebrate your purchase!
             </>
           )}
         </p>
@@ -142,7 +142,6 @@ export function SurpriseGiftModal({
                 {SURPRISE_GIFT_ITEM.title}
               </p>
               <p className="text-[11px] text-[#8b837b] flex items-center gap-1.5 mt-0.5">
-                <span className="line-through text-gray-400">₹{SURPRISE_GIFT_ITEM.originalPrice}</span>
                 <span className="font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
                   FREE
                 </span>
