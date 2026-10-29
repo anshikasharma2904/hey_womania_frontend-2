@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
 import { Order } from "../models/Order";
+import { Admin } from "../models/Admin";
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -151,10 +152,18 @@ export const getCentralWalletStats = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 }).select("-password");
+    const [users, admins] = await Promise.all([
+      User.find().sort({ createdAt: -1 }).select("-password"),
+      Admin.find().sort({ createdAt: -1 }).select("-passwordHash")
+    ]);
     res.json({
       success: true,
-      data: users
+      data: users,
+      admins: admins.map(a => ({
+        ...a.toObject(),
+        role: a.role || "admin",
+        isAdmin: true
+      }))
     });
   } catch (error) {
     console.error("Error fetching admin users:", error);
