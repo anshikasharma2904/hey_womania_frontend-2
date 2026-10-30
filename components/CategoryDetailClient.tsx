@@ -5,7 +5,7 @@ import { MdClose, MdSearch, MdTune } from "react-icons/md";
 
 import Link from "next/link";
 import ImageWithFallback from "@/components/ImageWithFallback";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { formatCoOrd } from "@/lib/format-utils";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { useWishbag } from "@/contexts/WishbagContext";
@@ -92,8 +92,38 @@ export function CategoryDetailClient({
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [priceLimit, setPriceLimit] = useState<number>(15000);
   const [localSearch, setLocalSearch] = useState("");
+  const isAllCategory = slug === "all";
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const ITEMS_PER_PAGE = 12;
+
+  // Determine initial screen size and adjust initial visibleCount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const checkMobile = () => {
+        const mobile = window.innerWidth < 768;
+        setIsMobileScreen(mobile);
+        if (isAllCategory) {
+          setVisibleCount((prev) => (prev === 12 && mobile ? 6 : prev));
+        }
+      };
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }
+  }, [isAllCategory]);
+
+  // Reset visibleCount and currentPage when filters or search change
+  useEffect(() => {
+    if (isAllCategory) {
+      const isMob = typeof window !== "undefined" && window.innerWidth < 768;
+      setVisibleCount(isMob ? 6 : 12);
+    } else {
+      setCurrentPage(1);
+    }
+  }, [isAllCategory, selectedCategories, selectedSubcategories, selectedSizes, priceLimit, localSearch]);
 
   const availableCategories = useMemo(() => {
     const collected = new Set<string>();
@@ -228,11 +258,41 @@ export function CategoryDetailClient({
     });
   }, [category.products, priceLimit, selectedCategories, selectedSizes, selectedSubcategories, localSearch]);
 
+  const loadNextBatch = useCallback(() => {
+    setVisibleCount((prev) => {
+      if (prev >= filteredProducts.length) return prev;
+      const step = isMobileScreen ? 6 : 12;
+      return Math.min(prev + step, filteredProducts.length);
+    });
+  }, [filteredProducts.length, isMobileScreen]);
+
+  // IntersectionObserver for infinite scrolling on /category/all
+  useEffect(() => {
+    if (!isAllCategory) return;
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadNextBatch();
+        }
+      },
+      { rootMargin: "350px 0px" }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isAllCategory, loadNextBatch]);
+
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const paginatedProducts = useMemo(() => {
+    if (isAllCategory) {
+      return filteredProducts.slice(0, visibleCount);
+    }
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredProducts, currentPage, ITEMS_PER_PAGE]);
+  }, [filteredProducts, currentPage, ITEMS_PER_PAGE, isAllCategory, visibleCount]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -353,9 +413,12 @@ export function CategoryDetailClient({
         </div>
       </div>
 
-      <div className="mt-4 sm:mt-6 grid w-full max-w-full min-w-0 gap-6 lg:mt-8 lg:grid-cols-[250px_1fr]">
-      {/* ----------------- Desktop Sidebar (Interactive Client Version) ----------------- */}
-      <aside className="hidden rounded-[1.8rem] border border-[#ece6df] bg-white/90 p-5 shadow-[0_10px_30px_rgba(95,93,62,0.05)] lg:block h-fit">
+      <div className="mt-4 sm:mt-6 grid w-full max-w-full min-w-0 gap-6 lg:mt-8 lg:grid-cols-[250px_1fr] items-start">
+      {/* ----------------- Desktop Sidebar (Sticky Filter Version) ----------------- */}
+      <aside 
+        style={{ position: "sticky", top: "115px" }}
+        className="hidden lg:block self-start rounded-[1.8rem] border border-[#ece6df] bg-white/95 p-5 shadow-[0_10px_30px_rgba(95,93,62,0.05)] max-h-[calc(100vh-130px)] overflow-y-auto [scrollbar-width:thin] backdrop-blur-sm z-20"
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#111111]">
             Filters
@@ -626,7 +689,7 @@ export function CategoryDetailClient({
             <p className="text-xs sm:text-sm text-[#6d655d]">
               Showing{" "}
               <span className="font-semibold text-[#111111]">
-                {filteredProducts.length}
+                {isAllCategory ? Math.min(visibleCount, filteredProducts.length) : filteredProducts.length}
               </span>{" "}
               of <span className="font-semibold text-[#111111]">{category.products.length}</span> items in{" "}
               <span className="font-semibold text-[#111111]">
@@ -756,8 +819,22 @@ export function CategoryDetailClient({
                 ))}
               </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 ? (
+            {/* Infinite Scroll trigger element & loader for /category/all */}
+            {isAllCategory ? (
+              <div ref={loadMoreRef} className="py-8 flex flex-col items-center justify-center">
+                {visibleCount < filteredProducts.length ? (
+                  <div className="flex items-center gap-2.5 text-xs text-[#7b6d64] font-medium py-3 px-4 rounded-full bg-[#f4efe8]/70 border border-[#e8ded3]">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#9c4049] border-t-transparent" />
+                    <span>Loading more styles... ({visibleCount} of {filteredProducts.length})</span>
+                  </div>
+                ) : filteredProducts.length > 0 ? (
+                  <p className="text-xs text-[#a09489] pt-2">
+                    You have viewed all {filteredProducts.length} styles
+                  </p>
+                ) : null}
+              </div>
+            ) : totalPages > 1 ? (
+              /* Regular Pagination Controls for subcategory pages */
               <div className="mt-12 flex flex-col items-center justify-center gap-4 border-t border-[#ece6df] pt-8 sm:flex-row sm:justify-between">
                 <p className="text-xs text-[#7b6d64]">
                   Showing <span className="font-bold text-[#111111]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–

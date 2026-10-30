@@ -63,13 +63,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${libreCaslon.variable} ${manrope.variable} ${cedarville.variable} overflow-x-hidden`}>
+    <html lang="en" className={`${libreCaslon.variable} ${manrope.variable} ${cedarville.variable} overflow-x-clip`}>
       <head>
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
-      <body className="bg-canvas text-mocha antialiased overflow-x-hidden">
+      <body className="bg-canvas text-mocha antialiased overflow-x-clip">
         {/* Google tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-D38817RM74"

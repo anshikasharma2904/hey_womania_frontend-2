@@ -479,6 +479,37 @@ export default async function CategoryDetailPage({
     }
 
     mappedLive = result.sort(() => Math.random() - 0.5);
+  } else if (slug === "all") {
+    // Group products by their main category and shuffle within each category
+    const categoryGroups: Record<string, any[]> = {};
+    for (const prod of mappedLive) {
+      const catKey = String(prod.categoryLabel || prod.category || "General").trim();
+      if (!categoryGroups[catKey]) {
+        categoryGroups[catKey] = [];
+      }
+      categoryGroups[catKey].push(prod);
+    }
+
+    // Shuffle products inside each category group using pseudo-random / random
+    const shuffledCategories = Object.keys(categoryGroups).sort(() => Math.random() - 0.5);
+    shuffledCategories.forEach((cat) => {
+      categoryGroups[cat].sort(() => Math.random() - 0.5);
+    });
+
+    // Round-robin weave across categories so products alternate diverse categories instead of clumped DB order
+    const interleaved: any[] = [];
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const cat of shuffledCategories) {
+        if (categoryGroups[cat].length > 0) {
+          interleaved.push(categoryGroups[cat].shift());
+          hasMore = true;
+        }
+      }
+    }
+
+    mappedLive = interleaved;
   }
 
   const matchedCategory =
@@ -598,9 +629,15 @@ export default async function CategoryDetailPage({
         ? "SHOP BY BUDGET"
         : slug === "all"
         ? "SHOP THE FULL COLLECTION"
+        : slug === "just-dropped"
+        ? "FRESH ARRIVALS"
+        : slug === "most-loved"
+        ? "TRENDING NOW"
+        : slug === "last-chance"
+        ? "LIMITED STOCK"
         : isMainCategoryRoute
-          ? "SHOP THE MAIN CATEGORY"
-          : "SHOP BY CATEGORY",
+          ? "EXPLORE COLLECTION"
+          : "CURATED FOR YOU",
     intro:
       searchQuery
         ? `Showing live products matching "${searchQuery}".`
@@ -633,7 +670,7 @@ export default async function CategoryDetailPage({
       : categoryFilterColumns[slug] ?? categoryFilterColumns.all;
 
   return (
-    <main className="min-h-screen w-full max-w-full min-w-0 overflow-x-hidden bg-[#fcf9f4] px-2 sm:px-4 pb-12 pt-4 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
+    <main className="min-h-screen w-full max-w-full min-w-0 bg-[#fcf9f4] px-2 sm:px-4 pb-12 pt-4 text-[#1c1c19] md:px-10 md:pt-8 lg:px-16 lg:pt-10">
       <section className="mx-auto w-full max-w-7xl min-w-0">
         <CategoryDetailClient
           slug={slug}
