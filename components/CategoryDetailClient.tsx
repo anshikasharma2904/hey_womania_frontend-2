@@ -283,7 +283,7 @@ export function CategoryDetailClient({
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [isAllCategory, loadNextBatch]);
+  }, [isAllCategory, loadNextBatch, visibleCount]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const paginatedProducts = useMemo(() => {
