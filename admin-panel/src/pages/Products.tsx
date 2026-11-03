@@ -280,9 +280,10 @@ export default function Products() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500 uppercase tracking-wider">
                 <th className="p-4 font-semibold">Product</th>
+                <th className="p-4 font-semibold">SKU</th>
                 <th className="p-4 font-semibold">Category</th>
                 <th className="p-4 font-semibold">Price</th>
-                <th className="p-4 font-semibold">Stock / SKU</th>
+                <th className="p-4 font-semibold">Stock</th>
                 <th className="p-4 font-semibold">Feedback</th>
                 <th className="p-4 font-semibold">Status (Toggle)</th>
               </tr>
@@ -290,17 +291,19 @@ export default function Products() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">Loading products...</td>
+                  <td colSpan={7} className="p-8 text-center text-gray-500">Loading products...</td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">No products found matching filters.</td>
+                  <td colSpan={7} className="p-8 text-center text-gray-500">No products found matching filters.</td>
                 </tr>
               ) : (
                 products.map((product) => {
                   const productId = product.id || product._id;
                   const isLive = product.isLive !== false && product.isActive !== false;
                   const isBusy = togglingId === productId;
+                  const mainSku = product.sku || product.zohoSku;
+                  const variants = Array.isArray(product.variants) ? product.variants : [];
 
                   return (
                     <tr key={productId} className="hover:bg-gray-50 transition-colors">
@@ -319,11 +322,35 @@ export default function Products() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">{product.title}</div>
-                            <div className="text-xs text-gray-500 font-mono flex items-center gap-2 mt-0.5">
-                              <span>SKU: {product.sku || product.zohoSku || 'N/A'}</span>
-                            </div>
+                            {product.slug && (
+                              <div className="text-xs text-gray-400 mt-0.5 font-mono">
+                                /{product.slug}
+                              </div>
+                            )}
                           </div>
                         </div>
+                      </td>
+                      <td className="p-4 text-sm font-mono text-gray-800">
+                        {mainSku ? (
+                          <div className="font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-2 py-0.5 inline-block">
+                            {mainSku}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">No Main SKU</span>
+                        )}
+                        {variants.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1 max-w-xs">
+                            {variants.map((v: any, idx: number) => (
+                              <span
+                                key={v.sku || idx}
+                                className="inline-block text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 font-mono"
+                                title={`Size: ${v.size || 'N/A'}, Stock: ${v.availableStock ?? 0}`}
+                              >
+                                {v.sku ? `${v.sku} (${v.size || 'std'})` : v.size}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-sm text-gray-600 capitalize">
                         {product.category || product.categorySlug?.replace(/-/g, ' ') || 'Uncategorized'}
@@ -336,9 +363,9 @@ export default function Products() {
                       </td>
                       <td className="p-4 text-sm text-gray-600">
                         <div>Stock: {product.totalStock ?? product.stock ?? 'N/A'}</div>
-                        {Array.isArray(product.variants) && product.variants.length > 0 && (
+                        {variants.length > 0 && (
                           <div className="text-xs text-gray-400 font-mono mt-0.5">
-                            {product.variants.length} variant{product.variants.length > 1 ? 's' : ''}
+                            {variants.length} variant{variants.length > 1 ? 's' : ''}
                           </div>
                         )}
                       </td>
