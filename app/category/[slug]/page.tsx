@@ -351,7 +351,11 @@ export default async function CategoryDetailPage({
           .map((variant: any) => String(variant?.size || "").trim())
           .filter(Boolean),
         slug: p.slug,
-        category: p.category
+        category: p.category,
+        sku: p.sku || p.zohoSku || "",
+        variantSkus: Array.isArray(p.variants)
+          ? p.variants.map((v: any) => String(v.sku || "")).filter(Boolean)
+          : []
       };
     })
     .filter((product: any) => {
@@ -369,6 +373,8 @@ export default async function CategoryDetailPage({
 
       const searchableText = [
         product.name,
+        product.sku,
+        ...(product.variantSkus || []),
         product.subtitle,
         product.categoryLabel,
         product.subcategoryLabel

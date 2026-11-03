@@ -20,8 +20,51 @@ export const getProducts = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
-    const totalItems = await Product.countDocuments();
-    const products = await Product.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const filter: any = {};
+
+    // Filter by category if provided
+    if (req.query.category && String(req.query.category).trim() !== "" && String(req.query.category).toLowerCase() !== "all") {
+      const categoryQuery = String(req.query.category).trim();
+      const escapedCategory = categoryQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      filter.category = new RegExp(escapedCategory, "i");
+    }
+
+    // Filter by status (isLive / isActive) if provided
+    if (req.query.isLive !== undefined && req.query.isLive !== "" && req.query.isLive !== "all") {
+      const isLiveBool = String(req.query.isLive) === "true";
+      filter.$or = [
+        { isLive: isLiveBool },
+        { isActive: isLiveBool }
+      ];
+    }
+
+    // Filter by search text (product title, SKU, variant SKU, category, or description)
+    if (req.query.search && String(req.query.search).trim() !== "") {
+      const searchStr = String(req.query.search).trim();
+      const escapedSearch = searchStr.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const searchRegex = new RegExp(escapedSearch, "i");
+
+      const searchConditions = [
+        { title: searchRegex },
+        { sku: searchRegex },
+        { "variants.sku": searchRegex },
+        { category: searchRegex },
+        { description: searchRegex }
+      ];
+
+      if (filter.$or) {
+        filter.$and = [
+          { $or: filter.$or },
+          { $or: searchConditions }
+        ];
+        delete filter.$or;
+      } else {
+        filter.$or = searchConditions;
+      }
+    }
+
+    const totalItems = await Product.countDocuments(filter);
+    const products = await Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
     
     res.json({
       data: products,
@@ -310,7 +353,13 @@ export const updateProduct = async (req: Request, res: Response) => {
       updates.cloudflareImageIds = cloudflareImageIds;
     }
 
-    const product = await Product.findOneAndUpdate({ id }, updates, { new: true });
+    const query = {
+      $or: [
+        { id },
+        ...(id.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: id }] : [])
+      ]
+    };
+    const product = await Product.findOneAndUpdate(query, updates, { new: true });
     
     if (!product) {
       return res.status(404).json({ error: "Product not found" });

@@ -209,6 +209,8 @@ export function CategoryDetailClient({
         const query = localSearch.toLowerCase();
         const searchableText = [
           product.name,
+          (product as any).sku,
+          ...((product as any).variantSkus || []),
           product.subtitle,
           (product as any).categoryLabel,
           (product as any).subcategoryLabel
@@ -400,7 +402,7 @@ export function CategoryDetailClient({
           <MdSearch aria-hidden="true" className="inline-block shrink-0 align-middle text-[#8c8f9e] text-[24px]" />
           <input
             type="text"
-            placeholder="Search products, categories..."
+            placeholder="Search by product name, SKU, category..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             className="w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#8c8f9e]"
