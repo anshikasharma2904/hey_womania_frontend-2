@@ -609,35 +609,43 @@ export default function CheckoutPage() {
     return data;
   };
 
-  const markOrderSuccess = (orderData?: any, isCod: boolean = false) => {
-    // Standard Meta Pixel Purchase event triggered only after COD order is successfully created
-    if (isCod && typeof window !== "undefined") {
+  const markOrderSuccess = (orderData?: any, fallbackPaymentRef?: string) => {
+    if (typeof window !== "undefined") {
       const createdOrder = orderData?.order || orderData;
-      const orderId = createdOrder?.id || createdOrder?.orderNumber || `COD_${Date.now()}`;
-      
-      // Parse numeric total dynamically
-      const numericTotal = typeof createdOrder?.total === "string"
-        ? parseFloat(createdOrder.total.replace(/[^0-9.]/g, "")) || grandTotal
-        : (typeof createdOrder?.total === "number" ? createdOrder.total : grandTotal);
+      // Stable order/payment reference - do NOT use Date.now() as a fallback
+      const stableReference =
+        createdOrder?.id ||
+        createdOrder?.orderNumber ||
+        createdOrder?.razorpayPaymentId ||
+        createdOrder?.razorpayOrderId ||
+        fallbackPaymentRef;
 
-      // Check to prevent duplicate purchase events for this order
-      const trackedKey = `meta_purchase_tracked_${orderId}`;
-      const alreadyTracked = sessionStorage.getItem(trackedKey);
+      // Only track if a confirmed stable reference exists
+      if (stableReference) {
+        // Parse numeric total dynamically from confirmed order or grandTotal
+        const numericTotal = typeof createdOrder?.total === "string"
+          ? parseFloat(createdOrder.total.replace(/[^0-9.]/g, "")) || grandTotal
+          : (typeof createdOrder?.total === "number" ? createdOrder.total : grandTotal);
 
-      if (!alreadyTracked) {
-        sessionStorage.setItem(trackedKey, "true");
-        trackMetaEvent(
-          "Purchase",
-          {
-            value: Number(numericTotal.toFixed(2)),
-            currency: "INR",
-            content_type: "product",
-            content_ids: cartItems.map((i: any) => String(i.productId || i.sku || "")),
-            num_items: cartItems.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0),
-            order_id: orderId
-          },
-          orderId
-        );
+        // Guard against duplicate tracking for this specific reference
+        const trackedKey = `meta_purchase_tracked_${stableReference}`;
+        const alreadyTracked = sessionStorage.getItem(trackedKey);
+
+        if (!alreadyTracked) {
+          sessionStorage.setItem(trackedKey, "true");
+          trackMetaEvent(
+            "Purchase",
+            {
+              value: Number(numericTotal.toFixed(2)),
+              currency: "INR",
+              content_type: "product",
+              content_ids: cartItems.map((i: any) => String(i.productId || i.sku || "")),
+              num_items: cartItems.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0),
+              order_id: stableReference
+            },
+            stableReference
+          );
+        }
       }
     }
 
@@ -684,7 +692,7 @@ export default function CheckoutPage() {
       throw new Error("Unable to load Razorpay checkout. Please try again.");
     }
 
-    await new Promise<void>((resolve, reject) => {
+    return await new Promise<{ verifyData: any; paymentResponse: any }>((resolve, reject) => {
       const razorpay = new Razorpay({
         key: razorpayOrder.key,
         amount: razorpayOrder.amount,
@@ -717,7 +725,7 @@ export default function CheckoutPage() {
               return;
             }
 
-            resolve();
+            resolve({ verifyData, paymentResponse });
           } catch {
             reject(new Error("Payment completed, but order verification failed."));
           }
@@ -842,11 +850,12 @@ export default function CheckoutPage() {
       }
 
       if (formData.paymentMethod === "online") {
-        await handleRazorpayPayment(payload);
-        markOrderSuccess(null, false);
+        const { verifyData, paymentResponse } = await handleRazorpayPayment(payload);
+        const paymentRef = paymentResponse?.razorpay_payment_id || paymentResponse?.razorpay_order_id;
+        markOrderSuccess(verifyData, paymentRef);
       } else {
         const orderResult = await completeOrder(payload);
-        markOrderSuccess(orderResult, true);
+        markOrderSuccess(orderResult);
       }
     } catch (error) {
       setSubmitStatus(error instanceof Error ? error.message : "An error occurred. Please try again.");
