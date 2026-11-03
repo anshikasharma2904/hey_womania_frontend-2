@@ -4,7 +4,6 @@ import { Search, Filter, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -15,18 +14,6 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, ACTIVE, DRAFT
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
-  // Fetch categories for category filter
-  useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL}/api/categories?limit=500`)
-      .then(res => {
-        const catData = res.data.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
-        setCategories(catData);
-      })
-      .catch(err => {
-        console.error("Failed to fetch categories:", err);
-      });
-  }, []);
 
   const fetchProducts = (pageNumber: number) => {
     setLoading(true);
@@ -129,17 +116,21 @@ export default function Products() {
     }
   };
 
-  // Extract category names list (from loaded categories or product categories)
-  const categoryOptions = useMemo(() => {
-    const set = new Set<string>();
-    categories.forEach(c => {
-      if (c.name) set.add(c.name);
-    });
-    products.forEach(p => {
-      if (p.category) set.add(p.category);
-    });
-    return Array.from(set).sort();
-  }, [categories, products]);
+  // The official store categories from Shop By Category
+  const OFFICIAL_CATEGORIES = useMemo(() => [
+    "CO-ORDS",
+    "SHIRTS STORIES",
+    "TOP STYLE",
+    "DESI COLLECTIONS",
+    "BRANDS STUDIO",
+    "JEWEL ROOM",
+    "BAG AFFAIRS",
+    "BIG SIZES STYL",
+    "DRESS GALLERY",
+    "EVERYDAY"
+  ], []);
+
+  const categoryOptions = OFFICIAL_CATEGORIES;
 
   return (
     <div>

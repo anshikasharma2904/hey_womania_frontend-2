@@ -25,8 +25,11 @@ export const getProducts = async (req: Request, res: Response) => {
     // Filter by category if provided
     if (req.query.category && String(req.query.category).trim() !== "" && String(req.query.category).toLowerCase() !== "all") {
       const categoryQuery = String(req.query.category).trim();
-      const escapedCategory = categoryQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-      filter.category = new RegExp(escapedCategory, "i");
+      // Allow flexible matching across spaces, hyphens, and slashes
+      const pattern = categoryQuery
+        .replace(/[-\s_]+/g, "[-\\s_]*")
+        .replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      filter.category = new RegExp(pattern, "i");
     }
 
     // Filter by status (isLive / isActive) if provided
