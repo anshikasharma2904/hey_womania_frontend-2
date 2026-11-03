@@ -605,16 +605,40 @@ export default function CheckoutPage() {
     if (!response.ok) {
       throw new Error(data.error || "Unable to process your order. Please check details.");
     }
+
+    return data;
   };
 
-  const markOrderSuccess = () => {
-    if (typeof window !== "undefined") {
-      trackMetaEvent("Purchase", {
-        value: grandTotal,
-        currency: "INR",
-        content_ids: cartItems.map((i: any) => i.productId),
-        num_items: cartItems.length
-      });
+  const markOrderSuccess = (orderData?: any, isCod: boolean = false) => {
+    // Standard Meta Pixel Purchase event triggered only after COD order is successfully created
+    if (isCod && typeof window !== "undefined") {
+      const createdOrder = orderData?.order || orderData;
+      const orderId = createdOrder?.id || createdOrder?.orderNumber || `COD_${Date.now()}`;
+      
+      // Parse numeric total dynamically
+      const numericTotal = typeof createdOrder?.total === "string"
+        ? parseFloat(createdOrder.total.replace(/[^0-9.]/g, "")) || grandTotal
+        : (typeof createdOrder?.total === "number" ? createdOrder.total : grandTotal);
+
+      // Check to prevent duplicate purchase events for this order
+      const trackedKey = `meta_purchase_tracked_${orderId}`;
+      const alreadyTracked = sessionStorage.getItem(trackedKey);
+
+      if (!alreadyTracked) {
+        sessionStorage.setItem(trackedKey, "true");
+        trackMetaEvent(
+          "Purchase",
+          {
+            value: Number(numericTotal.toFixed(2)),
+            currency: "INR",
+            content_type: "product",
+            content_ids: cartItems.map((i: any) => String(i.productId || i.sku || "")),
+            num_items: cartItems.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0),
+            order_id: orderId
+          },
+          orderId
+        );
+      }
     }
 
     localStorage.removeItem("hey_womania_cart");
@@ -819,11 +843,11 @@ export default function CheckoutPage() {
 
       if (formData.paymentMethod === "online") {
         await handleRazorpayPayment(payload);
+        markOrderSuccess(null, false);
       } else {
-        await completeOrder(payload);
+        const orderResult = await completeOrder(payload);
+        markOrderSuccess(orderResult, true);
       }
-
-      markOrderSuccess();
     } catch (error) {
       setSubmitStatus(error instanceof Error ? error.message : "An error occurred. Please try again.");
     } finally {

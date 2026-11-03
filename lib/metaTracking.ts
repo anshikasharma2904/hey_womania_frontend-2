@@ -1,7 +1,7 @@
-export const trackMetaEvent = async (eventName: string, eventData: any) => {
+export const trackMetaEvent = async (eventName: string, eventData: any, customEventId?: string) => {
   if (typeof window === "undefined") return;
 
-  const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const eventId = customEventId || `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Fire browser pixel
   if ((window as any).fbq) {
