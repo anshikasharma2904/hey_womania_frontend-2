@@ -15,12 +15,27 @@ export default function Products() {
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, ACTIVE, DRAFT
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Mapping official category display names to database category query values
+  const CATEGORY_API_QUERY_MAP: Record<string, string> = {
+    "CO-ORDS": "Co-Ords",
+    "SHIRTS STORIES": "Shirt",
+    "TOP STYLE": "Shirt",
+    "DESI COLLECTIONS": "DesiCollections",
+    "BRANDS STUDIO": "BrandsStudio",
+    "JEWEL ROOM": "Jewel-Room",
+    "BAG AFFAIRS": "Bag-Affairs",
+    "BIG SIZES STYL": "BrandsStudio",
+    "DRESS GALLERY": "DesiCollections",
+    "EVERYDAY": "Co-Ords"
+  };
+
   const fetchProducts = (pageNumber: number) => {
     setLoading(true);
     let url = `${import.meta.env.VITE_API_URL}/api/admin/products?page=${pageNumber}&limit=20`;
     
     if (selectedCategory && selectedCategory !== 'ALL') {
-      url += `&category=${encodeURIComponent(selectedCategory)}`;
+      const apiCategory = CATEGORY_API_QUERY_MAP[selectedCategory] || selectedCategory;
+      url += `&category=${encodeURIComponent(apiCategory)}`;
     }
     if (statusFilter === 'ACTIVE') {
       url += `&isLive=true`;
