@@ -99,14 +99,14 @@ export default function RootLayout({
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
               if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
               n.queue=[];}(window);
-              fbq('init', '1701617601397965');
+              fbq('init', '28120919917585606');
               fbq('track', 'PageView');
             `,
           }}
         />
         <Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />
         <noscript>
-          <img height="1" width="1" style={{ display: 'none' }} src="https://www.facebook.com/tr?id=1701617601397965&ev=PageView&noscript=1" alt="" />
+          <img height="1" width="1" style={{ display: 'none' }} src="https://www.facebook.com/tr?id=28120919917585606&ev=PageView&noscript=1" alt="" />
         </noscript>
         <CustomAnalyticsTracker />
         <ReferralTracker />

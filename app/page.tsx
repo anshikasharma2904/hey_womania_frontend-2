@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BestSellersCoverflow } from "@/components/BestSellersCoverflow";
 import { ShopByCategory } from "@/components/ShopByCategory";
-import { HeroVideoSlider } from "@/components/HeroVideoSlider";
+import { HeroImageCarousel } from "@/components/HeroImageCarousel";
 
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
 import { ShopByBudget } from "@/components/ShopByBudget";
@@ -378,9 +378,9 @@ export default async function Home() {
 
   return (
     <main id="top" className="bg-[#fcf9f4] pb-20 text-[#1c1c19] md:pb-0">
-      <link rel="preload" as="image" href="/phoneVideo-poster.webp" media="(max-width: 1023px) and (orientation: portrait), (max-width: 767px)" fetchPriority="high" />
-      <link rel="preload" as="image" href="/hero-desktop-poster.webp" media="(min-width: 1024px), (min-width: 768px) and (orientation: landscape)" fetchPriority="high" />
-      <HeroVideoSlider heroVideoMobile={settings.heroVideoMobile} />
+      <link rel="preload" as="image" href="/headerImages/image1mobile.webp" media="(max-width: 767px), (max-width: 1023px) and (orientation: portrait)" fetchPriority="high" />
+      <link rel="preload" as="image" href="/headerImages/image1desktop.webp" media="(min-width: 1024px), (min-width: 768px) and (orientation: landscape)" fetchPriority="high" />
+      <HeroImageCarousel />
 
       <section className="relative overflow-hidden bg-[#fcf9f4] pb-4 pt-2 md:py-10">
         <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-center px-4 text-center">
