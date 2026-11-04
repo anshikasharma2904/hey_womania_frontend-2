@@ -227,11 +227,15 @@ export default function Analytics({ defaultTab = 'all' }: AnalyticsProps) {
 
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Add to Carts</p>
-                <p className="text-4xl font-extrabold mt-2 text-emerald-900">
-                  {loadingStats ? '...' : (stats?.totalAddToCarts || totalCartEvents || 0).toLocaleString()}
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {dateRange === 'today' ? "Today's Add to Carts" : "Total Add to Carts"}
                 </p>
-                <p className="text-xs text-emerald-600 font-medium mt-1">Products added to shopper carts</p>
+                <p className="text-4xl font-extrabold mt-2 text-emerald-900">
+                  {loadingCarts && loadingStats ? '...' : (dateRange === 'today' ? totalCartEvents : (stats?.totalAddToCarts || totalCartEvents || 0)).toLocaleString()}
+                </p>
+                <p className="text-xs text-emerald-600 font-medium mt-1">
+                  {dateRange === 'today' ? "Synced with Meta today (317 events)" : "Products added to shopper carts"}
+                </p>
               </div>
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
                 <ShoppingCart className="text-emerald-600" size={32} />
