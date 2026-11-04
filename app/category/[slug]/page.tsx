@@ -270,15 +270,22 @@ export default async function CategoryDetailPage({
 
       if (slug === "most-loved" || slug === "just-dropped" || slug === "last-chance") return true;
 
-      // Alias: 'shirts' slug should also show 'Shirt Stories' products, and vice versa
+      // Alias: 'shirt', 'shirts', 'shirts-stories', 'shirt-stories' should show both 'Shirt' and 'ShirtsStories' products
       const extraAliases: Record<string, string[]> = {
+        "shirt": ["shirt-stories", "shirtstories", "shirt stories", "shirts-stories"],
         "shirts": ["shirt-stories", "shirtstories", "shirt stories", "shirts-stories"],
         "shirts-stories": ["shirt", "shirts", "shirtstory", "shirt-story"],
+        "shirt-stories": ["shirt", "shirts", "shirtstory", "shirt-story"],
       };
       const aliases = extraAliases[slug] || [];
       const matchesAlias = aliases.some((alias) =>
         checkSlugMatch(alias) || categoryParts.some((part) => slugify(part) === alias || slugify(part).replace(/-/g, "") === alias.replace(/-/g, ""))
       );
+
+      // Top Style is intentionally blank for now
+      if (slug === "top-style") {
+        return false;
+      }
 
       return slug === "all" || matchesAlias || checkSlugMatch(categoryPath) || categoryParts.some(checkSlugMatch);
     })

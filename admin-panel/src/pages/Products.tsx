@@ -18,8 +18,8 @@ export default function Products() {
   // Mapping official category display names to database category query values
   const CATEGORY_API_QUERY_MAP: Record<string, string> = {
     "CO-ORDS": "Co-Ords",
-    "SHIRTS STORIES": "ShirtsStories",
-    "TOP STYLE": "Shirt",
+    "SHIRTS STORIES": "Shirt",
+    "TOP STYLE": "top-style",
     "DESI COLLECTIONS": "DesiCollections",
     "BRANDS STUDIO": "BrandsStudio",
     "JEWEL ROOM": "Jewel-Room",
@@ -30,6 +30,15 @@ export default function Products() {
   };
 
   const fetchProducts = (pageNumber: number) => {
+    // If TOP STYLE is selected, keep it blank for now as requested
+    if (selectedCategory === "TOP STYLE") {
+      setProducts([]);
+      setTotalPages(1);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     let url = `${import.meta.env.VITE_API_URL}/api/admin/products?page=${pageNumber}&limit=20`;
     
@@ -50,18 +59,18 @@ export default function Products() {
       .then(res => {
         let data = res.data.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
 
-        // Precise category isolation:
-        // When TOP STYLE is chosen, exclude ShirtsStories products so it only shows pure Shirt/Top items
-        if (selectedCategory === "TOP STYLE") {
-          data = data.filter((p: any) => p.category !== "ShirtsStories");
-        } else if (selectedCategory === "SHIRTS STORIES") {
-          data = data.filter((p: any) => p.category === "ShirtsStories");
+        // When SHIRTS STORIES is chosen, show all matching Shirt and ShirtsStories products
+        if (selectedCategory === "SHIRTS STORIES") {
+          data = data.filter((p: any) => {
+            const cat = String(p.category || "").toLowerCase();
+            return cat.includes("shirt");
+          });
         }
 
         setProducts(data);
         if (res.data.pagination) {
           setTotalPages(res.data.pagination.totalPages || 1);
-          setTotalCount(selectedCategory === "TOP STYLE" || selectedCategory === "SHIRTS STORIES" ? data.length : (res.data.pagination.totalItems || data.length));
+          setTotalCount(selectedCategory === "SHIRTS STORIES" ? (res.data.pagination.totalItems || data.length) : (res.data.pagination.totalItems || data.length));
         } else {
           setTotalCount(data.length);
         }
