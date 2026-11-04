@@ -18,7 +18,7 @@ export default function Products() {
   // Mapping official category display names to database category query values
   const CATEGORY_API_QUERY_MAP: Record<string, string> = {
     "CO-ORDS": "Co-Ords",
-    "SHIRTS STORIES": "Shirt",
+    "SHIRTS STORIES": "ShirtsStories",
     "TOP STYLE": "Shirt",
     "DESI COLLECTIONS": "DesiCollections",
     "BRANDS STUDIO": "BrandsStudio",
@@ -48,11 +48,20 @@ export default function Products() {
 
     axios.get(url)
       .then(res => {
-        const data = res.data.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+        let data = res.data.data ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+
+        // Precise category isolation:
+        // When TOP STYLE is chosen, exclude ShirtsStories products so it only shows pure Shirt/Top items
+        if (selectedCategory === "TOP STYLE") {
+          data = data.filter((p: any) => p.category !== "ShirtsStories");
+        } else if (selectedCategory === "SHIRTS STORIES") {
+          data = data.filter((p: any) => p.category === "ShirtsStories");
+        }
+
         setProducts(data);
         if (res.data.pagination) {
           setTotalPages(res.data.pagination.totalPages || 1);
-          setTotalCount(res.data.pagination.totalItems || data.length);
+          setTotalCount(selectedCategory === "TOP STYLE" || selectedCategory === "SHIRTS STORIES" ? data.length : (res.data.pagination.totalItems || data.length));
         } else {
           setTotalCount(data.length);
         }
