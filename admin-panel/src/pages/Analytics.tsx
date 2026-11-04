@@ -60,7 +60,7 @@ export default function Analytics({ defaultTab = 'all' }: AnalyticsProps) {
   const [totalCartEvents, setTotalCartEvents] = useState(0);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [dateRange, setDateRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
+  const [dateRange, setDateRange] = useState<'all' | 'today' | '7days' | '30days'>('today');
   const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
 
   // Fetch overview stats
