@@ -54,41 +54,54 @@ const categoryPills: CategoryPill[] = [
 
 export function ShopByCategorySection() {
   return (
-    <section className="bg-transparent px-3 py-8 sm:py-10 md:px-8 md:py-14">
+    <section className="bg-transparent px-3 py-6 sm:py-8 md:px-8 md:py-10">
       <div className="mx-auto max-w-7xl">
-        {/* Header matching store design system (Shop by Budget & Just Dropped) */}
-        <div className="mb-6 sm:mb-8 md:mb-10 text-center">
-          <p className="text-[0.66rem] sm:text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
-            Curated Collections
-          </p>
-          <h2 className="mt-1 font-sans text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-[-0.05em] text-[#111111]">
-            Shop by Category
-          </h2>
-          <p className="mt-2 text-xs sm:text-sm md:text-base text-[#6d655d] font-medium max-w-xl mx-auto">
-            Explore curated fashion edits for every style.
-          </p>
+        {/* Section Header - Left aligned matching Shop by Budget and Just Dropped with View All */}
+        <div className="mb-4 sm:mb-6 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[0.66rem] sm:text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
+              Curated Collections
+            </p>
+            <h2 className="mt-1 font-sans text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-[-0.05em] text-[#111111]">
+              Shop by Category
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-[#6d655d] font-normal">
+              Explore curated fashion edits for every style.
+            </p>
+          </div>
+          <Link
+            href="/category/all"
+            className="shrink-0 rounded-full border border-[#ddd5cc] bg-[#fcf9f4] px-3 py-1.5 sm:px-4 sm:py-2 text-[0.7rem] sm:text-xs font-semibold text-[#111111] transition-colors duration-300 hover:bg-[#111111] hover:text-white md:px-5 md:py-3 md:text-sm"
+          >
+            View All
+          </Link>
         </div>
 
-        {/* 8 Category Capsule Pills (2 rows of 4 on desktop, 2 per row on mobile) */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        {/* 8 Category Capsule Pills (2 rows of 4 on desktop, 2 per row on mobile) with elevated look */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
           {categoryPills.map((cat) => (
             <Link
               key={cat.title}
               href={cat.href}
-              className="group flex items-center gap-2 sm:gap-3 rounded-full border border-[#f2dede]/80 bg-gradient-to-r from-[#fff9f7] via-[#fff5f2] to-[#ffffff] p-1.5 sm:p-2 pr-3 sm:pr-4 shadow-[0_2px_10px_rgba(128,20,43,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#80142b]/30 hover:shadow-[0_4px_16px_rgba(128,20,43,0.12)]"
+              className="group relative flex items-center gap-2.5 sm:gap-3.5 rounded-full border border-[#eddcd4] bg-white p-2 pr-3.5 sm:p-2.5 sm:pr-4 shadow-[0_2px_8px_rgba(95,93,62,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_8px_20px_rgba(17,17,17,0.08)]"
             >
-              <div className="relative h-11 w-11 sm:h-13 sm:w-13 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-full border border-[#f0d5d5] bg-[#faece9]">
+              <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-full border border-[#e8dfd7] bg-[#fbf8f5] shadow-inner">
                 <Image
                   src={cat.image}
                   alt={cat.title}
                   fill
-                  sizes="56px"
-                  className="object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  sizes="64px"
+                  className="object-cover object-top transition-transform duration-500 group-hover:scale-110"
                 />
               </div>
-              <span className="text-[0.68rem] sm:text-[0.74rem] md:text-xs font-bold leading-tight tracking-wide text-[#701a2b] transition-colors group-hover:text-[#901a35]">
-                {cat.title}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[0.72rem] sm:text-xs md:text-[0.82rem] font-bold tracking-tight text-[#111111] transition-colors group-hover:text-[#9c4049] truncate">
+                  {cat.title}
+                </span>
+                <span className="text-[0.6rem] sm:text-[0.66rem] font-medium text-[#8c827a] group-hover:text-[#6d655d] transition-colors">
+                  Explore Edit →
+                </span>
+              </div>
             </Link>
           ))}
         </div>
