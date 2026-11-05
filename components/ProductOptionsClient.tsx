@@ -263,29 +263,6 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
 
     const itemDetails = getCartDetails();
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
-    fetch(`${baseUrl}/api/analytics/event`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        eventType: "add_to_cart",
-        url: window.location.pathname,
-        sessionId: getSessionId(),
-        metadata: {
-          productName: product.name,
-          productId: product.id || itemDetails.productId,
-          productSlug: product.slug,
-          price: numericPrice,
-          sku: itemDetails.sku,
-          quantity: itemDetails.quantity || 1,
-          size: itemDetails.size,
-          color: itemDetails.color,
-          image: itemDetails.image
-        }
-      }),
-    }).catch(err => console.error("Analytics Error:", err));
-
     const currentCartRaw = localStorage.getItem("hey_womania_cart");
     const currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];
 
@@ -330,29 +307,6 @@ export function ProductOptionsClient({ product, onColorChange, customerReferralC
     });
 
     const itemDetails = getCartDetails();
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.heywomaniyaa.com";
-    fetch(`${baseUrl}/api/analytics/event`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        eventType: "add_to_cart",
-        url: window.location.pathname,
-        sessionId: getSessionId(),
-        metadata: {
-          productName: product.name,
-          productId: product.id || itemDetails.productId,
-          productSlug: product.slug,
-          price: numericPrice,
-          sku: itemDetails.sku,
-          quantity: itemDetails.quantity || 1,
-          size: itemDetails.size,
-          color: itemDetails.color,
-          image: itemDetails.image
-        }
-      }),
-    }).catch(err => console.error("Analytics Error:", err));
 
     // Automatically include the surprise gift in Buy Now
     const { cart: syncedBuyNowCart } = syncCartWithSurpriseGift([itemDetails]);

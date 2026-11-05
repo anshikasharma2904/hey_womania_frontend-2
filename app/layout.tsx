@@ -99,6 +99,7 @@ export default function RootLayout({
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
               if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
               n.queue=[];}(window);
+              fbq('set', 'autoConfig', false, '28120919917585606');
               fbq('init', '28120919917585606');
               fbq('track', 'PageView');
             `,
