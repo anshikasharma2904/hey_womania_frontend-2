@@ -6,6 +6,7 @@ import { ShopByCategory } from "@/components/ShopByCategory";
 import { HeroImageCarousel } from "@/components/HeroImageCarousel";
 
 import { NewArrivalsCarousel } from "@/components/NewArrivalsCarousel";
+import { ShopByCategorySection } from "@/components/ShopByCategorySection";
 import { ShopByBudget } from "@/components/ShopByBudget";
 import { StoreFooter } from "@/components/StoreFooter";
 import { slugifyProductName } from "@/app/category/category-data";
@@ -393,6 +394,7 @@ export default async function Home() {
 
 
 
+      <ShopByCategorySection />
       <ShopByBudget />
 
       <NewArrivalsCarousel cards={arrivalCards} />
