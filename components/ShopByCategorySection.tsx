@@ -27,9 +27,9 @@ const categoryPills: CategoryPill[] = [
     borderClass: "border-[#a8c9e7]"
   },
   {
-    title: "TOP STYLE",
-    image: "/categoryImage/topStyle.webp",
-    href: "/category/top-style",
+    title: "SAREE",
+    image: "/categoryImage/saree.webp",
+    href: "/category/saree",
     bgGradient: "from-[#e4d4f2] via-[#eee3f8] to-[#f7f0fc]",
     borderClass: "border-[#c7addd]"
   },
