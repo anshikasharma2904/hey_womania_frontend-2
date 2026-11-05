@@ -99,8 +99,16 @@ export function ShopByCategorySection() {
                   {cat.title}
                 </span>
               </div>
-              <span className="shrink-0 text-xs text-[#b5ada5] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#111111]">
-                →
+              <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f4f0] text-[#786f68] transition-all duration-300 group-hover:bg-[#111111] group-hover:text-white group-hover:translate-x-0.5">
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2.5"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
               </span>
             </Link>
           ))}
