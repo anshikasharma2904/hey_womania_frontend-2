@@ -16,12 +16,10 @@ const categories: { title: string; items: string; image: string; href: string; i
   { title: "EVERYDAY", items: "Daily Wear", image: "/categoryImage/everyday.webp", href: "/category/everyday" },
   { title: "Co-Ords", items: "Matching Sets", image: "/categoryImage/coordSet.webp", href: "/category/co-ords" },
   { title: "SHIRTS STORIES", items: "Tops & Blouses", image: "/categoryImage/shirtStory.webp", href: "/category/shirt" },
-  { title: "TOP STYLE", items: "Premium Styles", image: "/categoryImage/topStyle.webp", href: "/category/top-style" },
+  { title: "SAREE", items: "Traditional Drapes", image: "/categoryImage/saree.webp", href: "/category/saree" },
   { title: "DESI COLLECTIONS", items: "Ethnic Wear", image: "/categoryImage/desi.webp", href: "/category/desi-collections" },
-  { title: "BRANDS STUDIO", items: "Designer", image: "/categoryImage/brandStudio.webp", href: "/category/brands-studio" },
   { title: "JEWEL ROOM", items: "Accessories", image: "/categoryImage/jewelroom.webp", href: "/category/jewel-room" },
   { title: "BAG AFFAIRS", items: "Handbags", image: "/bags/Studio Mini Bag.webp", href: "/category/bag-affairs" },
-  { title: "BIG SIZES STYL", items: "Plus Size", image: "/categoryImage/Big size style.webp", href: "/category/big-sizes-styl" },
   { title: "DRESS GALLERY", items: "All Dresses", image: "/categoryImage/dressgallery.webp", href: "/category/dress-gallery" }
 ];
 

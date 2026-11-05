@@ -80,12 +80,10 @@ export const slugifyProductName = (value: string) =>
 export const NAVBAR_CATEGORY_MENUS: CategoryMenu[] = [
   { label: "Co-Ords", href: "/category/co-ords", columns: [] },
   { label: "SHIRTS STORIES", href: "/category/shirts-stories", columns: [] },
-  { label: "TOP STYLE", href: "/category/top-style", columns: [] },
+  { label: "SAREE", href: "/category/saree", columns: [] },
   { label: "DESI COLLECTIONS", href: "/category/desi-collections", columns: [] },
-  { label: "BRANDS STUDIO", href: "/category/brands-studio", columns: [] },
   { label: "JEWEL ROOM", href: "/category/jewel-room", columns: [] },
   { label: "BAG AFFAIRS", href: "/category/bag-affairs", columns: [] },
-  { label: "BIG SIZES STYL", href: "/category/big-sizes-styl", columns: [] },
   { label: "DRESS GALLERY", href: "/category/dress-gallery", columns: [] },
   { label: "EVERYDAY", href: "/category/everyday", columns: [] }
 ];

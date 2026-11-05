@@ -63,12 +63,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   "EVERYDAY": "/categoryImage/everyday.webp",
   "CO-ORDS": "/categoryImage/coordSet.webp",
   "SHIRTS STORIES": "/categoryImage/shirtStory.webp",
-  "TOP STYLE": "/categoryImage/topStyle.webp",
+  "SAREE": "/categoryImage/saree.webp",
   "DESI COLLECTIONS": "/categoryImage/desi.webp",
-  "BRANDS STUDIO": "/categoryImage/brandStudio.webp",
   "JEWEL ROOM": "/categoryImage/jewelroom.webp",
   "BAG AFFAIRS": "/bags/Studio Mini Bag.webp",
-  "BIG SIZES STYL": "/categoryImage/Big size style.webp",
   "DRESS GALLERY": "/categoryImage/dressgallery.webp"
 };
 
