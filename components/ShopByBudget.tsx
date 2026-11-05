@@ -51,8 +51,8 @@ const budgetTiers: BudgetTier[] = [
 
 export function ShopByBudget() {
   return (
-    <section className="bg-transparent px-0 py-1 md:py-2">
-      <div className="mx-auto max-w-7xl px-3 pt-1 pb-2 md:px-8 md:pt-2 md:pb-3">
+    <section className="bg-transparent px-3 md:px-8 py-6 sm:py-8 md:py-10">
+      <div className="mx-auto max-w-7xl px-0 py-0">
         {/* Section Header */}
         <div className="mb-3 sm:mb-6 flex items-center justify-between gap-3">
           <div>
