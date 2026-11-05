@@ -127,7 +127,7 @@ function getDisplayCategoryLabel(value: string) {
 async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const res = await fetch(`${apiUrl}/api/products?limit=100`, {
+    const res = await fetch(`${apiUrl}/api/products?limit=500`, {
       next: { revalidate: 300, tags: ["products"] }
     });
     if (!res.ok) return [];
@@ -157,23 +157,19 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
 function mapProductsToArrivals(products: Product[]) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   
-  // Group products by high-level category
+  // Group products into distinct aesthetic categories (2 from each)
   const getCategoryBucket = (catStr: string): string => {
     const lower = (catStr || "").toLowerCase();
+    if (lower.includes("co-ord")) return "Co-Ords";
+    if (lower.includes("desi") || lower.includes("kurta") || lower.includes("suit") || lower.includes("ethnic") || lower.includes("anarkali")) return "Desi Collections";
+    if (lower.includes("shirt")) return "Shirts Stories";
+    if (lower.includes("brand")) return "Brands Studio";
+    if (lower.includes("bag")) return "Bag Affairs";
     if (lower.includes("earring")) return "Earrings";
     if (lower.includes("necklace") || lower.includes("jewel-set")) return "Necklaces";
     if (lower.includes("bracelet") || lower.includes("handcuff")) return "Bracelets";
     if (lower.includes("ring")) return "Rings";
-    if (lower.includes("co-ord")) return "Co-Ords";
-    if (lower.includes("shirt")) return "Shirts Stories";
-    if (lower.includes("top")) return "Top Style";
-    if (lower.includes("desi")) return "Desi Collections";
-    if (lower.includes("brand")) return "Brands Studio";
-    if (lower.includes("bag")) return "Bag Affairs";
-    if (lower.includes("big") || lower.includes("plus")) return "Big Sizes Style";
-    if (lower.includes("dress")) return "Dress Gallery";
-    if (lower.includes("everyday")) return "Everyday";
-    return catStr || "Fashion";
+    return "Curated Fashion";
   };
 
   const categoryGroups: Record<string, Product[]> = {};
@@ -185,40 +181,51 @@ function mapProductsToArrivals(products: Product[]) {
     categoryGroups[bucket].push(p);
   });
 
-  // Pick 1 product from each unique category first
-  const result: Product[] = [];
-  const usedIds = new Set<string>();
+  // Shuffle products within each group for freshness
+  Object.keys(categoryGroups).forEach((k) => {
+    categoryGroups[k] = categoryGroups[k].sort(() => Math.random() - 0.5);
+  });
 
+  // Interleaved order: 2 from each major category (Apparel + Bags + Jewellery)
   const categoryOrder = [
     "Co-Ords",
-    "Shirts Stories",
     "Desi Collections",
+    "Shirts Stories",
     "Bag Affairs",
+    "Brands Studio",
     "Earrings",
     "Necklaces",
     "Bracelets",
-    "Rings",
-    "Brands Studio"
+    "Rings"
   ];
 
-  // Pick 1 from each distinct category
+  const result: Product[] = [];
+  const usedIds = new Set<string>();
+
+  // Pass 1: pick first product from each category (so every category gets 1)
   for (const cat of categoryOrder) {
-    const items = categoryGroups[cat];
-    if (items && items.length > 0) {
-      const shuffled = [...items].sort(() => Math.random() - 0.5);
-      const chosen = shuffled.find(it => !usedIds.has(it.id));
-      if (chosen) {
-        result.push(chosen);
-        usedIds.add(chosen.id);
-      }
+    const items = categoryGroups[cat] || [];
+    const chosen = items.find(it => !usedIds.has(it.id));
+    if (chosen) {
+      result.push(chosen);
+      usedIds.add(chosen.id);
     }
   }
 
-  // If we need more items to fill the carousel with at least 10 cards, pick additional fresh items
-  if (result.length < 10) {
-    const remainingProducts = [...products].sort(() => Math.random() - 0.5);
-    for (const p of remainingProducts) {
-      if (result.length >= 10) break;
+  // Pass 2: pick second product from each category (so each category gets 2)
+  for (const cat of categoryOrder) {
+    const items = categoryGroups[cat] || [];
+    const chosen = items.find(it => !usedIds.has(it.id));
+    if (chosen) {
+      result.push(chosen);
+      usedIds.add(chosen.id);
+    }
+  }
+
+  // If still fewer than 16, add remaining products
+  if (result.length < 16) {
+    for (const p of products.sort(() => Math.random() - 0.5)) {
+      if (result.length >= 16) break;
       if (!usedIds.has(p.id)) {
         result.push(p);
         usedIds.add(p.id);

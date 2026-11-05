@@ -22,7 +22,7 @@ type NewArrivalsCarouselProps = {
 };
 
 export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouselProps) {
-  const cards = (incomingCards || []).slice(0, 10);
+  const cards = (incomingCards || []).slice(0, 18);
   const [activeIndex, setActiveIndex] = useState(0);
   const visibleCards = [
     ...cards.slice(activeIndex),
