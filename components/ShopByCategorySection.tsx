@@ -16,57 +16,57 @@ const categoryPills: CategoryPill[] = [
     title: "CO-ORDS",
     image: "/categoryImage/coordSet.webp",
     href: "/category/co-ords",
-    bgGradient: "from-[#fbf2ec] via-[#fdf8f5] to-[#ffffff]",
-    borderClass: "border-[#edd8cc]"
+    bgGradient: "from-[#f5d9c7] via-[#fae8dc] to-[#fdf4ee]",
+    borderClass: "border-[#dfb59d]"
   },
   {
     title: "SHIRTS STORIES",
     image: "/categoryImage/shirtStory.webp",
     href: "/category/shirts-stories",
-    bgGradient: "from-[#f0f5fa] via-[#f7fafe] to-[#ffffff]",
-    borderClass: "border-[#d8e3ed]"
+    bgGradient: "from-[#d2e4f5] via-[#e2effa] to-[#f0f6fc]",
+    borderClass: "border-[#a8c9e7]"
   },
   {
     title: "TOP STYLE",
     image: "/categoryImage/topStyle.webp",
     href: "/category/top-style",
-    bgGradient: "from-[#f5f0f8] via-[#faf7fc] to-[#ffffff]",
-    borderClass: "border-[#e3d8eb]"
+    bgGradient: "from-[#e4d4f2] via-[#eee3f8] to-[#f7f0fc]",
+    borderClass: "border-[#c7addd]"
   },
   {
     title: "DESI COLLECTIONS",
     image: "/categoryImage/desi.webp",
     href: "/category/desi-collections",
-    bgGradient: "from-[#fcf4ec] via-[#fdf8f4] to-[#ffffff]",
-    borderClass: "border-[#eddccf]"
+    bgGradient: "from-[#f7ddc3] via-[#faebd9] to-[#fdf5eb]",
+    borderClass: "border-[#e0b88f]"
   },
   {
     title: "JEWEL ROOM",
     image: "/categoryImage/jewelroom.webp",
     href: "/category/jewel-room",
-    bgGradient: "from-[#fbf0f4] via-[#fdf6f9] to-[#ffffff]",
-    borderClass: "border-[#eed8e2]"
+    bgGradient: "from-[#f7cfdf] via-[#fae0eb] to-[#fdf0f5]",
+    borderClass: "border-[#e2a8c2]"
   },
   {
     title: "BAG AFFAIRS",
     image: "/bags/Studio Mini Bag.webp",
     href: "/category/bag-affairs",
-    bgGradient: "from-[#f7f4ed] via-[#faf7f2] to-[#ffffff]",
-    borderClass: "border-[#e6ded0]"
+    bgGradient: "from-[#ede2cc] via-[#f4ebd9] to-[#faf5eb]",
+    borderClass: "border-[#cfbe9a]"
   },
   {
     title: "DRESS GALLERY",
     image: "/categoryImage/dressgallery.webp",
     href: "/category/dress-gallery",
-    bgGradient: "from-[#eff6f3] via-[#f6faf8] to-[#ffffff]",
-    borderClass: "border-[#d6e5df]"
+    bgGradient: "from-[#cee8dc] via-[#e0f1e8] to-[#f0f8f4]",
+    borderClass: "border-[#9ecdb7]"
   },
   {
     title: "EVERYDAY",
     image: "/categoryImage/everyday.webp",
     href: "/category/everyday",
-    bgGradient: "from-[#f4f6ec] via-[#fafbf5] to-[#ffffff]",
-    borderClass: "border-[#dee3cc]"
+    bgGradient: "from-[#e2e8be] via-[#ecf0d3] to-[#f5f7e7]",
+    borderClass: "border-[#bfc78e]"
   }
 ];
 
