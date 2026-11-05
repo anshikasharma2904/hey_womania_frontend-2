@@ -157,47 +157,80 @@ async function fetchBestSellers(): Promise<BestSellerProduct[]> {
 function mapProductsToArrivals(products: Product[]) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   
-  const getBroadCategory = (catStr: string) => {
-    const lower = catStr.toLowerCase();
-    if (lower.includes("jewel") || lower.includes("ring") || lower.includes("necklace")) return "jewellery";
-    if (lower.includes("top") || lower.includes("crop")) return "tops";
-    if (lower.includes("shirt")) return "shirts";
-    return "cloth";
+  // Group products by high-level category
+  const getCategoryBucket = (catStr: string): string => {
+    const lower = (catStr || "").toLowerCase();
+    if (lower.includes("co-ord")) return "Co-Ords";
+    if (lower.includes("shirt")) return "Shirts Stories";
+    if (lower.includes("top")) return "Top Style";
+    if (lower.includes("desi")) return "Desi Collections";
+    if (lower.includes("brand")) return "Brands Studio";
+    if (lower.includes("bag")) return "Bag Affairs";
+    if (lower.includes("ring")) return "Rings";
+    if (lower.includes("earring")) return "Earrings";
+    if (lower.includes("necklace") || lower.includes("jewel-set")) return "Necklaces";
+    if (lower.includes("bracelet") || lower.includes("handcuff")) return "Bracelets";
+    if (lower.includes("big") || lower.includes("plus")) return "Big Sizes Style";
+    if (lower.includes("dress")) return "Dress Gallery";
+    if (lower.includes("everyday")) return "Everyday";
+    return catStr || "Fashion";
   };
 
-  const grouped: Record<string, Product[]> = { jewellery: [], tops: [], shirts: [], cloth: [] };
-  
-  products.forEach(p => {
-    const broadCat = getBroadCategory(String(p.category || ""));
-    grouped[broadCat].push(p);
+  const categoryGroups: Record<string, Product[]> = {};
+  products.forEach((p) => {
+    const bucket = getCategoryBucket(String(p.category || ""));
+    if (!categoryGroups[bucket]) {
+      categoryGroups[bucket] = [];
+    }
+    categoryGroups[bucket].push(p);
   });
 
-  Object.keys(grouped).forEach(k => {
-    grouped[k] = grouped[k].sort(() => Math.random() - 0.5);
-  });
+  // Pick exactly 1 product from each category group (shuffled for fresh arrivals)
+  const result: Product[] = [];
+  const usedIds = new Set<string>();
 
-  const result = [
-    ...grouped.cloth.slice(0, 3),
-    ...grouped.jewellery.slice(0, 3),
-    ...grouped.tops.slice(0, 3),
-    ...grouped.shirts.slice(0, 3)
+  // Desired category sequence for rich variety across different categories
+  const categoryOrder = [
+    "Co-Ords",
+    "Shirts Stories",
+    "Top Style",
+    "Desi Collections",
+    "Bag Affairs",
+    "Earrings",
+    "Necklaces",
+    "Brands Studio",
+    "Bracelets",
+    "Rings",
+    "Big Sizes Style",
+    "Dress Gallery",
+    "Everyday"
   ];
 
-  let needed = 12 - result.length;
-  const usedIds = new Set(result.map(r => r.id));
-  
-  if (needed > 0) {
-    for (const item of [...products].sort(() => Math.random() - 0.5)) {
-      if (needed <= 0) break;
-      if (!usedIds.has(item.id)) {
-        result.push(item);
-        usedIds.add(item.id);
-        needed--;
+  // Pick 1 from each in order
+  for (const cat of categoryOrder) {
+    const items = categoryGroups[cat];
+    if (items && items.length > 0) {
+      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      const chosen = shuffled.find(it => !usedIds.has(it.id));
+      if (chosen) {
+        result.push(chosen);
+        usedIds.add(chosen.id);
       }
     }
   }
 
-  const finalProducts = result.sort(() => Math.random() - 0.5);
+  // Any remaining categories not in categoryOrder
+  for (const [catName, items] of Object.entries(categoryGroups)) {
+    if (!categoryOrder.includes(catName)) {
+      const chosen = items.find(it => !usedIds.has(it.id));
+      if (chosen) {
+        result.push(chosen);
+        usedIds.add(chosen.id);
+      }
+    }
+  }
+
+  const finalProducts = result;
 
   return finalProducts.map((product, index) => {
     const price = product.salePrice || product.price || 0;
