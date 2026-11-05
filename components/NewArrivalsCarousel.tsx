@@ -40,8 +40,8 @@ export function NewArrivalsCarousel({ cards: incomingCards }: NewArrivalsCarouse
   }, [activeIndex, cards.length]);
 
   return (
-    <section ref={carouselRef} id="shop-category-grid" className="mt-2 bg-transparent px-0 py-1 md:mt-4 md:px-0 md:py-3">
-      <div className="mx-auto max-w-7xl px-4 py-2 md:px-8 md:py-4">
+    <section ref={carouselRef} id="shop-category-grid" className="bg-transparent px-3 md:px-8 py-6 sm:py-8 md:py-10">
+      <div className="mx-auto max-w-7xl px-0 py-0">
         <div className="mb-4 sm:mb-6 flex items-center justify-between gap-4">
           <div>
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
