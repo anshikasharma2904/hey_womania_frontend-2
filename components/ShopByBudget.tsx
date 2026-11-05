@@ -20,11 +20,11 @@ const budgetTiers: BudgetTier[] = [
     imageAlt: "Shop By Budget Below ₹1,999"
   },
   {
-    id: "above-2000",
+    id: "2000-4999",
     minPrice: 2000,
     maxPrice: 4999,
-    imageSrc: "/budget-tag-above-2000.webp",
-    imageAlt: "Shop By Budget ₹2,000 & Above"
+    imageSrc: "/budget-tag-2000-4999.webp",
+    imageAlt: "Shop By Budget ₹2,000 - ₹4,999"
   },
   {
     id: "5000-9999",
