@@ -7,48 +7,66 @@ interface CategoryPill {
   title: string;
   image: string;
   href: string;
+  bgGradient: string;
+  borderClass: string;
 }
 
 const categoryPills: CategoryPill[] = [
   {
     title: "CO-ORDS",
     image: "/categoryImage/coordSet.webp",
-    href: "/category/co-ords"
+    href: "/category/co-ords",
+    bgGradient: "from-[#fbf2ec] via-[#fdf8f5] to-[#ffffff]",
+    borderClass: "border-[#edd8cc]"
   },
   {
     title: "SHIRTS STORIES",
     image: "/categoryImage/shirtStory.webp",
-    href: "/category/shirts-stories"
+    href: "/category/shirts-stories",
+    bgGradient: "from-[#f0f5fa] via-[#f7fafe] to-[#ffffff]",
+    borderClass: "border-[#d8e3ed]"
   },
   {
     title: "TOP STYLE",
     image: "/categoryImage/topStyle.webp",
-    href: "/category/top-style"
+    href: "/category/top-style",
+    bgGradient: "from-[#f5f0f8] via-[#faf7fc] to-[#ffffff]",
+    borderClass: "border-[#e3d8eb]"
   },
   {
     title: "DESI COLLECTIONS",
     image: "/categoryImage/desi.webp",
-    href: "/category/desi-collections"
+    href: "/category/desi-collections",
+    bgGradient: "from-[#fcf4ec] via-[#fdf8f4] to-[#ffffff]",
+    borderClass: "border-[#eddccf]"
   },
   {
     title: "JEWEL ROOM",
     image: "/categoryImage/jewelroom.webp",
-    href: "/category/jewel-room"
+    href: "/category/jewel-room",
+    bgGradient: "from-[#fbf0f4] via-[#fdf6f9] to-[#ffffff]",
+    borderClass: "border-[#eed8e2]"
   },
   {
     title: "BAG AFFAIRS",
     image: "/bags/Studio Mini Bag.webp",
-    href: "/category/bag-affairs"
+    href: "/category/bag-affairs",
+    bgGradient: "from-[#f7f4ed] via-[#faf7f2] to-[#ffffff]",
+    borderClass: "border-[#e6ded0]"
   },
   {
     title: "DRESS GALLERY",
     image: "/categoryImage/dressgallery.webp",
-    href: "/category/dress-gallery"
+    href: "/category/dress-gallery",
+    bgGradient: "from-[#eff6f3] via-[#f6faf8] to-[#ffffff]",
+    borderClass: "border-[#d6e5df]"
   },
   {
     title: "EVERYDAY",
     image: "/categoryImage/everyday.webp",
-    href: "/category/everyday"
+    href: "/category/everyday",
+    bgGradient: "from-[#f4f6ec] via-[#fafbf5] to-[#ffffff]",
+    borderClass: "border-[#dee3cc]"
   }
 ];
 
@@ -83,10 +101,10 @@ export function ShopByCategorySection() {
             <Link
               key={cat.title}
               href={cat.href}
-              className="group relative flex items-center justify-between gap-2.5 sm:gap-3 rounded-full border border-[#eddcd4] bg-white p-2 pr-4 sm:p-2.5 sm:pr-5 shadow-[0_2px_8px_rgba(95,93,62,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_8px_20px_rgba(17,17,17,0.08)]"
+              className={`group relative flex items-center justify-between gap-2.5 sm:gap-3 rounded-full border ${cat.borderClass} bg-gradient-to-r ${cat.bgGradient} p-2 pr-4 sm:p-2.5 sm:pr-5 shadow-[0_2px_8px_rgba(95,93,62,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_8px_20px_rgba(17,17,17,0.08)]`}
             >
               <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-                <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-full border border-[#e8dfd7] bg-[#fbf8f5] shadow-sm">
+                <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-full border border-white/80 bg-white shadow-sm ring-1 ring-black/5">
                   <Image
                     src={cat.image}
                     alt={cat.title}
@@ -99,7 +117,7 @@ export function ShopByCategorySection() {
                   {cat.title}
                 </span>
               </div>
-              <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f4f0] text-[#786f68] transition-all duration-300 group-hover:bg-[#111111] group-hover:text-white group-hover:translate-x-0.5">
+              <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/90 text-[#786f68] shadow-sm transition-all duration-300 group-hover:bg-[#111111] group-hover:text-white group-hover:translate-x-0.5">
                 <svg
                   className="h-3.5 w-3.5"
                   fill="none"
