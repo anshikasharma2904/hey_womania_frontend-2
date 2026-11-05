@@ -31,11 +31,6 @@ const categoryPills: CategoryPill[] = [
     href: "/category/desi-collections"
   },
   {
-    title: "BRANDS STUDIO",
-    image: "/categoryImage/brandStudio.webp",
-    href: "/category/brands-studio"
-  },
-  {
     title: "JEWEL ROOM",
     image: "/categoryImage/jewelroom.webp",
     href: "/category/jewel-room"
@@ -44,11 +39,6 @@ const categoryPills: CategoryPill[] = [
     title: "BAG AFFAIRS",
     image: "/bags/Studio Mini Bag.webp",
     href: "/category/bag-affairs"
-  },
-  {
-    title: "BIG SIZES STYLE",
-    image: "/categoryImage/Big size style.webp",
-    href: "/category/big-sizes-styl"
   },
   {
     title: "DRESS GALLERY",
@@ -79,8 +69,8 @@ export function ShopByCategorySection() {
           </p>
         </div>
 
-        {/* 10 Category Capsule Pills (2 rows of 5 on desktop, 2-3 per row on mobile/tablet) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3.5 md:gap-4">
+        {/* 8 Category Capsule Pills (2 rows of 4 on desktop, 2 per row on mobile) */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           {categoryPills.map((cat) => (
             <Link
               key={cat.title}
