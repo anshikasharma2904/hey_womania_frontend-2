@@ -234,7 +234,7 @@ export default function Analytics({ defaultTab = 'all' }: AnalyticsProps) {
                   {loadingCarts && loadingStats ? '...' : (dateRange === 'today' ? totalCartEvents : (stats?.totalAddToCarts || totalCartEvents || 0)).toLocaleString()}
                 </p>
                 <p className="text-xs text-emerald-600 font-medium mt-1">
-                  {dateRange === 'today' ? "Synced with Meta today (317 events)" : "Products added to shopper carts"}
+                  {dateRange === 'today' ? "Active shopper cart events today" : "Products added to shopper carts"}
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
