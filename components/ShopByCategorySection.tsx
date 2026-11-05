@@ -64,17 +64,17 @@ const categoryPills: CategoryPill[] = [
 
 export function ShopByCategorySection() {
   return (
-    <section className="bg-transparent px-3 py-4 md:px-8 md:py-6">
+    <section className="bg-transparent px-3 py-8 sm:py-10 md:px-8 md:py-14">
       <div className="mx-auto max-w-7xl">
-        {/* Header matching image banner */}
-        <div className="mb-4 sm:mb-6 text-center">
-          <h2
-            className="text-2xl sm:text-3xl md:text-5xl font-serif font-bold text-[#80142b] tracking-tight"
-            style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", serif' }}
-          >
+        {/* Header matching store design system (Shop by Budget & Just Dropped) */}
+        <div className="mb-6 sm:mb-8 md:mb-10 text-center">
+          <p className="text-[0.66rem] sm:text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#9c4049]/70">
+            Curated Collections
+          </p>
+          <h2 className="mt-1 font-sans text-2xl sm:text-3xl md:text-5xl font-black uppercase tracking-[-0.05em] text-[#111111]">
             Shop by Category
           </h2>
-          <p className="mt-1 text-xs sm:text-sm md:text-base text-[#6d655d] font-medium">
+          <p className="mt-2 text-xs sm:text-sm md:text-base text-[#6d655d] font-medium max-w-xl mx-auto">
             Explore curated fashion edits for every style.
           </p>
         </div>
