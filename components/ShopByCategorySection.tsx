@@ -77,31 +77,31 @@ export function ShopByCategorySection() {
           </Link>
         </div>
 
-        {/* 8 Category Capsule Pills (2 rows of 4 on desktop, 2 per row on mobile) with elevated look */}
+        {/* 8 Category Capsule Pills (2 rows of 4 on desktop, 2 per row on mobile) */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
           {categoryPills.map((cat) => (
             <Link
               key={cat.title}
               href={cat.href}
-              className="group relative flex items-center gap-2.5 sm:gap-3.5 rounded-full border border-[#eddcd4] bg-white p-2 pr-3.5 sm:p-2.5 sm:pr-4 shadow-[0_2px_8px_rgba(95,93,62,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_8px_20px_rgba(17,17,17,0.08)]"
+              className="group relative flex items-center justify-between gap-2.5 sm:gap-3 rounded-full border border-[#eddcd4] bg-white p-2 pr-4 sm:p-2.5 sm:pr-5 shadow-[0_2px_8px_rgba(95,93,62,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_8px_20px_rgba(17,17,17,0.08)]"
             >
-              <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-full border border-[#e8dfd7] bg-[#fbf8f5] shadow-inner">
-                <Image
-                  src={cat.image}
-                  alt={cat.title}
-                  fill
-                  sizes="64px"
-                  className="object-cover object-top transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[0.72rem] sm:text-xs md:text-[0.82rem] font-bold tracking-tight text-[#111111] transition-colors group-hover:text-[#9c4049] truncate">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-full border border-[#e8dfd7] bg-[#fbf8f5] shadow-sm">
+                  <Image
+                    src={cat.image}
+                    alt={cat.title}
+                    fill
+                    sizes="64px"
+                    className="object-cover object-top transition-transform duration-500 group-hover:scale-110"
+                  />
+                </div>
+                <span className="text-[0.75rem] sm:text-xs md:text-[0.84rem] font-bold uppercase tracking-wider text-[#111111] transition-colors group-hover:text-[#9c4049] truncate">
                   {cat.title}
                 </span>
-                <span className="text-[0.6rem] sm:text-[0.66rem] font-medium text-[#8c827a] group-hover:text-[#6d655d] transition-colors">
-                  Explore Edit →
-                </span>
               </div>
+              <span className="shrink-0 text-xs text-[#b5ada5] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#111111]">
+                →
+              </span>
             </Link>
           ))}
         </div>
