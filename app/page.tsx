@@ -127,7 +127,7 @@ function getDisplayCategoryLabel(value: string) {
 async function fetchProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const res = await fetch(`${apiUrl}/api/products?limit=18`, {
+    const res = await fetch(`${apiUrl}/api/products?limit=100`, {
       next: { revalidate: 300, tags: ["products"] }
     });
     if (!res.ok) return [];
@@ -160,16 +160,16 @@ function mapProductsToArrivals(products: Product[]) {
   // Group products by high-level category
   const getCategoryBucket = (catStr: string): string => {
     const lower = (catStr || "").toLowerCase();
+    if (lower.includes("earring")) return "Earrings";
+    if (lower.includes("necklace") || lower.includes("jewel-set")) return "Necklaces";
+    if (lower.includes("bracelet") || lower.includes("handcuff")) return "Bracelets";
+    if (lower.includes("ring")) return "Rings";
     if (lower.includes("co-ord")) return "Co-Ords";
     if (lower.includes("shirt")) return "Shirts Stories";
     if (lower.includes("top")) return "Top Style";
     if (lower.includes("desi")) return "Desi Collections";
     if (lower.includes("brand")) return "Brands Studio";
     if (lower.includes("bag")) return "Bag Affairs";
-    if (lower.includes("ring")) return "Rings";
-    if (lower.includes("earring")) return "Earrings";
-    if (lower.includes("necklace") || lower.includes("jewel-set")) return "Necklaces";
-    if (lower.includes("bracelet") || lower.includes("handcuff")) return "Bracelets";
     if (lower.includes("big") || lower.includes("plus")) return "Big Sizes Style";
     if (lower.includes("dress")) return "Dress Gallery";
     if (lower.includes("everyday")) return "Everyday";
@@ -185,28 +185,23 @@ function mapProductsToArrivals(products: Product[]) {
     categoryGroups[bucket].push(p);
   });
 
-  // Pick exactly 1 product from each category group (shuffled for fresh arrivals)
+  // Pick 1 product from each unique category first
   const result: Product[] = [];
   const usedIds = new Set<string>();
 
-  // Desired category sequence for rich variety across different categories
   const categoryOrder = [
     "Co-Ords",
     "Shirts Stories",
-    "Top Style",
     "Desi Collections",
     "Bag Affairs",
     "Earrings",
     "Necklaces",
-    "Brands Studio",
     "Bracelets",
     "Rings",
-    "Big Sizes Style",
-    "Dress Gallery",
-    "Everyday"
+    "Brands Studio"
   ];
 
-  // Pick 1 from each in order
+  // Pick 1 from each distinct category
   for (const cat of categoryOrder) {
     const items = categoryGroups[cat];
     if (items && items.length > 0) {
@@ -219,13 +214,14 @@ function mapProductsToArrivals(products: Product[]) {
     }
   }
 
-  // Any remaining categories not in categoryOrder
-  for (const [catName, items] of Object.entries(categoryGroups)) {
-    if (!categoryOrder.includes(catName)) {
-      const chosen = items.find(it => !usedIds.has(it.id));
-      if (chosen) {
-        result.push(chosen);
-        usedIds.add(chosen.id);
+  // If we need more items to fill the carousel with at least 10 cards, pick additional fresh items
+  if (result.length < 10) {
+    const remainingProducts = [...products].sort(() => Math.random() - 0.5);
+    for (const p of remainingProducts) {
+      if (result.length >= 10) break;
+      if (!usedIds.has(p.id)) {
+        result.push(p);
+        usedIds.add(p.id);
       }
     }
   }
